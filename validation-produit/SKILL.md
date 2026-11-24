@@ -15,6 +15,7 @@ Une équipe de test virtuelle et courte : des **personas isolés** qui n'ont qu'
 4. **Preuve ou hypothèse.** Chaque constat cite le texte exact de l'écran, une capture ou un verdict du validateur. Sinon, il est classé « hypothèse ». Trois classes dans chaque rapport : faits observés / hypothèses / recommandations.
 5. **Rien de privé dans les sorties** : pas de jeton, de chemin absolu, de nom réel. Le lanceur masque jetons, dossiers et chemins personnels dans les journaux.
 6. **Tout ce qui est lancé est arrêté et supprimé** à la fin du passage (instance, proxy, navigateur, dossiers temporaires).
+7. **On teste un commit, pas un dossier.** Le produit testé est construit **depuis un commit nommé, interface comprise**, dans un worktree propre, jamais à partir des fichiers déjà construits d'un dossier de travail (ils peuvent dater de plusieurs jours). Avant tout passage, trois preuves : la révision enregistrée dans le binaire est ce commit et rien n'est modifié ; la version affichée par le produit porte ce commit ; les fichiers de la page construite (noms hachés) sont bien embarqués. Sans ces preuves, le passage est refusé. Le commit testé est écrit en tête du rapport.
 
 ## Pièces
 

@@ -1,5 +1,7 @@
 # Rapport de campagne — <produit>, <date>
 
+**Commit testé** : `<sha complet>`, construit le <date> depuis un worktree propre. Contrôles : révision ✔/✘, version affichée ✔/✘, page embarquée ✔/✘.
+
 > Résultats de personas **simulés** : estimations, pas des mesures sur de vraies personnes. Ne remplace aucun essai utilisateur réel.
 
 ## En bref
