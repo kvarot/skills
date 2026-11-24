@@ -15,4 +15,4 @@ Copier son dossier dans `~/.claude/skills/<nom>/` (skills personnelles) ou `.cla
 
 - Rien de personnel ni de sensible : aucun nom de projet privé, chemin de machine, adresse, jeton, nom de serveur.
 - Pas de code repris d'autres projets sans licence qui le permette ; les idées empruntées sont citées dans la skill concernée.
-- Licence : aucune pour l'instant, tous droits réservés.
+- Licence : tous droits réservés (voir [`LICENSE`](LICENSE)). Lecture libre ; toute réutilisation demande un accord écrit.
