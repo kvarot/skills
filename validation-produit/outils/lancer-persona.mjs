@@ -14,6 +14,8 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync, readdirSync } from 
 import path from 'node:path'
 import os from 'node:os'
 import { fileURLToPath } from 'node:url'
+import { lirePersona } from './persona.mjs'
+import { analyser } from './analyser-journal.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const args = {}
@@ -33,9 +35,28 @@ if (readdirSync(dir).length) { console.error('--dossier must be empty'); process
 const conf = dir + '.conf'
 mkdirSync(conf, { recursive: true })
 
+// The persona card decides viewport, tools (keyboard-only removes pointer tools) and the
+// patience budget; all three are enforced (MCP flags, allow-list, hook), not requested.
+const persona = lirePersona(args.persona)
+const reglages = persona.reglages
 const S = 'mcp__navigateur__'
-const tools = ['navigate_page', 'take_snapshot', 'click', 'fill', 'fill_form', 'hover', 'press_key',
-  'type_text', 'wait_for', 'take_screenshot', 'list_pages', 'select_page', 'handle_dialog'].map((t) => S + t)
+const tools = reglages.outils.map((t) => S + t)
+
+// Contamination check: the journey must state a user goal, not the way through the product.
+// Only the goal part is checked; a "## Réponse" section (answer format) may name fields.
+const parcoursBrut = readFileSync(args.parcours, 'utf8')
+const objectif = parcoursBrut.split(/^## Réponse/m)[0]
+const fuites = []
+if (/#\/|\/api\/|`/.test(objectif.replaceAll('{URL}', ''))) fuites.push('chemin interne, route ou code dans le parcours')
+if (args.interdits) {
+  const termes = readFileSync(args.interdits, 'utf8').split(/\r?\n/).map((x) => x.trim()).filter((x) => x && !x.startsWith('#'))
+  const bas = (objectif + '\n' + persona.corps + '\n' + JSON.stringify(persona.meta)).toLowerCase()
+  for (const t of termes) if (bas.includes(t.toLowerCase())) fuites.push('terme interne : ' + t)
+}
+if (fuites.length) {
+  console.error('REFUS : le parcours ou la fiche donnent des indices internes au persona :\n- ' + fuites.join('\n- '))
+  process.exit(2)
+}
 
 const mcp = {
   mcpServers: {
@@ -46,7 +67,7 @@ const mcp = {
         '--fileNavigations=false', '--javascriptEvaluation=false',
         '--categoryMemory=false', '--categoryNetwork=false', '--categoryPerformance=false',
         '--categoryEmulation=false', '--usageStatistics=false', '--performanceCrux=false',
-        `--allowedUrlPattern=${origin}/*`, '--filesystemRoot', dir, '--viewport', '1280x900'],
+        `--allowedUrlPattern=${origin}/*`, '--filesystemRoot', dir, '--viewport', reglages.viewport],
       env: { CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS: '1', CHROME_DEVTOOLS_MCP_NO_UPDATE_CHECKS: '1', CHROME_DEVTOOLS_MCP_NO_CONFIG_DISCOVERY: '1' },
     },
   },
@@ -61,8 +82,15 @@ writeFileSync(path.join(conf, 'mcp.json'), JSON.stringify(mcp, null, 1))
 writeFileSync(path.join(conf, 'settings.json'), JSON.stringify(settings, null, 1))
 
 const regles = readFileSync(path.join(here, '..', 'modeles', 'regles-persona.md'), 'utf8')
-const system = regles + '\n\n' + readFileSync(args.persona, 'utf8')
-const task = readFileSync(args.parcours, 'utf8').replaceAll('{URL}', args.url)
+const fiche = Object.entries(persona.meta).filter(([k]) => !['id', 'role'].includes(k))
+  .map(([k, v]) => `- ${k} : ${typeof v === 'object' ? JSON.stringify(v) : v}`).join('\n')
+// role "temoin" = control group for skill evaluation: same isolation, no persona, no rules.
+const system = persona.meta.role === 'temoin'
+  ? 'Tu es un assistant qui dispose d’un navigateur. ' + persona.corps
+  : `${regles}\n\n# Ta fiche\n\n${fiche}\n\n${persona.corps}\n\n` +
+    `Conditions imposées par le banc (tu ne peux pas les changer) : écran ${reglages.viewport}, ` +
+    `${reglages.budget_actions} interactions au plus. ${reglages.notes.join('. ')}`
+const task = parcoursBrut.replaceAll('{URL}', args.url)
 
 const cli = ['-p', '--model', args.modele || 'sonnet', '--tools', '', '--strict-mcp-config',
   '--mcp-config', path.join(conf, 'mcp.json'), '--setting-sources', '', '--settings', path.join(conf, 'settings.json'),
@@ -70,7 +98,8 @@ const cli = ['-p', '--model', args.modele || 'sonnet', '--tools', '', '--strict-
   '--max-budget-usd', args['budget-usd'] || '3', '--system-prompt', system,
   '--output-format', 'stream-json', '--verbose', task]
 
-const env = { ...process.env, GARDE_ORIGINE: origin, GARDE_OUTILS: tools.join(','), CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS: '1' }
+const env = { ...process.env, GARDE_ORIGINE: origin, GARDE_OUTILS: tools.join(','), CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS: '1',
+  GARDE_COMPTEUR: path.join(conf, 'compteur'), GARDE_MAX_ACTIONS: String(reglages.budget_actions) }
 const t0 = Date.now()
 const child = spawn('claude', cli, { cwd: dir, env, stdio: ['ignore', 'pipe', 'pipe'], shell: false })
 let out = ''
@@ -110,6 +139,10 @@ child.on('exit', (code) => {
   }
   m.actions = Object.values(m.appels).reduce((a, b) => a + b, 0)
   writeFileSync(path.join(dir, 'resultat.md'), result || '(pas de réponse finale)\n' + err.slice(-2000))
+  m.persona = persona.meta.id
+  m.reglages_imposes = reglages
   writeFileSync(path.join(dir, 'mesures.json'), JSON.stringify(m, null, 1))
+  // Deterministic analysis: behaviour metrics, citation check, step lines (analyse.json).
+  try { analyser(dir) } catch (e) { writeFileSync(path.join(dir, 'analyse-erreur.txt'), String(e.message)) }
   console.log(JSON.stringify(m))
 })

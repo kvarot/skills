@@ -30,6 +30,20 @@ try:
     if url is not None:
         if url != "about:blank" and not (url == origin or url.startswith(origin + "/") or url.startswith(origin + "?") or url.startswith(origin + "#")):
             refuse("seule l'adresse du produit testé est permise")
+    # Patience budget: interactions (not observations) are counted; past the budget the
+    # persona is told to stop. Enforced here, never left to the model's goodwill.
+    counter = os.environ.get("GARDE_COMPTEUR")
+    limit = int(os.environ.get("GARDE_MAX_ACTIONS", "0") or 0)
+    observe = {"take_snapshot", "take_screenshot", "list_pages", "wait_for"}
+    if counter and limit and tool.split("__")[-1] not in observe:
+        n = 0
+        if os.path.exists(counter):
+            with open(counter, encoding="utf-8") as fh:
+                n = int(fh.read().strip() or 0)
+        if n >= limit:
+            refuse("LIMITE DE PATIENCE ATTEINTE (%d actions) : arrête-toi maintenant et donne ta réponse finale" % limit)
+        with open(counter, "w", encoding="utf-8") as fh:
+            fh.write(str(n + 1))
     for key in ("filePath", "filePaths", "outputDirPath", "sourcePath"):
         v = ti.get(key)
         if v is None:

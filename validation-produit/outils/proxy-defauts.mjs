@@ -92,10 +92,12 @@ http.createServer(async (req, res) => {
     const type = String(up.headers['content-type'] || '')
     const ms = masquer.filter((x) => x.re.test(path))
     const rs = remplacer.filter((x) => x.re.test(path))
-    if (ms.length && type.includes('json')) {
-      let j = JSON.parse(out.toString('utf8'))
-      for (const m of ms) j = prune(j, m.txt)
-      out = Buffer.from(JSON.stringify(j))
+    if (ms.length && (type.includes('json') || /^\s*[[{]/.test(out.toString('utf8', 0, 64)))) {
+      try {
+        let j = JSON.parse(out.toString('utf8'))
+        for (const m of ms) j = prune(j, m.txt)
+        out = Buffer.from(JSON.stringify(j))
+      } catch { /* not JSON after all: leave untouched */ }
     }
     if (rs.length) {
       let s = out.toString('utf8')

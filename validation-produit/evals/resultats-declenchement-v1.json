@@ -1,0 +1,134 @@
+{
+ "skill": "validation-produit",
+ "modele": "sonnet",
+ "runs": 1,
+ "date": "2026-11-24T17:42:29.117Z",
+ "summary": {
+  "total": 20,
+  "reussis": 18,
+  "rappel": 0.8,
+  "faux_declenchements": 0
+ },
+ "results": [
+  {
+   "query": "Fais tester mon appli web par trois profils d'utilisateurs différents et dis-moi où ils bloquent",
+   "should_trigger": true,
+   "trigger_rate": 1,
+   "pass": true
+  },
+  {
+   "query": "Est-ce qu'un vrai débutant arriverait à créer son premier projet dans notre outil sans aide ? Simule-le sur l'instance de démo",
+   "should_trigger": true,
+   "trigger_rate": 1,
+   "pass": true
+  },
+  {
+   "query": "Lance une campagne de validation produit sur la version de démo avant la release de vendredi",
+   "should_trigger": true,
+   "trigger_rate": 1,
+   "pass": true
+  },
+  {
+   "query": "Je veux savoir si une personne qui navigue au clavier seul peut finir le parcours d'inscription de mon site de test",
+   "should_trigger": true,
+   "trigger_rate": 0,
+   "pass": false
+  },
+  {
+   "query": "Simule des personas qui découvrent l'interface sans lire le code et fais un rapport consolidé des frictions",
+   "should_trigger": true,
+   "trigger_rate": 1,
+   "pass": true
+  },
+  {
+   "query": "Valide ce parcours utilisateur avant la mise en production : un débutant, un expert, et vérifie que ce qui est affiché comme fait l'est vraiment",
+   "should_trigger": true,
+   "trigger_rate": 1,
+   "pass": true
+  },
+  {
+   "query": "Organise un test utilisateur simulé du tableau de bord sur notre environnement local",
+   "should_trigger": true,
+   "trigger_rate": 1,
+   "pass": true
+  },
+  {
+   "query": "Compare comment un comptable et un développeur comprennent l'écran de paramétrage de notre appli",
+   "should_trigger": true,
+   "trigger_rate": 0,
+   "pass": false
+  },
+  {
+   "query": "Prouve que notre banc de test détecte bien un faux succès en semant des défauts sur l'instance jetable",
+   "should_trigger": true,
+   "trigger_rate": 1,
+   "pass": true
+  },
+  {
+   "query": "Refais la campagne de validation de la semaine dernière sur la nouvelle version et dis ce qui a changé",
+   "should_trigger": true,
+   "trigger_rate": 1,
+   "pass": true
+  },
+  {
+   "query": "Écris des tests unitaires pour la fonction qui calcule la TVA",
+   "should_trigger": false,
+   "trigger_rate": 0,
+   "pass": true
+  },
+  {
+   "query": "Corrige le test Playwright qui échoue dans le fichier login.spec.ts",
+   "should_trigger": false,
+   "trigger_rate": 0,
+   "pass": true
+  },
+  {
+   "query": "Fais une revue de code de ma pull request",
+   "should_trigger": false,
+   "trigger_rate": 0,
+   "pass": true
+  },
+  {
+   "query": "Propose un design plus moderne pour la page d'accueil",
+   "should_trigger": false,
+   "trigger_rate": 0,
+   "pass": true
+  },
+  {
+   "query": "Lance la suite e2e existante et dis-moi si elle passe",
+   "should_trigger": false,
+   "trigger_rate": 0,
+   "pass": true
+  },
+  {
+   "query": "Rédige un questionnaire pour interviewer de vrais utilisateurs la semaine prochaine",
+   "should_trigger": false,
+   "trigger_rate": 0,
+   "pass": true
+  },
+  {
+   "query": "Explique-moi ce qu'est le critère WCAG 2.4.7",
+   "should_trigger": false,
+   "trigger_rate": 0,
+   "pass": true
+  },
+  {
+   "query": "Analyse les logs du serveur de production pour trouver l'erreur 500",
+   "should_trigger": false,
+   "trigger_rate": 0,
+   "pass": true
+  },
+  {
+   "query": "Crée une persona marketing pour notre campagne publicitaire",
+   "should_trigger": false,
+   "trigger_rate": 0,
+   "pass": true
+  },
+  {
+   "query": "Mesure le temps de chargement de la page d'accueil avec Lighthouse",
+   "should_trigger": false,
+   "trigger_rate": 0,
+   "pass": true
+  }
+ ]
+}

@@ -1,22 +1,30 @@
 # Rapport de campagne — <produit>, <date>
 
 **Commit testé** : `<sha complet>`, construit le <date> depuis un worktree propre. Contrôles : révision ✔/✘, version affichée ✔/✘, page embarquée ✔/✘.
+**Mode** : <mode> · **Personas** : <liste> · **Essais par persona** : <k> · **Coût** : <$ équivalent API, tokens, durée>
 
-> Résultats de personas **simulés** : estimations, pas des mesures sur de vraies personnes. Ne remplace aucun essai utilisateur réel.
+> Résultats de **personas simulés** : réussites, temps et ressentis sont déclarés ou estimés. Ce n'est pas une étude auprès de vraies personnes et ça n'en remplace aucune.
 
 ## En bref
 - Verdict : continuer / corriger d'abord / arrêter.
-- Défauts semés : détectés X / 3 (par qui).
-- Fausses alertes (passage propre) : N.
-- Coût réel : tokens, durée, part du forfait.
+- Défauts semés : détectés X / N (validateur, personas).
+- Fausses alertes du passage propre : N (rejouées).
+- Citations retrouvées : X / Y.
+
+## Obstacles communs (vus par 2 personas ou plus)
+| Id | Gravité | Fréquence | Confiance | Statut arbitre | Constat | Preuve | Recommandation |
+
+## Obstacles propres à un profil
+| Persona | Id | Constat | Preuve |
+
+## Comportement par persona (mesuré / déclaré / estimé)
+| Persona | Objectif (déclaré) | Interactions (mesuré) | Retours / revisites | Aide | Étapes superflues | Durée technique (mesurée) | Temps humain (estimé) |
+
+## Les 8 vérifications (déclarées, preuves vérifiées)
+| Vérification | persona 1 | persona 2 | … |
 
 ## Défauts semés
-| Défaut | Détecté par persona ? | Détecté par validateur ? | Preuve |
+| Défaut | Personas | Validateur | Arbitre |
 
-## Constats réels (passage propre)
-| P | Constat | Fait / hypothèse | Personas | Preuve (citation exacte ou capture) | Recommandation |
-
-## Par persona
-Objectif atteint (simulé), réponse à la question du parcours, frictions, confiance, verdicts du validateur, mesures (actions, refus de la garde, durée, tokens).
-
-## Limites de cette campagne
+## Ce qui n'a pas été testé ou pas émulé
+## Limites (rappel `references/limites.md`)
