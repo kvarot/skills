@@ -3,15 +3,16 @@
   "seo",
   "seo-profil",
   "seo-technique",
-  "seo-donnees-structurees"
+  "seo-donnees-structurees",
+  "seo-contenu"
  ],
  "modele": "sonnet",
  "runs": 1,
- "date": "2026-11-25T18:21:32.390Z",
+ "date": "2026-11-25T18:31:05.634Z",
  "summary": {
-  "total": 32,
-  "cas": 32,
-  "reussis": 32,
+  "total": 36,
+  "cas": 36,
+  "reussis": 36,
   "rappel": 1,
   "precision": 1,
   "faux_declenchements": 0,
@@ -22,6 +23,11 @@
   "par_skill": {
    "seo": {
     "cas": 7,
+    "rappel": 1,
+    "precision": 1
+   },
+   "seo-contenu": {
+    "cas": 4,
     "rappel": 1,
     "precision": 1
    },
@@ -310,12 +316,68 @@
    "pass": true
   },
   {
+   "query": "Réécris les meta descriptions de mes pages",
+   "skill_attendu": "seo-contenu",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-contenu"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-contenu",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Rewrite the page titles and image alt texts so the pages rank better",
+   "skill_attendu": "seo-contenu",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-contenu"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-contenu",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Mes liens disent tous « en savoir plus » et la page des soins n'a que trois lignes : reformule les ancres et étoffe le texte",
+   "skill_attendu": "seo-contenu",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-contenu"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-contenu",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Our clinic pages have weak copy for search: write better titles, meta descriptions and headline wording for each page",
+   "skill_attendu": "seo-contenu",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-contenu"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-contenu",
+   "taux": 1,
+   "pass": true
+  },
+  {
    "query": "Lance une campagne Google Ads pour mon cabinet de kiné avec un budget de 300 € par mois",
    "skill_attendu": null,
    "essais": [
     {
      "statut": "ok",
-     "appel": "Skill superpowers:brainstorming"
+     "appel": null
     }
    ],
    "statut": "ok",
@@ -483,7 +545,7 @@
    "essais": [
     {
      "statut": "ok",
-     "appel": "Skill chrome-devtools-mcp:debug-optimize-lcp"
+     "appel": "Bash"
     }
    ],
    "statut": "ok",

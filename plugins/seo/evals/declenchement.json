@@ -22,6 +22,8 @@
   {"query": "Mark up our practitioners' bios with schema.org Person entities so search engines understand who works at the clinic", "skill_attendu": "seo-donnees-structurees"},
   {"query": "Réécris les meta descriptions de mes pages", "skill_attendu": "seo-contenu"},
   {"query": "Rewrite the page titles and image alt texts so the pages rank better", "skill_attendu": "seo-contenu"},
+  {"query": "Mes liens disent tous « en savoir plus » et la page des soins n'a que trois lignes : reformule les ancres et étoffe le texte", "skill_attendu": "seo-contenu"},
+  {"query": "Our clinic pages have weak copy for search: write better titles, meta descriptions and headline wording for each page", "skill_attendu": "seo-contenu"},
   {"query": "Vérifie sur le rendu réel que les corrections SEO d'hier sont bien en place", "skill_attendu": "seo-verification"},
   {"query": "Check with Lighthouse that the SEO fixes actually show up in the rendered HTML", "skill_attendu": "seo-verification"},
 
