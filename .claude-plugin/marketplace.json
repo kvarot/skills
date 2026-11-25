@@ -1,0 +1,11 @@
+{
+  "name": "kvarot-skills",
+  "owner": { "name": "kvarot" },
+  "plugins": [
+    {
+      "name": "seo",
+      "source": "./plugins/seo",
+      "description": "Audit SEO et GEO d'un site, avec outils déterministes et plan d'actions priorisé."
+    }
+  ]
+}

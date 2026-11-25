@@ -1,0 +1,7 @@
+{
+  "name": "seo",
+  "version": "0.1.0",
+  "description": "Audit SEO et GEO d'un site, avec outils déterministes et plan d'actions priorisé.",
+  "author": { "name": "kvarot" },
+  "license": "MIT"
+}
