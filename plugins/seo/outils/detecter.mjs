@@ -49,7 +49,7 @@ function phpHtml(dir, php) {
   const incs = new Map()
   for (const f of php) {
     const t = lire(dir, f)
-    if (/<html|<head/i.test(t)) directs.add(f)
+    if (/<html\b|<head\b/i.test(t)) directs.add(f)
     const cibles = []
     for (const m of t.matchAll(/\b(?:include|require)(?:_once)?\b[^;]*?['"]([^'"]+\.php)['"]/g)) {
       const r = resoudre(m[1], f, php)
@@ -76,7 +76,7 @@ export function detecter(dir) {
   try { pkg = JSON.parse(lire(dir, 'package.json')) } catch { /* no usable package.json */ }
   const indexRacine = lire(dir, 'index.html')
   const aVue = !!pkg && !!(pkg.dependencies?.vue || pkg.devDependencies?.vue)
-  if (aVue && /<(\w+)\b[^>]*\bid\s*=\s*["']app["'][^>]*>\s*<\/\1>/i.test(indexRacine)) {
+  if (aVue && /<(\w+)\b[^>]*\bid\s*=\s*["']app["'][^>]*>(?:\s|<!--[\s\S]*?-->)*<\/\1>/i.test(indexRacine)) {
     const routeur = fichiers.filter((f) => /\.(js|ts)$/.test(f) && (/(^|\/)router(\/|\.)/.test(f) || /(^|\/)main\.(js|ts)$/.test(f)))
     return stack('vue-spa', 'client', ['package.json', 'index.html', ...routeur], ['index.html'], ['dépendance vue dans package.json', 'index.html racine avec conteneur vide id="app" (rendu côté navigateur)'])
   }
@@ -84,7 +84,7 @@ export function detecter(dir) {
   // Rule 2: Twig templates.
   const twig = de('.twig')
   if (twig.length) {
-    const base = twig.filter((f) => /\{%-?\s*block\s+(title|meta)|<html|<head/i.test(lire(dir, f)) || /(^|\/)(base|layout)[^/]*$/i.test(f))
+    const base = twig.filter((f) => /\{%-?\s*block\s+(title|meta)|<html\b|<head\b/i.test(lire(dir, f)) || /(^|\/)(base|layout)[^/]*$/i.test(f))
     return stack('twig', 'serveur', base.length ? base : twig, twig, [`${twig.length} gabarit(s) .twig`])
   }
 

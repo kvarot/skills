@@ -45,7 +45,8 @@ URL, puis route (fichier de routes, attributs ou annotations du contrôleur), pu
 ## 5. Pièges connus
 
 - Bloc `title` non surchargé : toutes les pages partagent le title de la base.
-- Bloc défini dans l'enfant hors de tout bloc parent : ignoré silencieusement.
+- Bloc d'un enfant sans bloc de même nom dans le parent : jamais rendu, sans erreur.
+- `app.locale` est propre à Symfony : hors de ce framework, la locale vient d'une variable passée par le contrôleur.
 - Clé de traduction manquante : la clé brute s'affiche à la place du texte.
 - `lang` fixe alors que la page est traduite.
 - Canonical construit à partir de l'URI de la requête : il inclut les paramètres ; préférer une URL de référence explicite.
