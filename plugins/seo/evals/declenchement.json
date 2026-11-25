@@ -1,0 +1,34 @@
+[
+  {"query": "Fais un audit SEO de mon site et dis-moi ce qu'il faut corriger en priorité", "skill_attendu": "seo"},
+  {"query": "Mon site n'apparaît pas sur Google, tu peux regarder dans le code pourquoi ?", "skill_attendu": "seo"},
+  {"query": "Améliore le référencement naturel de ce projet PHP", "skill_attendu": "seo"},
+  {"query": "Prépare le site pour le référencement avant la mise en ligne de lundi", "skill_attendu": "seo"},
+  {"query": "Optimise le site du cabinet pour Google et pour les moteurs de réponse IA (GEO)", "skill_attendu": "seo"},
+  {"query": "Run an SEO audit on this repo and fix the issues directly in the templates", "skill_attendu": "seo"},
+  {"query": "Is my Vue app indexable by search engines? Check it and propose fixes", "skill_attendu": "seo"},
+
+  {"query": "Crée le profil SEO de ce site (public, offre, ton) avant qu'on rédige quoi que ce soit", "skill_attendu": "seo-profil"},
+  {"query": "Mets à jour le profil SEO du projet : le public a changé, on vise maintenant les sportifs", "skill_attendu": "seo-profil"},
+  {"query": "Définis avec moi le ton, le public et les mots-clés cibles du site pour le référencement", "skill_attendu": "seo-profil"},
+  {"query": "Update the SEO profile of this project: the site is now also published in English", "skill_attendu": "seo-profil"},
+
+  {"query": "Génère un sitemap.xml et un robots.txt corrects pour ce site", "skill_attendu": "seo-technique"},
+  {"query": "Fix the canonical and hreflang tags in my Twig base layout", "skill_attendu": "seo-technique"},
+  {"query": "Ajoute le schema.org de mon cabinet", "skill_attendu": "seo-donnees-structurees"},
+  {"query": "Add JSON-LD LocalBusiness structured data to the homepage", "skill_attendu": "seo-donnees-structurees"},
+  {"query": "Réécris les meta descriptions de mes pages", "skill_attendu": "seo-contenu"},
+  {"query": "Rewrite the page titles and image alt texts so the pages rank better", "skill_attendu": "seo-contenu"},
+  {"query": "Vérifie sur le rendu réel que les corrections SEO d'hier sont bien en place", "skill_attendu": "seo-verification"},
+  {"query": "Check with Lighthouse that the SEO fixes actually show up in the rendered HTML", "skill_attendu": "seo-verification"},
+
+  {"query": "Lance une campagne Google Ads pour mon cabinet de kiné avec un budget de 300 € par mois", "skill_attendu": null},
+  {"query": "Trouve-moi des sites où acheter des backlinks pour faire du netlinking", "skill_attendu": null},
+  {"query": "Mon API REST est lente, la route /patients met 4 secondes à répondre", "skill_attendu": null},
+  {"query": "Écris un test unitaire PHPUnit pour la classe Facture", "skill_attendu": null},
+  {"query": "Fais une refonte graphique de la page d'accueil, plus moderne, avec une nouvelle palette", "skill_attendu": null},
+  {"query": "Corrige l'erreur 500 du formulaire de contact en production", "skill_attendu": null},
+  {"query": "Écris un post LinkedIn pour annoncer l'ouverture de mon cabinet", "skill_attendu": null},
+  {"query": "Set up a Google Ads campaign for my dental clinic", "skill_attendu": null},
+  {"query": "Write a Playwright end-to-end test for the login page", "skill_attendu": null},
+  {"query": "The buttons on my site fail colour contrast checks, fix the CSS", "skill_attendu": null}
+]
