@@ -382,8 +382,8 @@ if (collecterUrl) {
       ok(s.langues.includes('fr') && s.indices.some((i) => i.includes('vue')), 'détection : vue-spa langues et indices')
       s = detecter(creer({ 'package.json': '{"dependencies":{"vue":"^3"}}', 'index.html': '<div id="app"></div>', 'index.twig': '<html lang="fr"></html>' }))
       ok(s.stack === 'vue-spa', 'détection : règle 1 prioritaire sur twig')
-      for (const corps of ['<!--' + '-'.repeat(50000), '<!-- ' + '<!-- '.repeat(20000), '<a '.repeat(100000)]) {
-        const dPath = creer({ 'package.json': '{"dependencies":{"vue":"^3"}}', 'index.html': '<div id="app">' + corps })
+      for (const corps of ['<div id="app">' + '<!--' + '-'.repeat(50000), '<div id="app">' + '<!-- ' + '<!-- '.repeat(20000), '<div id="app">' + '<a '.repeat(100000), 'id="app" '.repeat(60000), '<a id="app"><!-- '.repeat(30000), '<a id="app"> '.repeat(40000)]) {
+        const dPath = creer({ 'package.json': '{"dependencies":{"vue":"^3"}}', 'index.html': corps })
         const t0 = Date.now()
         s = detecter(dPath)
         ok(Date.now() - t0 < 200 && typeof s.stack === 'string' && s.stack !== 'vue-spa', 'détection : entrée pathologique (commentaire non fermé) rapide et non vide')

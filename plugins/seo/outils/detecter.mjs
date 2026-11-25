@@ -68,16 +68,31 @@ function phpHtml(dir, php) {
 const MAX_HTML = 512 * 1024
 
 // True when the html holds an element with id="app" whose content is empty (whitespace and comments only).
-// Linear scans only: the id is located first, then one anchored regex whose comment match has a single way to succeed.
+// Bounded work: at most MAX_CANDIDATS id matches, tag search windows of FENETRE chars, and a single forward
+// pass over whitespace and comments that stops at the first other character.
+const MAX_CANDIDATS = 20
+const FENETRE = 2048
 function conteneurVide(html) {
   const h = html.slice(0, MAX_HTML)
+  let vus = 0
   for (const m of h.matchAll(/\bid\s*=\s*["']app["']/gi)) {
-    const debut = h.lastIndexOf('<', m.index)
-    const fin = h.indexOf('>', m.index)
-    if (debut < 0 || fin < 0 || h.slice(debut, m.index).includes('>')) continue
-    const nom = /^<(\w+)/.exec(h.slice(debut, debut + 40))
+    if (++vus > MAX_CANDIDATS) break
+    const avant = h.slice(Math.max(0, m.index - FENETRE), m.index)
+    const debut = avant.lastIndexOf('<')
+    if (debut < 0 || avant.indexOf('>', debut) >= 0) continue
+    const nom = /^<(\w+)/.exec(avant.slice(debut, debut + 40))
     if (!nom) continue
-    if (new RegExp('^(?:\\s|<!--(?:(?!-->)[\\s\\S])*-->)*</' + nom[1] + '>', 'i').test(h.slice(fin + 1))) return true
+    const fin = h.slice(m.index, m.index + FENETRE).indexOf('>')
+    if (fin < 0) continue
+    let pos = m.index + fin + 1
+    for (;;) {
+      while (pos < h.length && /\s/.test(h[pos])) pos++
+      if (!h.startsWith('<!--', pos)) break
+      const close = h.indexOf('-->', pos + 4)
+      if (close < 0) { pos = -1; break }
+      pos = close + 3
+    }
+    if (pos >= 0 && h.slice(pos, pos + nom[1].length + 3).toLowerCase() === '</' + nom[1].toLowerCase() + '>') return true
   }
   return false
 }
