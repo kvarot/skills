@@ -1,0 +1,48 @@
+{
+  "langue": "fr",
+  "rendu_local": "dossier",
+  "racine_rendu": "dist",
+  "defauts": [
+    {
+      "controle": "T-SPA-HTML-VIDE",
+      "fichier_source": "index.html",
+      "verif_apres": {
+        "type": "controle"
+      }
+    },
+    {
+      "controle": "T-DESC-ABSENT",
+      "fichier_source": "index.html",
+      "verif_apres": {
+        "type": "controle"
+      }
+    },
+    {
+      "controle": "T-TITLE-DOUBLON",
+      "fichier_source": "src/router.js",
+      "verif_apres": {
+        "type": "motif",
+        "fichier": "src/router.js",
+        "present": "meta:\\s*\\{\\s*title"
+      }
+    },
+    {
+      "controle": "T-TITLE-DOUBLON",
+      "fichier_source": "src/router.js",
+      "verif_apres": {
+        "type": "motif",
+        "fichier": "src",
+        "present": "document\\.title"
+      }
+    },
+    {
+      "controle": "T-SPA-HTML-VIDE",
+      "fichier_source": "package.json",
+      "verif_apres": {
+        "type": "motif",
+        "fichier": "package.json",
+        "absent": "vite-ssg|nuxt|@vue/server-renderer"
+      }
+    }
+  ]
+}

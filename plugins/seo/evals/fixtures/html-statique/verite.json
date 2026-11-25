@@ -1,0 +1,62 @@
+{
+  "langue": "fr",
+  "rendu_local": "dossier",
+  "defauts": [
+    {
+      "controle": "T-TITLE-DOUBLON",
+      "fichier_source": "soins.html",
+      "verif_apres": {
+        "type": "controle"
+      }
+    },
+    {
+      "controle": "T-DESC-ABSENT",
+      "fichier_source": "contact.html",
+      "verif_apres": {
+        "type": "controle"
+      }
+    },
+    {
+      "controle": "T-H1-MULTIPLE",
+      "fichier_source": "index.html",
+      "verif_apres": {
+        "type": "controle"
+      }
+    },
+    {
+      "controle": "T-ALT-ABSENT",
+      "fichier_source": "soins.html",
+      "verif_apres": {
+        "type": "controle"
+      }
+    },
+    {
+      "controle": "T-SITEMAP-ABSENT",
+      "fichier_source": "sitemap.xml",
+      "verif_apres": {
+        "type": "controle"
+      }
+    },
+    {
+      "controle": "T-CANONICAL-ABSENT",
+      "fichier_source": "index.html",
+      "verif_apres": {
+        "type": "controle"
+      }
+    },
+    {
+      "controle": "T-JSONLD-INTERDIT",
+      "fichier_source": "index.html",
+      "verif_apres": {
+        "type": "controle"
+      }
+    },
+    {
+      "controle": "C-ANCRE-GENERIQUE",
+      "fichier_source": "index.html",
+      "verif_apres": {
+        "type": "controle"
+      }
+    }
+  ]
+}

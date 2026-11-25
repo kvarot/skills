@@ -1,0 +1,16 @@
+<template>
+  <main>
+    <h1>Nos soins de kinésithérapie</h1>
+    <h2>Les douleurs du dos et du cou</h2>
+    <p>Lombalgies, cervicalgies, torticolis ou douleurs entre les omoplates : ces gênes très courantes ont des causes variées. Après un bilan, nous associons des techniques manuelles pour détendre les tissus et des exercices ciblés pour renforcer les muscles qui soutiennent la colonne. Nous vous donnons aussi des conseils sur les postures, le sommeil et l’organisation du poste de travail.</p>
+    <h2>La rééducation après un traumatisme ou une opération</h2>
+    <p>Après une entorse, une fracture, une chirurgie de l’épaule, du genou ou de la hanche, la rééducation aide à retrouver l’amplitude des mouvements, la force et la confiance dans l’articulation. Le programme suit les consignes du chirurgien et progresse par étapes, au rythme de la cicatrisation.</p>
+    <h2>L’équilibre et la prévention des chutes</h2>
+    <p>Avec l’âge, ou après une période d’inactivité, l’équilibre peut devenir moins sûr. Nous proposons des exercices simples de marche, de transferts et de renforcement, adaptés à chacun, ainsi que des conseils pour sécuriser le domicile. L’objectif est de garder son autonomie le plus longtemps possible.</p>
+    <h2>La préparation à l’effort et la reprise du sport</h2>
+    <p>Pour reprendre une activité physique sans se blesser, un programme progressif de renforcement, d’étirements et de gestes techniques est construit avec vous. Nous tenons compte de votre sport, de votre niveau et de vos objectifs, et nous vous aidons à repérer les signes qui demandent de ralentir.</p>
+    <h2>Le déroulement d’une séance</h2>
+    <p>Chaque séance dure le temps nécessaire pour échanger, réaliser les soins et revoir les exercices à faire chez vous. Nous vous expliquons ce que nous faisons et pourquoi, et nous restons attentifs à votre ressenti. Si une technique vous gêne, nous en changeons.</p>
+    <p>Les soins sont réalisés sur prescription médicale lorsque la réglementation l’exige. Pensez à apporter votre ordonnance, vos examens d’imagerie et la liste de vos traitements en cours, afin que le bilan soit le plus complet possible.</p>
+  </main>
+</template>

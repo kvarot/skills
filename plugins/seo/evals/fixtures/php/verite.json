@@ -1,0 +1,64 @@
+{
+  "langue": "fr",
+  "rendu_local": "php-s",
+  "defauts": [
+    {
+      "controle": "T-TITLE-DOUBLON",
+      "fichier_source": "inc/header.php",
+      "verif_apres": {
+        "type": "motif",
+        "fichier": "index.php",
+        "present": "seo_meta\\(",
+        "absent": "<title"
+      }
+    },
+    {
+      "controle": "T-TITLE-DOUBLON",
+      "fichier_source": "inc/header.php",
+      "verif_apres": {
+        "type": "motif",
+        "fichier": "soins.php",
+        "present": "seo_meta\\(",
+        "absent": "<title"
+      }
+    },
+    {
+      "controle": "T-TITLE-DOUBLON",
+      "fichier_source": "inc/header.php",
+      "verif_apres": {
+        "type": "motif",
+        "fichier": "contact.php",
+        "present": "seo_meta\\(",
+        "absent": "<title"
+      }
+    },
+    {
+      "controle": "T-TITLE-DOUBLON",
+      "fichier_source": "inc/header.php",
+      "verif_apres": {
+        "type": "controle"
+      }
+    },
+    {
+      "controle": "T-LANG-ABSENT",
+      "fichier_source": "inc/header.php",
+      "verif_apres": {
+        "type": "controle"
+      }
+    },
+    {
+      "controle": "T-ROBOTSTXT-BLOQUE-TOUT",
+      "fichier_source": "robots.txt",
+      "verif_apres": {
+        "type": "controle"
+      }
+    },
+    {
+      "controle": "T-HN-SAUT",
+      "fichier_source": "soins.php",
+      "verif_apres": {
+        "type": "controle"
+      }
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Physio{% endblock %}</title>
+</head>
+<body>
+  <nav>
+    <a href="/">Home</a>
+    <a href="/treatments">Treatments</a>
+    <a href="/contact">Contact</a>
+  </nav>
+  <main>
+{% block content %}{% endblock %}
+  </main>
+  <footer><p>Example Physio Clinic, 3 Example Street, London, EX1 1AA. Telephone 020 7946 0000.</p></footer>
+</body>
+</html>

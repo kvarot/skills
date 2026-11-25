@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /privé/
+
+Sitemap: https://cabinet-exemple.test/sitemap.xml

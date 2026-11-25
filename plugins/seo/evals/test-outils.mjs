@@ -507,5 +507,102 @@ if (collecterUrl) {
   }
 }
 
+// 7. Fixtures: seeded defects must be found by the tools; the clean fixture must raise nothing serious.
+{
+  const { detecter } = await import('../outils/detecter.mjs')
+  const { createServer: createNet } = await import('node:net')
+  const { spawn } = await import('node:child_process')
+  const fx = path.join(here, 'fixtures')
+  const NOMS = ['html-statique', 'php', 'twig', 'vue-spa', 'propre']
+  const STACKS = { 'html-statique': 'html-statique', php: 'php', twig: 'twig', 'vue-spa': 'vue-spa', propre: 'html-statique' }
+  const GRAVES = new Set(['bloquant', 'important'])
+  const ids = (cs) => new Set(cs.map((c) => c.controle))
+  const verites = {}
+  for (const n of NOMS) verites[n] = json(path.join(fx, n, 'verite.json'))
+
+  // Static validation of every verite.json (shape, motif entries, regexes).
+  for (const n of NOMS) {
+    const v = verites[n]
+    ok(v !== null, `fixture ${n} : verite.json lisible`)
+    if (!v) continue
+    const catalogue = new Set((CATALOGUE ?? []).map((c) => c.id))
+    ok(['fr', 'en'].includes(v.langue) && ['dossier', 'php-s', 'aucun'].includes(v.rendu_local) && Array.isArray(v.defauts), `fixture ${n} : champs langue, rendu_local, defauts`)
+    ok(v.racine_rendu === undefined || (typeof v.racine_rendu === 'string' && existsSync(path.join(fx, n, v.racine_rendu))), `fixture ${n} : racine_rendu existante`)
+    let bien = true
+    const problemes = []
+    for (const d of v.defauts ?? []) {
+      const t = d.verif_apres?.type
+      if (!catalogue.has(d.controle)) problemes.push('contrôle inconnu ' + d.controle)
+      if (typeof d.fichier_source !== 'string' || !d.fichier_source) problemes.push('fichier_source manquant (' + d.controle + ')')
+      if (t === 'motif') {
+        const m = d.verif_apres
+        if (typeof m.fichier !== 'string' || !existsSync(path.join(fx, n, m.fichier))) problemes.push('motif : fichier introuvable ' + m.fichier)
+        if (m.present === undefined && m.absent === undefined) problemes.push('motif sans present ni absent (' + d.controle + ')')
+        for (const k of ['present', 'absent']) if (m[k] !== undefined) { try { new RegExp(m[k], 'im') } catch { problemes.push('regex invalide ' + m[k]) } }
+      } else if (t !== 'controle') problemes.push('type de vérification inconnu (' + d.controle + ')')
+    }
+    bien = problemes.length === 0
+    ok(bien, `fixture ${n} : défauts bien formés` + (bien ? '' : ' — ' + problemes.join(' ; ')))
+    if (n === 'twig') ok(v.rendu_local === 'aucun' && v.pays === 'GB' && v.defauts.every((d) => d.verif_apres.type === 'motif'), 'fixture twig : en, GB, code seul, vérifs par motif')
+    if (n === 'propre') ok(v.defauts.length === 0, 'fixture propre : aucun défaut semé')
+  }
+
+  // Stack detection.
+  for (const n of NOMS) {
+    let s = null
+    try { s = detecter(path.join(fx, n)) } catch (e) { s = { stack: 'erreur ' + e.message } }
+    ok(s.stack === STACKS[n], `fixture ${n} : detecter → ${STACKS[n]} (obtenu ${s.stack})`)
+  }
+
+  // Seeded `controle` defects found; no other serious finding.
+  const verifier = (n, constats, source) => {
+    const v = verites[n]
+    if (!v) return
+    const semes = [...new Set(v.defauts.filter((d) => d.verif_apres.type === 'controle').map((d) => d.controle))]
+    const trouves = ids(constats)
+    const manquants = semes.filter((i) => !trouves.has(i))
+    ok(manquants.length === 0, `fixture ${n} (${source}) : chaque défaut semé est trouvé` + (manquants.length ? ' — manquants : ' + manquants.join(', ') : ''))
+    const en_trop = constats.filter((c) => GRAVES.has(c.severite) && !semes.includes(c.controle)).map((c) => c.controle)
+    ok(en_trop.length === 0, `fixture ${n} (${source}) : aucun constat bloquant/important hors défauts semés` + (en_trop.length ? ' — en trop : ' + en_trop.join(', ') : ''))
+    const mineurs = [...trouves].filter((i) => !semes.includes(i) && !en_trop.includes(i))
+    console.log(`     mineurs en plus (${n}) : ${mineurs.join(', ') || 'aucun'}`)
+  }
+  if (controler && collecterDossier) {
+    for (const n of NOMS.filter((x) => verites[x]?.rendu_local === 'dossier')) {
+      let cs = null
+      try {
+        const { pages, site } = collecterDossier(path.join(fx, n, verites[n].racine_rendu ?? '.'))
+        cs = controler(pages, site)
+      } catch (e) { ok(false, `fixture ${n} : collecte du dossier — ${e.message}`) }
+      if (cs) verifier(n, cs, 'dossier')
+    }
+    // The clean fixture is stricter: every page has at least 300 visible words.
+    try {
+      const { pages } = collecterDossier(path.join(fx, 'propre'))
+      ok(pages.length === 3 && pages.every((p) => p.mots >= 300), 'fixture propre : 3 pages de 300 mots visibles ou plus (' + pages.map((p) => p.mots).join('/') + ')')
+    } catch (e) { ok(false, 'fixture propre : pages — ' + e.message) }
+  }
+
+  // php: served by the PHP built-in server, crawled over HTTP.
+  const phpOk = spawnSync('php', ['-v'], { encoding: 'utf8' })
+  if (phpOk.error || phpOk.status !== 0) ok(true, 'fixture php : php absent du PATH, rendu par php -S ignoré')
+  else if (collecterUrl && controler && verites.php) {
+    const port = await new Promise((resolve) => { const s = createNet(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => resolve(p)) }) })
+    const proc = spawn('php', ['-S', `127.0.0.1:${port}`, '-t', path.join(fx, 'php')], { stdio: 'ignore' })
+    try {
+      let pret = false
+      for (let i = 0; i < 50 && !pret; i++) {
+        try { pret = (await fetch(`http://127.0.0.1:${port}/robots.txt`)).status === 200 } catch { await new Promise((r) => setTimeout(r, 100)) }
+      }
+      ok(pret, 'fixture php : php -S répond')
+      if (pret) {
+        const r = await collecterUrl(`http://127.0.0.1:${port}/`, { delaiMs: 0, maxPages: 10 })
+        ok(r.pages.length === 3, 'fixture php : 3 pages collectées via HTTP (' + r.pages.length + ')')
+        verifier('php', controler(r.pages, r.site), 'php -S')
+      }
+    } catch (e) { ok(false, 'fixture php : collecte HTTP — ' + e.message) } finally { proc.kill() }
+  }
+}
+
 console.log(ko ? `\n${ko} KO` : '\ntout est ok')
 process.exit(ko ? 1 : 0)

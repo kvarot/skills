@@ -1,0 +1,52 @@
+{
+  "langue": "en",
+  "pays": "GB",
+  "rendu_local": "aucun",
+  "defauts": [
+    {
+      "controle": "T-TITLE-DOUBLON",
+      "fichier_source": "templates/base.html.twig",
+      "verif_apres": {
+        "type": "motif",
+        "fichier": "templates/home.html.twig",
+        "present": "\\{%-?\\s*block\\s+title"
+      }
+    },
+    {
+      "controle": "T-TITLE-DOUBLON",
+      "fichier_source": "templates/base.html.twig",
+      "verif_apres": {
+        "type": "motif",
+        "fichier": "templates/treatments.html.twig",
+        "present": "\\{%-?\\s*block\\s+title"
+      }
+    },
+    {
+      "controle": "T-TITLE-DOUBLON",
+      "fichier_source": "templates/base.html.twig",
+      "verif_apres": {
+        "type": "motif",
+        "fichier": "templates/contact.html.twig",
+        "present": "\\{%-?\\s*block\\s+title"
+      }
+    },
+    {
+      "controle": "T-DESC-ABSENT",
+      "fichier_source": "templates/base.html.twig",
+      "verif_apres": {
+        "type": "motif",
+        "fichier": "templates/base.html.twig",
+        "present": "name=\"description\""
+      }
+    },
+    {
+      "controle": "T-OG-ABSENT",
+      "fichier_source": "templates/base.html.twig",
+      "verif_apres": {
+        "type": "motif",
+        "fichier": "templates/base.html.twig",
+        "present": "og:title"
+      }
+    }
+  ]
+}
