@@ -215,5 +215,101 @@ if (controler) {
   }
 }
 
+// 4. Collection: local folder, URL crawl (in-process http server), robots.txt, CLI.
+let collecterDossier = null, collecterUrl = null, lireRobots = null
+try { ({ collecterDossier, collecterUrl, lireRobots } = await import('../outils/collecter.mjs')) } catch (e) { ok(false, 'collecte : module chargeable — ' + e.message) }
+if (collecterUrl) {
+  const { createServer } = await import('node:http')
+  const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const { spawnSync } = await import('node:child_process')
+  const page = (titre, liens) => `<!DOCTYPE html><html lang="fr"><head><title>${titre}</title></head><body><h1>${titre}</h1>${liens.map((l) => `<a href="${l}">lien</a>`).join('')}</body></html>`
+  const routes = {
+    '/': page('Accueil', ['/a', '/b', '/prive/x', 'https://externe.invalid/z', '/doc.pdf', 'mailto:a@b.c', '#haut', '/a#frag']),
+    '/a': page('A', ['/c', '/']),
+    '/b': page('B', ['/']),
+    '/c': page('C', ['/']),
+    '/prive/x': page('Prive', []),
+  }
+  const vus = []
+  const srv = createServer((req, res) => {
+    vus.push(req.url)
+    if (req.url === '/robots.txt') { res.setHeader('content-type', 'text/plain'); return res.end('User-agent: *\nDisallow: /prive/\n') }
+    if (routes[req.url]) { res.setHeader('content-type', 'text/html; charset=utf-8'); return res.end(routes[req.url]) }
+    res.statusCode = 404; res.end('nope')
+  })
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r))
+  const base = 'http://127.0.0.1:' + srv.address().port
+  const urls = (r) => r.pages.map((p) => new URL(p.url).pathname).sort()
+
+  // Robots parser.
+  const rb = lireRobots('User-agent: bot\nDisallow: /\n\nUser-agent: *\nDisallow: /x/\nAllow: /x/ok\nDisallow: /fin$\n')
+  ok(!rb.estAutorise('/x/y') && rb.estAutorise('/x/ok') && rb.estAutorise('/z') && !rb.estAutorise('/fin') && rb.estAutorise('/fin2'), 'robots : préfixe le plus long, groupe *')
+  ok(lireRobots('User-agent: *\nDisallow:\n').estAutorise('/a'), 'robots : Disallow vide autorise tout')
+
+  // Dev host: robots is read but not obeyed; BFS, external/pdf/mailto not followed.
+  vus.length = 0
+  let r = await collecterUrl(base + '/', { delaiMs: 0 })
+  ok(JSON.stringify(urls(r)) === JSON.stringify(['/', '/a', '/b', '/c', '/prive/x']), 'collecte URL : largeur, liens externes/pdf/mailto ignorés — ' + urls(r))
+  ok(r.pages.every((p) => p.url.startsWith(base)) && r.site.urlsConnues.length === 5 && r.site.origine === base, 'collecte URL : urls absolues, urlsConnues, origine')
+  ok(r.site.robotsTxt?.includes('Disallow: /prive/') && r.site.sitemapXml === null, 'collecte URL : robots lu, sitemap absent → null')
+  ok(vus.includes('/sitemap.xml') && !vus.some((u) => u.includes('#') || u.endsWith('.pdf')), 'collecte URL : sitemap demandé, pas de fragment ni pdf')
+  r = await collecterUrl(base + '/', { delaiMs: 0, maxPages: 2 })
+  ok(r.pages.length === 2, 'collecte URL : maxPages respecté')
+
+  // Delay applies between every request.
+  let t = Date.now()
+  r = await collecterUrl(base + '/', { delaiMs: 200, maxPages: 3 })
+  ok(r.pages.length === 3 && Date.now() - t >= 400, 'collecte URL : délai entre les requêtes (3 pages, 200 ms)')
+
+  // Non-dev host (R3): rejection without --autoriser-prod, no request at all.
+  vus.length = 0
+  let msg = null
+  try { await collecterUrl(base + '/', { delaiMs: 0, hotesDev: [], autoriserProd: false }) } catch (e) { msg = e.message }
+  ok(msg && msg.includes('--autoriser-prod') && vus.length === 0, 'collecte URL : hôte hors dev refusé sans --autoriser-prod, aucune requête')
+
+  // Non-dev host with consent: delay forced to 1000 ms, robots obeyed.
+  t = Date.now()
+  r = await collecterUrl(base + '/', { delaiMs: 0, hotesDev: [], autoriserProd: true, maxPages: 1 })
+  const duree = Date.now() - t
+  ok(duree >= 1900, 'collecte URL : délai forcé à 1000 ms hors dev (' + duree + ' ms pour 3 requêtes)')
+  vus.length = 0
+  r = await collecterUrl(base + '/', { delaiMs: 1000, hotesDev: [], autoriserProd: true })
+  ok(!vus.some((u) => u.startsWith('/prive')) && !urls(r).includes('/prive/x') && urls(r).length === 4, 'collecte URL : chemin Disallow jamais demandé hors dev')
+
+  // Errors.
+  msg = null
+  try { await collecterUrl(base + '/absent', { delaiMs: 0 }) } catch (e) { msg = e.message }
+  ok(msg !== null, 'collecte URL : page de départ en erreur → rejet')
+  await new Promise((r2) => srv.close(r2))
+  msg = null
+  try { await collecterUrl(base + '/', { delaiMs: 0 }) } catch (e) { msg = e.message }
+  ok(msg !== null, 'collecte URL : serveur injoignable → rejet')
+
+  // Local folder.
+  const dir = mkdtempSync(path.join(tmpdir(), 'seo-collecte-'))
+  try {
+    mkdirSync(path.join(dir, 'sous'))
+    writeFileSync(path.join(dir, 'index.html'), page('Accueil', ['/b.html']))
+    writeFileSync(path.join(dir, 'b.html'), page('B', ['/']))
+    writeFileSync(path.join(dir, 'sous', 'index.html'), page('Sous', []))
+    writeFileSync(path.join(dir, 'robots.txt'), 'User-agent: *\nDisallow:\n')
+    const d = collecterDossier(dir)
+    ok(JSON.stringify(d.pages.map((p) => p.url).sort()) === JSON.stringify(['/', '/b.html', '/sous/']), 'dossier : urls = chemins relatifs, index.html → /')
+    ok(d.site.robotsTxt?.includes('User-agent') && d.site.sitemapXml === null && d.site.urlsConnues.length === 3, 'dossier : robots lu, sitemap null, urlsConnues')
+    const cli = (...args) => spawnSync(process.execPath, [path.join(plugin, 'outils', 'seo.mjs'), ...args], { encoding: 'utf8' })
+    let c = cli('auditer', '--dossier', dir)
+    let sortie = null
+    try { sortie = JSON.parse(c.stdout) } catch { /* reported below */ }
+    ok(c.status === 0 && sortie && sortie.stack === null && Array.isArray(sortie.constats), 'CLI auditer --dossier : JSON { stack, constats }, code 0')
+    c = cli('auditer', '--dossier', path.join(dir, 'inexistant'))
+    ok(c.status !== 0 && c.stderr.trim().length > 0, 'CLI auditer : dossier inexistant → code ≠ 0, message sur stderr')
+    c = cli('auditer')
+    ok(c.status !== 0 && c.stderr.length > 0, 'CLI auditer : sans cible → usage sur stderr')
+    c = cli('inconnue')
+    ok(c.status === 2 && c.stderr.length > 0, 'CLI : commande inconnue → usage, code 2')
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+}
+
 console.log(ko ? `\n${ko} KO` : '\ntout est ok')
 process.exit(ko ? 1 : 0)
