@@ -22,7 +22,7 @@ Outils : `node <base du skill>/../../outils/seo.mjs <commande>` (`<base du skill
 
 ## Déroulé
 
-1. **Détecter et lire le profil.** `seo.mjs detecter <racine>`. Si `rendu` vaut `aucun` : répondre « non applicable » : aucune page publique détectée, ou stack non couverte en v1 (la nommer si elle est reconnaissable) ; s'arrêter. Lire `.claude/seo/profil.md` ; s'il manque, si `profil-valider` le refuse, ou s'il est périmé (stack, rendu ou langues différents de `detecter`, ou le développeur le dit), appeler `seo-profil`.
+1. **Détecter et lire le profil.** `seo.mjs detecter <racine>`. Si `rendu` vaut `aucun` : répondre « non applicable » : aucune page publique détectée, ou stack non couverte en v1 (la nommer si elle est reconnaissable) ; s'arrêter. Lire `.claude/seo/profil.md` ; s'il manque, si `profil-valider` le refuse, ou s'il est périmé (stack, rendu ou langues différents de `detecter`, ou le développeur le dit), appeler `seo-profil`. Si `secteur` vaut `sante` et `pays` vaut `FR`, signaler une fois par session, en deux ou trois phrases sans alarmisme : les textes de déontologie interdisent tout procédé visant un référencement prioritaire (art. R. 4321-123, II pour les masseurs-kinésithérapeutes ; commentaire du CNOM sur l'article 19-1 pour les médecins) ; leur portée pour le référencement naturel n'est pas tranchée par ces textes ; le praticien peut la vérifier auprès de son conseil départemental de l'ordre ; détail et sources dans `references/secteurs/sante.md`. Puis continuer.
 2. **Outils de la session.** Navigateur : outils MCP Chrome DevTools présents ou non. Search Console / Bing Webmaster : la proposer **seulement si un outil de connecteur est présent dans la session** ; ne rien interroger sans accord. Sinon n'en pas parler, tout fonctionne sans.
 3. **Auditer selon la stack** (lire `references/controles.md` et `references/stacks/<stack>.md`) :
    - `html-statique` : `auditer --dossier <racine>` ;
@@ -39,6 +39,6 @@ Outils : `node <base du skill>/../../outils/seo.mjs <commande>` (`<base du skill
 
    Ne rien écrire.
 5. **Le développeur choisit les lots.** Appeler le ou les skills du lot par leur nom. Chaque lot suit : diff + justification + avant/après des textes → validation → écriture → `seo-verification`.
-6. **Clore.** Ajouter le lot à `historique` du profil (date, lot, ids de contrôles), relancer `profil-valider`, puis résumer : **fait**, **vérifié** (et comment : navigateur, HTTP, ou code seul annoncé comme tel), **restant**.
+6. **Clore.** Ajouter le lot à `historique` du profil (date, lot, ids de contrôles) si ce lot de cette session n'y figure pas déjà, relancer `profil-valider`, puis résumer : **fait**, **vérifié** (et comment : navigateur, HTTP, ou code seul annoncé comme tel), **restant**.
 
 Les skills spécialisés sont appelables directement ; ils lisent le profil et passent par `seo-profil` s'il manque.

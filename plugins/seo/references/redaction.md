@@ -11,7 +11,7 @@ Un texte proposé ne contient que des faits **présents dans le projet** (templa
 | Interdit | Pièges courants |
 |---|---|
 | chiffre, nombre | « plus de … patients », « … ans d'expérience », « … séances suffisent » |
-| prix, tarif, remboursement | « à partir de … € », « pris en charge à 100 % » |
+| prix, tarif, remboursement | « à partir de … € », « pris en charge intégralement » |
 | durée | durée d'une séance, d'un traitement, délai de rendez-vous |
 | ancienneté | « depuis … », « fondé en … », « … ans d'expérience » |
 | résultat | taux de réussite, « soulagement rapide », « résultats garantis » |
@@ -64,7 +64,7 @@ Compter les caractères du texte **rendu** (entités décodées, variables rempl
 
 ## 7. Ancres de liens
 
-- L'ancre décrit la page cible : « Tarifs et remboursement », « Venir au cabinet », pas « cliquez ici ».
+- L'ancre décrit la page cible : « Venir au cabinet », pas « cliquez ici ».
 - Ancres génériques à remplacer (C-ANCRE-GENERIQUE) : « cliquez ici », « ici », « en savoir plus », « lire la suite », « click here », « here », « read more ».
 - Une même cible garde une ancre cohérente d'une page à l'autre ; pas la même ancre-mot-clé exacte sur tous les liens.
 
@@ -81,7 +81,7 @@ Compter les caractères du texte **rendu** (entités décodées, variables rempl
 
 ## 10. Contrôle avant présentation
 
-1. Chaque nombre du texte proposé est retrouvé dans le projet (fichier cité) ; sinon il est retiré et signalé.
+1. Chaque nombre du texte proposé est retrouvé dans un **fichier du projet** (fichier cité), pas seulement dans le profil ni dans la conversation ; sinon il est retiré et signalé.
 2. Aucun interdit du § 1, aucun terme de `termes_a_eviter`, règles du secteur respectées.
 3. Longueurs et unicité du § 5 vérifiées sur le texte rendu.
 4. Langue de chaque texte = langue de la page.
