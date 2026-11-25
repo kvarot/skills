@@ -59,7 +59,11 @@ function cibleInterne(href, page, origine) {
   if (!u || !/^https?:$/.test(u.protocol)) return null
   const interne = new Set([hote(base), origine ? resoudre(origine)?.host : null].filter(Boolean))
   const hu = hote(u)
-  if (hu !== null && interne.size > 0 && !interne.has(hu)) return null
+  // Without a known origin, any absolute link to a real host is external.
+  if (hu !== null && !interne.has(hu)) return null
+  // Non-page assets (pdf, images...) are not part of the page graph.
+  const ext = /\.([a-z0-9]+)$/i.exec(u.pathname.split("/").pop())
+  if (ext && !/^(html?|php)$/i.test(ext[1])) return null
   return chemin(u)
 }
 

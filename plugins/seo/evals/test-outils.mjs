@@ -174,6 +174,8 @@ if (controler) {
   a('T-IMG-DIMENSIONS', [bon('/', { images: [{ src: 'a.jpg', alt: 'x', width: '1', height: null }] })])
   a('T-LIEN-CASSE', [bon('/', { liens: [{ href: '/inconnue', texte: 'Page' }] })])
   vide([bon('/', { liens: [{ href: 'mailto:a@ex.test', texte: 'Mail' }, { href: 'tel:+33100000000', texte: 'Tel' }, { href: '#haut', texte: 'Haut' }, { href: 'javascript:void(0)', texte: 'x' }, { href: 'https://externe.test/x', texte: 'Ext' }, { href: '/#ancre', texte: 'Accueil' }] })], ABS, 'liens mailto/tel/ancre/js/externes ignorés')
+  vide([bon('/', { liens: [{ href: 'https://externe.test/x', texte: 'Ext' }, { href: 'https://www.google.com/', texte: 'G' }] })], site({ origine: undefined, sitemapXml: sitemapDe('/') }), 'liens externes absolus sans origine (mode dossier)')
+  vide([bon('/', { liens: [{ href: '/doc.pdf', texte: 'Plaquette' }, { href: '/img/x.png', texte: 'Image' }] })], ABS, 'liens vers fichiers non HTML ignorés')
   a('T-PAGE-ORPHELINE', [bon('/', { liens: [] }), bon('/seule')], site({ sitemapXml: sitemapDe('/', '/seule') }))
   vide([bon('/', { liens: [{ href: 'https://ex.test/seule', texte: 'Seule' }] }), bon('/seule', { liens: [{ href: '/', texte: 'Accueil' }] })], site({ sitemapXml: sitemapDe('/', '/seule') }), 'liens internes absolus/relatifs')
   a('T-SPA-HTML-VIDE', [bon('/', { corpsVide: true })])

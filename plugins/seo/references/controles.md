@@ -37,6 +37,8 @@ Ce tableau est vérifié par `evals/test-outils.mjs` : ses identifiants doivent 
 
 ## Notes de lecture
 
+- T-LIEN-CASSE ignore les liens externes (sans `origine` connue, tout lien absolu vers un hôte est externe) et les liens vers des fichiers non HTML (dernier segment avec une extension autre que html, htm, php, par exemple `/doc.pdf`).
+- T-PAGE-ORPHELINE exempte la page d'accueil `/`.
 - La comparaison entre sitemap et pages se fait sur le chemin (`pathname`) de l'URL.
 - Sans `origine` connue, T-CANONICAL-INVALIDE ne signale que les canonicals relatifs.
 - T-JSONLD-INTERDIT cherche `AggregateRating` et `Review` dans tout l'arbre JSON-LD (imbriqué, `@graph`, `@type` en tableau). Vocabulaire : https://schema.org/AggregateRating
