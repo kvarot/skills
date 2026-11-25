@@ -1,0 +1,32 @@
+---
+name: seo-donnees-structurees
+description: Use when schema.org structured data (JSON-LD) of a web project must be added, fixed or reviewed - LocalBusiness, MedicalBusiness / Physiotherapy, Organization, Person, WebSite, BreadcrumbList, FAQPage markup - or when an audit reports invalid JSON-LD or forbidden AggregateRating / Review. Also runs the donnees-structurees batch chosen in the seo entry skill. Triggers - "ajoute le schema.org de mon cabinet", "mets des données structurées sur la page d'accueil", "corrige le JSON-LD", "on peut avoir les étoiles dans Google ?", "add JSON-LD LocalBusiness structured data", "fix my schema markup". Not for meta tags, Open Graph, canonical or sitemap (seo-technique), writing page texts or FAQ wording (seo-contenu), a whole-site audit (seo), fake reviews or ratings.
+---
+
+# SEO : données structurées
+
+Ajoute ou corrige le **JSON-LD** schema.org du projet, à la source, avec des propriétés tirées du projet. Tout JSON-LD passe par ce skill. Les balises meta et Open Graph sont à `seo-technique` ; les textes (FAQ comprise) à `seo-contenu`.
+
+Outils : `node <base du skill>/../../outils/seo.mjs <commande>` (`<base du skill>` = dossier de base affiché au chargement de ce skill). Si Node manque, travailler en lisant le code et **le dire** dans le résumé.
+
+## Règles qui ne plient pas
+
+1. **Les règles du projet priment** (CLAUDE.md, conventions, style) : les lire avant tout.
+2. **Rien n'est écrit sans validation explicite du lot.** Avant, seuls `.claude/seo/profil.md`, `.claude/seo/audit.json` et `.claude/seo/contenus-a-saisir.md` peuvent être écrits. Ni build, ni installation, ni serveur lancé sans accord.
+3. **JSON-LD uniquement** (`<script type="application/ld+json">`) : ni microdonnées, ni RDFa.
+4. **Jamais `AggregateRating` ni `Review`** sans avis réels **visibles sur la page** et vérifiables. Pas de note, d'étoiles ni de nombre d'avis construits ou estimés. Une demande d'« étoiles dans Google » sans avis visibles est refusée, en expliquant pourquoi (données trompeuses, pénalisables). Un `AggregateRating` ou `Review` existant sans avis visibles (`T-JSONLD-INTERDIT`) est retiré.
+5. **Propriétés tirées du projet seulement.** Nom, adresse, téléphone, horaires, zone desservie, spécialité, URL, logo : seulement s'ils figurent dans le code (templates, pied de page, page contact, configuration) ou dans le profil, en citant le fichier. Tout le reste est **demandé**, jamais deviné ; une propriété inconnue est omise, pas remplie d'une valeur plausible. Ni prix, ni certification, ni diplôme, ni affiliation non présents dans le projet.
+6. **Fidèle à la page** : le JSON-LD décrit ce que la page montre ; rien qu'un visiteur ne puisse y voir (FAQ absente de la page, services non présentés).
+7. **Jamais d'écriture en base, dans un CMS distant ni en production** ; jamais de commit ni de push. Données en base ou CMS : `.claude/seo/contenus-a-saisir.md`.
+8. **Aucun nom de projet privé** dans ce que le skill produit pour d'autres projets.
+
+## Déroulé
+
+1. **Contexte.** Lire `.claude/seo/profil.md` ; s'il manque ou si `profil-valider` le refuse, appeler `seo-profil`. Lire `.claude/seo/audit.json` (constats `T-JSONLD-INVALIDE`, `T-JSONLD-INTERDIT`) ; s'il manque et que la demande porte sur plusieurs pages, appeler `seo` pour l'audit. Lire `references/stacks/<stack>.md`, et `references/secteurs/<secteur>.md` s'il existe.
+2. **Inventaire.** Chercher le JSON-LD déjà présent (templates, composants, helpers, scripts injectés), et les données du projet : coordonnées, horaires, liste des services, FAQ visibles, avis visibles. Noter pour chaque valeur le fichier d'où elle vient.
+3. **Choisir les types** selon la page et le secteur : la page d'accueil d'un cabinet ou d'une entreprise locale porte le type le plus précis qui s'applique (`references/secteurs/<secteur>.md` s'il existe ; sinon `LocalBusiness` ou un sous-type schema.org réel, `Organization` hors établissement physique) ; `WebSite` une fois sur l'accueil ; `BreadcrumbList` là où un fil d'Ariane est affiché ; `FAQPage` seulement sur une page qui affiche ces questions et réponses ; `Person` pour un praticien présenté sur la page. Un seul bloc cohérent par page (`@graph` si plusieurs entités, reliées par `@id`).
+4. **Localiser la source et réutiliser l'existant.** Placer le JSON-LD là où vivent les données (layout ou bloc Twig, en-tête PHP, fichier HTML, composant ou `index.html` pour une SPA), et le construire depuis les **variables existantes** du projet plutôt que de recopier les valeurs en dur quand le code les expose. Étendre un bloc existant plutôt qu'en ajouter un second. Encoder les valeurs dynamiques avec l'échappement JSON de la stack (`json_encode` en PHP, filtre `json_encode` en Twig, suivi de `raw` si l'échappement automatique est actif, `JSON.stringify` en JS).
+5. **Valider la syntaxe avant de présenter** : parser chaque bloc proposé (avec Node, `JSON.parse` sur le contenu ; pour un template, sur un rendu avec des valeurs d'exemple) ; contrôler `@context` `https://schema.org` et `@type` présents, et l'absence d'`AggregateRating` / `Review` hors avis visibles. Un bloc qui ne parse pas n'est pas présenté.
+6. **Présenter** le lot : diff par fichier, JSON-LD rendu en clair, source de chaque propriété (fichier ou profil), propriétés omises faute de donnée et **questions** au développeur pour les obtenir. **Attendre la validation explicite.**
+7. **Écrire** exactement ce qui a été validé, puis appeler `seo-verification` sur les pages du lot (données structurées extraites du rendu).
+8. **Clore.** Ajouter le lot `donnees-structurees` à `historique` du profil (date, lot, ids de contrôles traités) s'il n'y figure pas déjà, relancer `profil-valider`, résumer : **fait**, **vérifié** (et comment), **restant**.

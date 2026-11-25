@@ -1,15 +1,17 @@
 {
  "filtre": [
   "seo",
-  "seo-profil"
+  "seo-profil",
+  "seo-technique",
+  "seo-donnees-structurees"
  ],
  "modele": "sonnet",
  "runs": 1,
- "date": "2026-11-25T18:06:25.507Z",
+ "date": "2026-11-25T18:13:35.195Z",
  "summary": {
-  "total": 24,
-  "cas": 24,
-  "reussis": 24,
+  "total": 28,
+  "cas": 28,
+  "reussis": 28,
   "rappel": 1,
   "precision": 1,
   "faux_declenchements": 0,
@@ -23,8 +25,18 @@
     "rappel": 1,
     "precision": 1
    },
+   "seo-donnees-structurees": {
+    "cas": 2,
+    "rappel": 1,
+    "precision": 1
+   },
    "seo-profil": {
     "cas": 4,
+    "rappel": 1,
+    "precision": 1
+   },
+   "seo-technique": {
+    "cas": 2,
     "rappel": 1,
     "precision": 1
    }
@@ -186,12 +198,68 @@
    "pass": true
   },
   {
+   "query": "Génère un sitemap.xml et un robots.txt corrects pour ce site",
+   "skill_attendu": "seo-technique",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-technique"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-technique",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Fix the canonical and hreflang tags in my Twig base layout",
+   "skill_attendu": "seo-technique",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-technique"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-technique",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Ajoute le schema.org de mon cabinet",
+   "skill_attendu": "seo-donnees-structurees",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-donnees-structurees"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-donnees-structurees",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Add JSON-LD LocalBusiness structured data to the homepage",
+   "skill_attendu": "seo-donnees-structurees",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-donnees-structurees"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-donnees-structurees",
+   "taux": 1,
+   "pass": true
+  },
+  {
    "query": "Lance une campagne Google Ads pour mon cabinet de kiné avec un budget de 300 € par mois",
    "skill_attendu": null,
    "essais": [
     {
      "statut": "ok",
-     "appel": "Skill superpowers:brainstorming"
+     "appel": null
     }
    ],
    "statut": "ok",
