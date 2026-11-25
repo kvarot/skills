@@ -41,11 +41,23 @@ function essai(query) {
     const c = spawn('claude', ['-p', query, '--model', modele, '--plugin-dir', pluginDir, '--tools', 'Skill',
       '--strict-mcp-config', '--permission-prompts', 'none', '--no-session-persistence',
       '--output-format', 'stream-json', '--verbose'], { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] })
+    // statut: 'ok' (a tool call or a normal end was seen), 'timeout', or 'erreur' (spawn error,
+    // crash, or an error result). Only 'ok' trials are scored.
     let buf = ''
     let fini = false
     let observe = null
     let brut = null
-    const fin = (v, b) => { if (fini) return; fini = true; observe = v; brut = b; try { c.kill() } catch {} }
+    let statut = 'erreur'
+    const fin = (s, v, b) => { if (fini) return; fini = true; statut = s; observe = v; brut = b; try { c.kill() } catch {} }
+    let regle = false
+    const t = setTimeout(() => fin('timeout', null, 'timeout'), 120000)
+    const clore = (raison) => {
+      if (regle) return
+      regle = true
+      clearTimeout(t); fin('erreur', null, raison)
+      try { rmSync(cwd, { recursive: true, force: true }) } catch {}
+      resolve({ statut, observe, brut })
+    }
     c.stdout.on('data', (d) => {
       buf += d
       let k
@@ -55,32 +67,39 @@ function essai(query) {
         try { j = JSON.parse(line) } catch { continue }
         if (j.type === 'assistant') for (const b of j.message?.content || []) {
           // Only the tool and skill names are kept: other inputs may hold local paths.
-          if (b.type === 'tool_use') fin(b.name === 'Skill' ? skillSeo(b.input) : null, b.name === 'Skill' ? 'Skill ' + String(b.input?.skill ?? '') : b.name)
+          if (b.type === 'tool_use') fin('ok', b.name === 'Skill' ? skillSeo(b.input) : null, b.name === 'Skill' ? 'Skill ' + String(b.input?.skill ?? '') : b.name)
         }
-        if (j.type === 'result') fin(null, null)
+        if (j.type === 'result') {
+          if (j.is_error || (j.subtype && j.subtype !== 'success')) fin('erreur', null, 'result ' + (j.subtype || 'error'))
+          else fin('ok', null, null)
+        }
       }
     })
     c.stderr.on('data', () => {})
-    const t = setTimeout(() => fin(null, 'timeout'), 120000)
-    c.on('exit', () => {
-      clearTimeout(t); fin(null, null)
-      try { rmSync(cwd, { recursive: true, force: true }) } catch {}
-      resolve({ observe, brut })
-    })
+    c.on('error', (e) => clore('spawn ' + (e.code || e.message)))
+    c.on('close', (code) => clore('exit ' + code))
   })
 }
 
 async function evaluer(x) {
   const essais = []
   for (let r = 0; r < runs; r++) essais.push(await essai(x.query))
-  const bons = essais.filter((e) => e.observe === x.skill_attendu).length
+  const valides = essais.filter((e) => e.statut === 'ok')
+  const base = { query: x.query, skill_attendu: x.skill_attendu, essais: essais.map((e) => ({ statut: e.statut, appel: e.brut })) }
+  if (!valides.length) {
+    // No usable trial: the case is reported but left out of every score.
+    const statut = essais.some((e) => e.statut === 'timeout') ? 'timeout' : 'erreur'
+    console.error(`${statut.toUpperCase().padEnd(3)} ${String(x.skill_attendu).padEnd(24)} -> ${'?'.padEnd(24)} ${x.query.slice(0, 60)}`)
+    return { ...base, statut, observe: null, taux: null, pass: null }
+  }
+  const bons = valides.filter((e) => e.observe === x.skill_attendu).length
   // Majority observation, used for the precision count.
   const compte = {}
-  for (const e of essais) compte[e.observe] = (compte[e.observe] || 0) + 1
+  for (const e of valides) compte[e.observe] = (compte[e.observe] || 0) + 1
   const majoritaire = Object.entries(compte).sort((p, q) => q[1] - p[1])[0][0]
   const r = {
-    query: x.query, skill_attendu: x.skill_attendu, observe: majoritaire === 'null' ? null : majoritaire,
-    taux: bons / runs, pass: bons / runs >= 0.5, appels: essais.map((e) => e.brut),
+    ...base, statut: 'ok', observe: majoritaire === 'null' ? null : majoritaire,
+    taux: bons / valides.length, pass: bons / valides.length >= 0.5,
   }
   console.error(`${r.pass ? 'ok ' : 'KO '} ${String(x.skill_attendu).padEnd(24)} -> ${String(r.observe).padEnd(24)} ${x.query.slice(0, 60)}`)
   return r
@@ -93,6 +112,8 @@ await Promise.all(Array.from({ length: Math.min(parallele, cas.length) }, async 
 }))
 
 const ratio = (n, d) => (d ? Number((n / d).toFixed(3)) : null)
+const scores = res.filter((r) => r.statut === 'ok')
+const exclus = { erreur: res.filter((r) => r.statut === 'erreur').length, timeout: res.filter((r) => r.statut === 'timeout').length }
 function mesures(lignes) {
   const pos = lignes.filter((r) => r.skill_attendu !== null)
   const predits = lignes.filter((r) => r.observe !== null)
@@ -104,16 +125,17 @@ function mesures(lignes) {
   }
 }
 const parSkill = {}
-for (const s of [...new Set(res.map((r) => r.skill_attendu).concat(res.map((r) => r.observe)).filter(Boolean))].sort()) {
-  const attendus = res.filter((r) => r.skill_attendu === s)
-  const predits = res.filter((r) => r.observe === s)
+for (const s of [...new Set(scores.map((r) => r.skill_attendu).concat(scores.map((r) => r.observe)).filter(Boolean))].sort()) {
+  const attendus = scores.filter((r) => r.skill_attendu === s)
+  const predits = scores.filter((r) => r.observe === s)
   parSkill[s] = {
     cas: attendus.length,
     rappel: ratio(attendus.filter((r) => r.observe === s).length, attendus.length),
     precision: ratio(predits.filter((r) => r.skill_attendu === s).length, predits.length),
   }
 }
-const summary = { ...mesures(res), par_skill: parSkill }
+const summary = { total: res.length, ...mesures(scores), exclus, par_skill: parSkill }
 const out = { filtre, modele, runs, date: new Date().toISOString(), summary, results: res }
 writeFileSync(a.sortie ? path.resolve(a.sortie) : path.join(here, 'resultats-declenchement.json'), JSON.stringify(out, null, 1))
 console.log(JSON.stringify(summary, null, 1))
+if (exclus.erreur || exclus.timeout) process.exitCode = 1

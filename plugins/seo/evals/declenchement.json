@@ -30,5 +30,8 @@
   {"query": "Écris un post LinkedIn pour annoncer l'ouverture de mon cabinet", "skill_attendu": null},
   {"query": "Set up a Google Ads campaign for my dental clinic", "skill_attendu": null},
   {"query": "Write a Playwright end-to-end test for the login page", "skill_attendu": null},
-  {"query": "The buttons on my site fail colour contrast checks, fix the CSS", "skill_attendu": null}
+  {"query": "The buttons on my site fail colour contrast checks, fix the CSS", "skill_attendu": null},
+  {"query": "Mets en place un suivi hebdomadaire de mes positions Google sur mes dix mots-clés principaux", "skill_attendu": null},
+  {"query": "Analyse le SEO des sites de mes trois concurrents et dis-moi ce qu'ils font mieux que moi", "skill_attendu": null},
+  {"query": "My Lighthouse performance score is 42, make the page load faster", "skill_attendu": null}
 ]

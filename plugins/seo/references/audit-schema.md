@@ -8,8 +8,8 @@ Les deux fichiers sont écrits **uniquement** sous `.claude/seo/` du projet cibl
 { date, stack, constats: [ Constat & { fichier_source, correction_proposee } ] }
 ```
 
-- `date` : date ISO `AAAA-MM-JJ` de l'audit.
-- `stack` : le type Stack produit par `detecter` (ou `null` si non détecté).
+- `date` : date ISO `AAAA-MM-JJ` de l'audit, remplie par le skill.
+- `stack` : la chaîne `stack` du résultat de `detecter` (ex. `twig`), remplie par le skill ; `null` si non détectée. `auditer` renvoie toujours `stack: null`.
 - `constats` : un élément par problème constaté.
 
 Un **Constat** (produit par `auditer`) :
@@ -21,7 +21,7 @@ Un **Constat** (produit par `auditer`) :
 | `lot` | texte | lot de correction, ex. `meta`, `indexation`, `structure` |
 | `pages` | liste de textes | pages concernées (URL ou chemin) |
 | `preuve` | texte | ce qui a été observé, vérifiable |
-| `priorite` | nombre | rang de traitement, 1 = en premier |
+| `priorite` | nombre | poids de la sévérité (`bloquant` 3, `important` 2, `mineur` 1) × nombre de pages concernées ; la plus haute se traite en premier |
 
 Ajoutés par le skill, après lecture du code : `fichier_source` (fichier à modifier, relatif à la racine du projet) et `correction_proposee` (texte de la correction, issu de `controles.md` et adapté au projet).
 
@@ -38,7 +38,7 @@ Exemple :
       "lot": "meta",
       "pages": ["/soins-a-domicile"],
       "preuve": "aucune balise <title> dans la page",
-      "priorite": 1,
+      "priorite": 3,
       "fichier_source": "templates/soins.html.twig",
       "correction_proposee": "Ajouter un <title> unique et descriptif dans le <head>."
     }
