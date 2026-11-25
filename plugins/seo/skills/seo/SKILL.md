@@ -26,8 +26,8 @@ Outils : `node <base du skill>/../../outils/seo.mjs <commande>` (`<base du skill
 2. **Outils de la session.** Navigateur : outils MCP Chrome DevTools présents ou non. Search Console / Bing Webmaster : la proposer **seulement si un outil de connecteur est présent dans la session** ; ne rien interroger sans accord. Sinon n'en pas parler, tout fonctionne sans.
 3. **Auditer selon la stack** (lire `references/controles.md` et `references/stacks/<stack>.md`) :
    - `html-statique` : `auditer --dossier <racine>` ;
-   - `vue-spa` : `auditer --dossier dist` **seulement si `dist/` existe** ; sinon demander au développeur de construire ou de donner une URL de dev, **ne jamais construire soi-même** ;
-   - `php` : proposer `php -S 127.0.0.1:<port>` (ou l'URL de dev du projet) et, **avec accord**, `auditer --url` dessus ;
+   - `vue-spa` : `auditer --dossier <racine>/dist` **seulement si `<racine>/dist/` existe** (`<racine>` = racine du projet) ; sinon demander au développeur de construire ou de donner une URL de dev, **ne jamais construire soi-même** ;
+   - `php` : proposer `php -S 127.0.0.1:<port>` (ou l'URL de dev du projet) et, **avec accord**, le lancer en arrière-plan puis `auditer --url` dessus. **Arrêter ce serveur dès la fin de l'audit ou de la vérification, contrôler qu'il est bien arrêté** (le port ne répond plus), et le dire dans le résumé ;
    - `twig` : lecture du code contre le catalogue et `stacks/twig.md`, sauf si une URL de dev est donnée (`auditer --url`).
 
    Hôtes `localhost` / `127.0.0.1` seulement ; toute autre URL demande l'accord du développeur puis `--autoriser-prod`. **Toujours annoncer le niveau atteint** : dossier, URL, ou lecture seule du code. Pour chaque constat, retrouver le fichier source et la correction ; écrire `.claude/seo/audit.json` (`references/audit-schema.md`) avec `date` du jour et `stack` = chaîne `stack` de `detecter`. Au-delà de 10 templates ou types de page, répartir les templates sur des agents `auditeur-seo` en parallèle.
