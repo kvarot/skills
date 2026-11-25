@@ -6,6 +6,7 @@
     {
       "controle": "T-TITLE-DOUBLON",
       "fichier_source": "templates/base.html.twig",
+      "detection": "modele",
       "verif_apres": {
         "type": "motif",
         "fichier": "templates/home.html.twig",
@@ -15,6 +16,7 @@
     {
       "controle": "T-TITLE-DOUBLON",
       "fichier_source": "templates/base.html.twig",
+      "detection": "modele",
       "verif_apres": {
         "type": "motif",
         "fichier": "templates/treatments.html.twig",
@@ -24,6 +26,7 @@
     {
       "controle": "T-TITLE-DOUBLON",
       "fichier_source": "templates/base.html.twig",
+      "detection": "modele",
       "verif_apres": {
         "type": "motif",
         "fichier": "templates/contact.html.twig",
@@ -33,15 +36,17 @@
     {
       "controle": "T-DESC-ABSENT",
       "fichier_source": "templates/base.html.twig",
+      "detection": "modele",
       "verif_apres": {
         "type": "motif",
         "fichier": "templates/base.html.twig",
-        "present": "name=\"description\""
+        "present": "name=[\"']description"
       }
     },
     {
       "controle": "T-OG-ABSENT",
       "fichier_source": "templates/base.html.twig",
+      "detection": "modele",
       "verif_apres": {
         "type": "motif",
         "fichier": "templates/base.html.twig",

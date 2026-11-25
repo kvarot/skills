@@ -6,42 +6,50 @@
     {
       "controle": "T-SPA-HTML-VIDE",
       "fichier_source": "index.html",
+      "detection": "controle",
       "verif_apres": {
-        "type": "controle"
-      }
-    },
-    {
-      "controle": "T-DESC-ABSENT",
-      "fichier_source": "index.html",
-      "verif_apres": {
-        "type": "controle"
-      }
-    },
-    {
-      "controle": "T-TITLE-DOUBLON",
-      "fichier_source": "src/router.js",
-      "verif_apres": {
-        "type": "motif",
-        "fichier": "src/router.js",
-        "present": "meta:\\s*\\{\\s*title"
-      }
-    },
-    {
-      "controle": "T-TITLE-DOUBLON",
-      "fichier_source": "src/router.js",
-      "verif_apres": {
-        "type": "motif",
-        "fichier": "src",
-        "present": "document\\.title"
+        "type": "explication",
+        "motif_reponse": "pr[ée]-?rendu|prerender|SSR|rendu (c[ôo]t[ée] )?serveur"
       }
     },
     {
       "controle": "T-SPA-HTML-VIDE",
       "fichier_source": "package.json",
+      "detection": "controle",
       "verif_apres": {
         "type": "motif",
         "fichier": "package.json",
         "absent": "vite-ssg|nuxt|@vue/server-renderer"
+      }
+    },
+    {
+      "controle": "T-DESC-ABSENT",
+      "fichier_source": "index.html",
+      "detection": "controle",
+      "verif_apres": {
+        "type": "motif",
+        "fichier": "index.html",
+        "present": "<metas+name=[\"']description[\"']"
+      }
+    },
+    {
+      "controle": "T-TITLE-DOUBLON",
+      "fichier_source": "src/router.js",
+      "detection": "modele",
+      "verif_apres": {
+        "type": "motif",
+        "fichier": "src/router.js",
+        "present": "metas*:s*{[^}]*\btitle\b"
+      }
+    },
+    {
+      "controle": "T-TITLE-DOUBLON",
+      "fichier_source": "src/router.js",
+      "detection": "modele",
+      "verif_apres": {
+        "type": "motif",
+        "fichier": "src",
+        "present": "document.title"
       }
     }
   ]

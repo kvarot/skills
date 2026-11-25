@@ -534,16 +534,19 @@ if (collecterUrl) {
       const t = d.verif_apres?.type
       if (!catalogue.has(d.controle)) problemes.push('contrôle inconnu ' + d.controle)
       if (typeof d.fichier_source !== 'string' || !d.fichier_source) problemes.push('fichier_source manquant (' + d.controle + ')')
+      if (!['controle', 'modele'].includes(d.detection)) problemes.push('detection invalide (' + d.controle + ')')
       if (t === 'motif') {
         const m = d.verif_apres
         if (typeof m.fichier !== 'string' || !existsSync(path.join(fx, n, m.fichier))) problemes.push('motif : fichier introuvable ' + m.fichier)
         if (m.present === undefined && m.absent === undefined) problemes.push('motif sans present ni absent (' + d.controle + ')')
         for (const k of ['present', 'absent']) if (m[k] !== undefined) { try { new RegExp(m[k], 'im') } catch { problemes.push('regex invalide ' + m[k]) } }
+      } else if (t === 'explication') {
+        try { new RegExp(d.verif_apres.motif_reponse, 'im') } catch { problemes.push('motif_reponse invalide (' + d.controle + ')') }
       } else if (t !== 'controle') problemes.push('type de vérification inconnu (' + d.controle + ')')
     }
     bien = problemes.length === 0
     ok(bien, `fixture ${n} : défauts bien formés` + (bien ? '' : ' — ' + problemes.join(' ; ')))
-    if (n === 'twig') ok(v.rendu_local === 'aucun' && v.pays === 'GB' && v.defauts.every((d) => d.verif_apres.type === 'motif'), 'fixture twig : en, GB, code seul, vérifs par motif')
+    if (n === 'twig') ok(v.rendu_local === 'aucun' && v.pays === 'GB' && v.defauts.every((d) => d.verif_apres.type === 'motif' && d.detection === 'modele'), 'fixture twig : en, GB, code seul, vérifs par motif')
     if (n === 'propre') ok(v.defauts.length === 0, 'fixture propre : aucun défaut semé')
   }
 
@@ -558,7 +561,7 @@ if (collecterUrl) {
   const verifier = (n, constats, source) => {
     const v = verites[n]
     if (!v) return
-    const semes = [...new Set(v.defauts.filter((d) => d.verif_apres.type === 'controle').map((d) => d.controle))]
+    const semes = [...new Set(v.defauts.filter((d) => d.detection === 'controle').map((d) => d.controle))]
     const trouves = ids(constats)
     const manquants = semes.filter((i) => !trouves.has(i))
     ok(manquants.length === 0, `fixture ${n} (${source}) : chaque défaut semé est trouvé` + (manquants.length ? ' — manquants : ' + manquants.join(', ') : ''))

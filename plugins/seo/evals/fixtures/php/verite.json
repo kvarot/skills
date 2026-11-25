@@ -5,6 +5,7 @@
     {
       "controle": "T-TITLE-DOUBLON",
       "fichier_source": "inc/header.php",
+      "detection": "controle",
       "verif_apres": {
         "type": "motif",
         "fichier": "index.php",
@@ -15,6 +16,7 @@
     {
       "controle": "T-TITLE-DOUBLON",
       "fichier_source": "inc/header.php",
+      "detection": "controle",
       "verif_apres": {
         "type": "motif",
         "fichier": "soins.php",
@@ -25,6 +27,7 @@
     {
       "controle": "T-TITLE-DOUBLON",
       "fichier_source": "inc/header.php",
+      "detection": "controle",
       "verif_apres": {
         "type": "motif",
         "fichier": "contact.php",
@@ -33,15 +36,9 @@
       }
     },
     {
-      "controle": "T-TITLE-DOUBLON",
-      "fichier_source": "inc/header.php",
-      "verif_apres": {
-        "type": "controle"
-      }
-    },
-    {
       "controle": "T-LANG-ABSENT",
       "fichier_source": "inc/header.php",
+      "detection": "controle",
       "verif_apres": {
         "type": "controle"
       }
@@ -49,6 +46,7 @@
     {
       "controle": "T-ROBOTSTXT-BLOQUE-TOUT",
       "fichier_source": "robots.txt",
+      "detection": "controle",
       "verif_apres": {
         "type": "controle"
       }
@@ -56,6 +54,7 @@
     {
       "controle": "T-HN-SAUT",
       "fichier_source": "soins.php",
+      "detection": "controle",
       "verif_apres": {
         "type": "controle"
       }
