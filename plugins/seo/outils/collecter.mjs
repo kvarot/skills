@@ -89,39 +89,91 @@ export async function collecterUrl(url, { maxPages = 50, delaiMs = 1000, autoris
   if (!dev && !autoriserProd) throw new Error(`Hôte hors développement (${depart.hostname}) : lecture refusée sans --autoriser-prod`)
   if (!dev) delaiMs = Math.max(delaiMs, DELAI_PROD_MIN)
 
+  const MAX_CORPS = 5 * 1024 * 1024, MAX_SAUTS = 5
   let derniere = 0, premiere = true
-  const demander = async (cible) => {
+  let robots = null
+  const permis = (u) => { if (!robots) return true; const p = new URL(u); return robots.estAutorise(p.pathname + p.search) }
+  const erreurs = []
+
+  // One polite request (delay applied), no automatic redirect.
+  const requete = async (cible) => {
     if (!premiere) { const attente = derniere + delaiMs - Date.now(); if (attente > 0) await pause(attente) }
     premiere = false
     const ctl = new AbortController()
     const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS)
     try {
-      const res = await fetch(cible, { headers: { 'user-agent': UA, accept: 'text/html,*/*' }, signal: ctl.signal, redirect: 'follow' })
-      const ctype = res.headers.get('content-type') ?? ''
-      const corps = res.status === 200 ? await res.text() : (await res.arrayBuffer(), null)
-      return { status: res.status, ctype, corps, url: res.url || cible }
+      return await fetch(cible, { headers: { 'user-agent': UA, accept: 'text/html,*/*' }, signal: ctl.signal, redirect: 'manual' })
     } finally { clearTimeout(timer); derniere = Date.now() }
   }
-  const fichier = async (chemin) => {
-    try { const r = await demander(new URL(chemin, depart.origin).href); return r.status === 200 ? r.corps : null } catch { return null }
+  // Read the body with a size cap; null if larger.
+  const lireCorps = async (res) => {
+    if (Number(res.headers.get('content-length') ?? 0) > MAX_CORPS) { await res.body?.cancel(); return null }
+    const morceaux = []; let total = 0
+    for await (const m of res.body ?? []) {
+      total += m.length
+      if (total > MAX_CORPS) { await res.body.cancel(); return null }
+      morceaux.push(m)
+    }
+    return Buffer.concat(morceaux).toString('utf8')
+  }
+  // Fetch following same-host redirects only (<= 5 hops). Returns { statut, ctype, corps, url, raison? }.
+  // `statut` is the HTTP status, or 0 when the response is not usable (see `raison`).
+  const demander = async (depuis, { html }) => {
+    let cible = depuis
+    for (let saut = 0; saut <= MAX_SAUTS; saut++) {
+      const res = await requete(cible)
+      if (res.status >= 300 && res.status < 400 && res.headers.get('location')) {
+        await res.body?.cancel()
+        let suite
+        try { suite = new URL(res.headers.get('location'), cible) } catch { return { statut: 0, url: cible, raison: 'redirection invalide' } }
+        if (suite.host !== depart.host) return { statut: 0, url: cible, raison: 'redirection vers un autre hôte (' + suite.host + ')' }
+        suite.hash = ''
+        if (!permis(suite.href)) return { statut: 0, url: cible, raison: 'redirection vers un chemin interdit par robots.txt' }
+        cible = suite.href
+        continue
+      }
+      const ctype = res.headers.get('content-type') ?? ''
+      if (res.status !== 200) { await res.body?.cancel(); return { statut: res.status, ctype, corps: null, url: cible } }
+      if (html && !/text\/html/i.test(ctype)) { await res.body?.cancel(); return { statut: 200, ctype, corps: null, url: cible, raison: 'type de contenu non HTML' } }
+      const corps = await lireCorps(res)
+      if (corps === null) return { statut: 0, url: cible, raison: 'corps de plus de 5 Mo' }
+      return { statut: 200, ctype, corps, url: cible }
+    }
+    return { statut: 0, url: cible, raison: 'trop de redirections' }
   }
 
-  const robotsTxt = await fichier('/robots.txt')
-  const robots = !dev && robotsTxt !== null ? lireRobots(robotsTxt) : null
-  const permis = (u) => { if (!robots) return true; const p = new URL(u); return robots.estAutorise(p.pathname + p.search) }
+  // robots.txt: off dev hosts, 5xx or network error means disallow-all (RFC 9309); 4xx means allow-all.
+  let robotsTxt = null
+  try {
+    const r = await demander(new URL('/robots.txt', depart.origin).href, { html: false })
+    if (r.statut === 200) robotsTxt = r.corps
+    else if (!dev && (r.statut >= 500 || (r.statut === 0 && r.raison))) {
+      robots = { estAutorise: () => false }
+      erreurs.push({ url: r.url, erreur: 'robots.txt inaccessible (' + (r.statut || r.raison) + ') : exploration interdite' })
+    }
+  } catch (e) {
+    if (!dev) { robots = { estAutorise: () => false }; erreurs.push({ url: '/robots.txt', erreur: 'robots.txt inaccessible (' + e.message + ') : exploration interdite' }) }
+  }
+  if (!dev && robotsTxt !== null) robots = lireRobots(robotsTxt)
 
   const premiereUrl = normaliser(depart.href, depart.href) ?? depart.href
-  if (!permis(premiereUrl)) throw new Error('Page de départ interdite par robots.txt : ' + url)
-  const file = [premiereUrl], vues = new Set(file), pages = [], erreurs = []
+  if (!permis(premiereUrl)) throw new Error('Page de départ interdite par robots.txt (ou robots.txt inaccessible) : ' + url)
+  const file = [premiereUrl], vues = new Set(file), pages = []
   while (file.length && pages.length < maxPages) {
     const cible = file.shift()
+    const depart1 = cible === premiereUrl
     let r
-    try { r = await demander(cible) } catch (e) {
-      if (cible === premiereUrl) throw new Error('Page de départ injoignable : ' + url + ' (' + (e.cause?.code ?? e.message) + ')')
+    try { r = await demander(cible, { html: true }) } catch (e) {
+      if (depart1) throw new Error('Page de départ injoignable : ' + url + ' (' + (e.cause?.code ?? e.message) + ')')
       erreurs.push({ url: cible, erreur: e.message }); continue
     }
-    if (cible === premiereUrl && r.status !== 200) throw new Error(`Page de départ en erreur (HTTP ${r.status}) : ${url}`)
-    if (r.status !== 200 || !/text\/html/i.test(r.ctype)) continue
+    if (depart1 && r.statut !== 200) throw new Error(r.statut === 0 ? `Page de départ inutilisable (${r.raison}) : ${url}` : `Page de départ en erreur (HTTP ${r.statut}) : ${url}`)
+    if (r.statut === 0 || (r.statut === 200 && r.corps === null)) {
+      if (depart1) throw new Error(`Page de départ inutilisable (${r.raison}) : ${url}`)
+      erreurs.push({ url: cible, erreur: r.raison }); continue
+    }
+    if (r.statut !== 200) continue
+    if (r.url !== cible) { if (vues.has(r.url)) continue; vues.add(r.url) }
     const faits = extraire(r.corps, r.url)
     pages.push(faits)
     for (const l of faits.liens) {
@@ -130,6 +182,7 @@ export async function collecterUrl(url, { maxPages = 50, delaiMs = 1000, autoris
       vues.add(n); file.push(n)
     }
   }
-  const sitemapXml = await fichier('/sitemap.xml')
+  let sitemapXml = null
+  try { const s = await demander(new URL('/sitemap.xml', depart.origin).href, { html: false }); if (s.statut === 200) sitemapXml = s.corps } catch { /* absent */ }
   return { pages, site: { robotsTxt, sitemapXml, urlsConnues: pages.map((p) => p.url), origine: depart.origin }, erreurs }
 }

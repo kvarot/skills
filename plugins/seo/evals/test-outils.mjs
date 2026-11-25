@@ -232,8 +232,21 @@ if (collecterUrl) {
     '/prive/x': page('Prive', []),
   }
   const vus = []
+  const autre = []
+  const srvAutre = createServer((req, res) => { autre.push(req.url); res.setHeader('content-type', 'text/html'); res.end(page('Autre', [])) })
+  await new Promise((r) => srvAutre.listen(0, '127.0.0.1', r))
+  const baseAutre = 'http://localhost:' + srvAutre.address().port
+  const redir = (res, to) => { res.statusCode = 302; res.setHeader('location', to); res.end() }
   const srv = createServer((req, res) => {
     vus.push(req.url)
+    if (req.url === '/r-ext') return redir(res, baseAutre + '/prod')
+    if (req.url === '/r-a') return redir(res, '/a')
+    if (req.url === '/r-prive') return redir(res, '/prive/x')
+    if (req.url === '/boucle') return redir(res, '/boucle')
+    if (req.url === '/pdf.php') { res.setHeader('content-type', 'application/pdf'); return res.end('%PDF') }
+    if (req.url === '/gros') { res.setHeader('content-type', 'text/html'); return res.end('x'.repeat(6 * 1024 * 1024)) }
+    if (req.url === '/lien-ext') { res.setHeader('content-type', 'text/html'); return res.end(page('L', ['/r-ext', '/gros', '/r-a'])) }
+    if (req.url === '/sitemap.xml' && vus.includes('/r-sitemap-ok')) { res.setHeader('content-type', 'text/xml'); return res.end('<urlset/>') }
     if (req.url === '/robots.txt') { res.setHeader('content-type', 'text/plain'); return res.end('User-agent: *\nDisallow: /prive/\n') }
     if (routes[req.url]) { res.setHeader('content-type', 'text/html; charset=utf-8'); return res.end(routes[req.url]) }
     res.statusCode = 404; res.end('nope')
@@ -276,6 +289,37 @@ if (collecterUrl) {
   vus.length = 0
   r = await collecterUrl(base + '/', { delaiMs: 1000, hotesDev: [], autoriserProd: true })
   ok(!vus.some((u) => u.startsWith('/prive')) && !urls(r).includes('/prive/x') && urls(r).length === 4, 'collecte URL : chemin Disallow jamais demandé hors dev')
+
+  // Redirects: bounded to the start host, never followed to another host.
+  const rejet = async (u, o) => { try { await collecterUrl(u, { delaiMs: 0, ...o }); return null } catch (e) { return e.message } }
+  autre.length = 0
+  ok((await rejet(base + '/r-ext')) !== null && autre.length === 0, 'redirection : départ redirigé vers un autre hôte → rejet, 0 requête chez l’autre')
+  autre.length = 0
+  r = await collecterUrl(base + '/lien-ext', { delaiMs: 0 })
+  ok(autre.length === 0 && r.erreurs.some((e) => /autre hôte/.test(e.erreur)), 'redirection : lien redirigé hors hôte → 0 requête, consigné dans erreurs')
+  ok(r.erreurs.some((e) => /5 Mo/.test(e.erreur)) && !urls(r).includes('/gros'), 'garde-fou : corps > 5 Mo ignoré et consigné')
+  ok(urls(r).filter((x) => x === '/a').length === 1, 'redirection même hôte : URL finale dédoublonnée (/r-a → /a)')
+  ok(/boucle|redirections/.test((await rejet(base + '/boucle')) ?? ''), 'redirection : boucle bornée à 5 sauts')
+  ok(/HTML/.test((await rejet(base + '/pdf.php')) ?? ''), 'départ en 200 non HTML → rejet explicite')
+  vus.length = 0
+  ok((await rejet(base + '/r-prive', { hotesDev: [], autoriserProd: true, delaiMs: 1000 })) !== null && !vus.includes('/prive/x'), 'redirection vers un chemin Disallow hors dev → non suivie')
+
+  // robots.txt unreachable (5xx) off dev = disallow-all; 4xx = allow-all.
+  let code = 500
+  const srv5 = createServer((req, res) => {
+    if (req.url === '/robots.txt') { res.statusCode = code; return res.end('x') }
+    res.setHeader('content-type', 'text/html'); res.end(page('R', []))
+  })
+  await new Promise((r2) => srv5.listen(0, '127.0.0.1', r2))
+  const base5 = 'http://127.0.0.1:' + srv5.address().port
+  ok(/robots/.test((await rejet(base5 + '/', { hotesDev: [], autoriserProd: true })) ?? ''), 'robots 5xx hors dev → exploration interdite')
+  r = await collecterUrl(base5 + '/', { delaiMs: 0 })
+  ok(r.pages.length === 1, 'robots 5xx sur hôte dev → non obéi')
+  code = 404
+  r = await collecterUrl(base5 + '/', { delaiMs: 0, hotesDev: [], autoriserProd: true })
+  ok(r.pages.length === 1 && r.site.robotsTxt === null, 'robots 404 hors dev → tout autorisé')
+  await new Promise((r2) => srv5.close(r2))
+  await new Promise((r2) => srvAutre.close(r2))
 
   // Errors.
   msg = null
