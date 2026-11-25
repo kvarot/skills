@@ -33,3 +33,13 @@ Cinq mini-sites d'un cabinet de kinésithérapie fictif : `html-statique`, `php`
 - Une entrée = un défaut attendu (identifiants en double autorisés).
 - Respecter `racine_rendu` : collecter `<fixture>/<racine_rendu ?? '.'>`.
 - Fixtures `php-s` : servir avec `php -S 127.0.0.1:<port libre> -t <fixture>` et collecter avec `collecterUrl`.
+
+## Échantillons de contrôle des regex
+
+Chaque entrée `motif` et `explication` porte `echantillon_ok` (texte qu'une correction juste produirait) et `echantillon_ko` (texte de la version non corrigée). La section 7 de `test-outils.mjs` vérifie, pour chaque regex :
+
+- `present` et `motif_reponse` : la regex reconnaît `echantillon_ok` et pas `echantillon_ko` ;
+- `absent` : la regex ne reconnaît pas `echantillon_ok` et reconnaît `echantillon_ko` ;
+- aucune regex ne contient de caractère de contrôle (code < 32), signe d'un antislash perdu à l'écriture du JSON.
+
+Écrire ces JSON avec un outil d'édition ou `node`, jamais avec un heredoc shell.

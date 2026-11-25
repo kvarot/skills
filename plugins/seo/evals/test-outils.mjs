@@ -530,6 +530,16 @@ if (collecterUrl) {
     ok(v.racine_rendu === undefined || (typeof v.racine_rendu === 'string' && existsSync(path.join(fx, n, v.racine_rendu))), `fixture ${n} : racine_rendu existante`)
     let bien = true
     const problemes = []
+    // A regex must compile, hold no control character (lost backslashes), and behave on the two samples:
+    // `positif` rules match the correct sample only; `absent` rules match the unfixed sample only.
+    const verifRegex = (d, src, nom, okTxt, koTxt, positif) => {
+      if (typeof src !== 'string' || [...src].some((c) => c.charCodeAt(0) < 32)) { problemes.push(`${nom} : caractère de contrôle ou non texte (${d.controle})`); return }
+      let re
+      try { re = new RegExp(src, 'im') } catch { problemes.push(`${nom} : regex invalide ${src}`); return }
+      if (typeof okTxt !== 'string' || typeof koTxt !== 'string') { problemes.push(`${nom} : échantillons manquants (${d.controle})`); return }
+      const [surOk, surKo] = [re.test(okTxt), re.test(koTxt)]
+      if (positif ? !(surOk && !surKo) : !(!surOk && surKo)) problemes.push(`${nom} ${src} : échantillons incohérents (${d.controle})`)
+    }
     for (const d of v.defauts ?? []) {
       const t = d.verif_apres?.type
       if (!catalogue.has(d.controle)) problemes.push('contrôle inconnu ' + d.controle)
@@ -539,9 +549,9 @@ if (collecterUrl) {
         const m = d.verif_apres
         if (typeof m.fichier !== 'string' || !existsSync(path.join(fx, n, m.fichier))) problemes.push('motif : fichier introuvable ' + m.fichier)
         if (m.present === undefined && m.absent === undefined) problemes.push('motif sans present ni absent (' + d.controle + ')')
-        for (const k of ['present', 'absent']) if (m[k] !== undefined) { try { new RegExp(m[k], 'im') } catch { problemes.push('regex invalide ' + m[k]) } }
+        for (const k of ['present', 'absent']) if (m[k] !== undefined) verifRegex(d, m[k], k, m.echantillon_ok, m.echantillon_ko, k === 'present')
       } else if (t === 'explication') {
-        try { new RegExp(d.verif_apres.motif_reponse, 'im') } catch { problemes.push('motif_reponse invalide (' + d.controle + ')') }
+        verifRegex(d, d.verif_apres.motif_reponse, 'motif_reponse', d.verif_apres.echantillon_ok, d.verif_apres.echantillon_ko, true)
       } else if (t !== 'controle') problemes.push('type de vérification inconnu (' + d.controle + ')')
     }
     bien = problemes.length === 0

@@ -10,7 +10,9 @@
       "verif_apres": {
         "type": "motif",
         "fichier": "templates/home.html.twig",
-        "present": "\\{%-?\\s*block\\s+title"
+        "present": "\\bblock\\s+title\\b",
+        "echantillon_ok": "{% block title %}Physiotherapy in London{% endblock %}",
+        "echantillon_ko": "{% extends 'base.html.twig' %}\n{% block content %}<h1>Example Physio Clinic</h1>{% endblock %}"
       }
     },
     {
@@ -20,7 +22,9 @@
       "verif_apres": {
         "type": "motif",
         "fichier": "templates/treatments.html.twig",
-        "present": "\\{%-?\\s*block\\s+title"
+        "present": "\\bblock\\s+title\\b",
+        "echantillon_ok": "{% block title %}Physiotherapy treatments{% endblock %}",
+        "echantillon_ko": "{% extends 'base.html.twig' %}\n{% block content %}<h1>Physiotherapy treatments</h1>{% endblock %}"
       }
     },
     {
@@ -30,7 +34,9 @@
       "verif_apres": {
         "type": "motif",
         "fichier": "templates/contact.html.twig",
-        "present": "\\{%-?\\s*block\\s+title"
+        "present": "\\bblock\\s+title\\b",
+        "echantillon_ok": "{% block title %}Contact the clinic{% endblock %}",
+        "echantillon_ko": "{% extends 'base.html.twig' %}\n{% block content %}<h1>Contact the clinic</h1>{% endblock %}"
       }
     },
     {
@@ -40,7 +46,9 @@
       "verif_apres": {
         "type": "motif",
         "fichier": "templates/base.html.twig",
-        "present": "name=[\"']description"
+        "present": "name=[\"']description",
+        "echantillon_ok": "<meta name=\"description\" content=\"{% block description %}{% endblock %}\">",
+        "echantillon_ko": "<title>{% block title %}Physio{% endblock %}</title>"
       }
     },
     {
@@ -50,7 +58,9 @@
       "verif_apres": {
         "type": "motif",
         "fichier": "templates/base.html.twig",
-        "present": "og:title"
+        "present": "og:title",
+        "echantillon_ok": "<meta property=\"og:title\" content=\"{{ block('title') }}\">",
+        "echantillon_ko": "<title>{% block title %}Physio{% endblock %}</title>"
       }
     }
   ]

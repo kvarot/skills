@@ -9,7 +9,9 @@
       "detection": "controle",
       "verif_apres": {
         "type": "explication",
-        "motif_reponse": "pr[ée]-?rendu|prerender|SSR|rendu (c[ôo]t[ée] )?serveur"
+        "motif_reponse": "pr[ée]-?rendu|prerender|SSR|rendu (c[ôo]t[ée] )?serveur",
+        "echantillon_ok": "Le HTML servi est une coquille vide : il faut un pré-rendu ou un rendu serveur.",
+        "echantillon_ko": "Ajoutez simplement une meta description sur la page d'accueil."
       }
     },
     {
@@ -19,7 +21,9 @@
       "verif_apres": {
         "type": "motif",
         "fichier": "package.json",
-        "absent": "vite-ssg|nuxt|@vue/server-renderer"
+        "absent": "vite-ssg|nuxt|@vue/server-renderer",
+        "echantillon_ok": "\"dependencies\": { \"vue\": \"^3.4.0\", \"vue-router\": \"^4.3.0\" }",
+        "echantillon_ko": "\"dependencies\": { \"vite-ssg\": \"^0.23.0\", \"vue\": \"^3.4.0\" }"
       }
     },
     {
@@ -29,7 +33,9 @@
       "verif_apres": {
         "type": "motif",
         "fichier": "index.html",
-        "present": "<metas+name=[\"']description[\"']"
+        "present": "<meta\\s+name=[\"']description[\"']",
+        "echantillon_ok": "<meta name=\"description\" content=\"Cabinet de kinésithérapie\">",
+        "echantillon_ko": "<title>Vite App</title>"
       }
     },
     {
@@ -39,7 +45,9 @@
       "verif_apres": {
         "type": "motif",
         "fichier": "src/router.js",
-        "present": "metas*:s*{[^}]*\btitle\b"
+        "present": "meta\\s*:\\s*\\{[^}]*\\btitle\\b",
+        "echantillon_ok": "{ path: '/soins', component: Soins, meta: { title: 'Nos soins' } }",
+        "echantillon_ko": "{ path: '/soins', component: Soins }"
       }
     },
     {
@@ -49,7 +57,9 @@
       "verif_apres": {
         "type": "motif",
         "fichier": "src",
-        "present": "document.title"
+        "present": "document\\.title",
+        "echantillon_ok": "router.afterEach((to) => { document.title = to.meta.title })",
+        "echantillon_ko": "createApp(App).use(router).mount('#app')"
       }
     }
   ]

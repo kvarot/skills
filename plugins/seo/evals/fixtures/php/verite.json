@@ -10,7 +10,9 @@
         "type": "motif",
         "fichier": "index.php",
         "present": "seo_meta\\(",
-        "absent": "<title"
+        "absent": "<title",
+        "echantillon_ok": "<?= seo_meta('Cabinet Exemple, kinésithérapie', $description) ?>",
+        "echantillon_ko": "<title>Cabinet Exemple</title>"
       }
     },
     {
@@ -21,7 +23,9 @@
         "type": "motif",
         "fichier": "soins.php",
         "present": "seo_meta\\(",
-        "absent": "<title"
+        "absent": "<title",
+        "echantillon_ok": "<?= seo_meta('Nos soins de kinésithérapie', $description) ?>",
+        "echantillon_ko": "<title>Cabinet Exemple</title>"
       }
     },
     {
@@ -32,7 +36,9 @@
         "type": "motif",
         "fichier": "contact.php",
         "present": "seo_meta\\(",
-        "absent": "<title"
+        "absent": "<title",
+        "echantillon_ok": "<?= seo_meta('Contacter le cabinet', $description) ?>",
+        "echantillon_ko": "<title>Cabinet Exemple</title>"
       }
     },
     {
