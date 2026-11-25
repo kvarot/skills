@@ -4,10 +4,12 @@ import { parseArgs } from 'node:util'
 import { collecterDossier, collecterUrl } from './collecter.mjs'
 import { controler } from './controler.mjs'
 import { detecter } from './detecter.mjs'
+import { lireProfil, validerProfil } from './profil.mjs'
 
 const USAGE = `Usage : node seo.mjs <commande> [options]
   auditer --dossier <d> | --url <u> [--max-pages n] [--delai-ms n] [--autoriser-prod]
-  detecter <dossier>`
+  detecter <dossier>
+  profil-valider <fichier>`
 
 const entier = (v, nom) => {
   if (v === undefined) return undefined
@@ -39,7 +41,21 @@ function detecterStack(argv) {
   process.stdout.write(JSON.stringify(detecter(positionals[0]), null, 2) + '\n')
 }
 
-const commandes = { auditer, detecter: detecterStack }
+function profilValider(argv) {
+  const { positionals } = parseArgs({ args: argv, allowPositionals: true, options: {} })
+  if (positionals.length !== 1) throw Object.assign(new Error('Indiquer le fichier à valider : profil-valider <fichier>'), { usage: true })
+  let meta
+  try { meta = lireProfil(positionals[0]).meta } catch (e) {
+    if (e.code) throw e // unreadable file: error on stderr, no verdict
+    process.stdout.write(JSON.stringify({ valide: false, erreurs: ['front matter illisible : ' + e.message] }, null, 2) + '\n')
+    process.exit(1)
+  }
+  const erreurs = validerProfil(meta)
+  process.stdout.write(JSON.stringify({ valide: erreurs.length === 0, erreurs }, null, 2) + '\n')
+  if (erreurs.length) process.exit(1)
+}
+
+const commandes = { auditer, detecter: detecterStack, 'profil-valider': profilValider }
 const [cmd, ...reste] = process.argv.slice(2)
 if (!Object.hasOwn(commandes, cmd)) { console.error(USAGE); process.exit(2) }
 try { await commandes[cmd](reste) } catch (e) {

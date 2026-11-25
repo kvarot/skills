@@ -1,7 +1,8 @@
 // Offline self-test of the seo plugin tools (no browser, no model, no network).
 //   node plugins/seo/evals/test-outils.mjs   -> exit 0 if every check passes
-import { execFileSync } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
+import { execFileSync, spawnSync } from 'node:child_process'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseFrontMatter } from '../outils/frontmatter.mjs'
@@ -427,6 +428,77 @@ if (collecterUrl) {
       ok(n >= 40 && n <= 160, `référence ${s}.md : présente, taille raisonnable (${n} lignes)`)
     }
   } finally { for (const r of racines) rmSync(r, { recursive: true, force: true }) }
+}
+
+// 6. Profile: front matter validation, lists of objects, example embedded in the reference, CLI.
+{
+  let fm
+  try {
+    fm = parseFrontMatter('---\npages:\n  - url: /a\n    source: a.html\n  - url: /b\n    source: b.html\nx: 1\nmc:\n  accueil:\n    - un\n    - deux\n---\n')
+    ok(fm.meta.pages.length === 2 && fm.meta.pages[1].source === 'b.html' && fm.meta.pages[0].url === '/a', 'frontmatter : liste d’objets')
+    ok(fm.meta.x === 1 && fm.meta.mc.accueil.length === 2, 'frontmatter : clés suivantes inchangées après une liste d’objets')
+  } catch (e) { ok(false, 'frontmatter : liste d’objets : ' + e.message) }
+  let P = null
+  try { P = await import('../outils/profil.mjs') } catch (e) { ok(false, 'profil.mjs importable : ' + e.message) }
+  if (P) {
+    const base = () => ({
+      version: 1, stack: 'twig', rendu: 'serveur', langues: ['fr'], public: 'patients', offre: 'soins', ton: 'sobre',
+      secteur: 'sante', pays: 'FR', outils: { search_console: false, navigateur: true }, confirme_le: '2026-01-15',
+    })
+    const avec = (o) => ({ ...base(), ...o })
+    const sans = (k) => { const m = base(); delete m[k]; return m }
+    const a = (meta, mot) => P.validerProfil(meta).some((e) => e.includes(mot))
+    ok(P.validerProfil(base()).length === 0, 'profil complet → aucune erreur')
+    ok(a(sans('confirme_le'), 'confirme_le'), 'confirme_le manquant → erreur')
+    ok(a(avec({ confirme_le: '15/01/2026' }), 'confirme_le'), 'confirme_le non ISO → erreur')
+    ok(a(avec({ langues: 'fr' }), 'langues') && a(avec({ langues: [] }), 'langues'), 'langues non liste ou vide → erreur')
+    ok(a(avec({ outils: { search_console: 'oui!', navigateur: true } }), 'search_console'), 'outils.search_console non booléen → erreur')
+    ok(a(sans('outils'), 'outils'), 'outils manquant → erreur')
+    ok(a(avec({ version: 2 }), 'version'), 'version ≠ 1 → erreur')
+    ok(a(avec({ stack: 'rails' }), 'stack') && a(avec({ rendu: 'x' }), 'rendu'), 'stack/rendu hors liste → erreur')
+    ok(a(avec({ pays: 'fr' }), 'pays') && a(avec({ pays: 'FRA' }), 'pays'), 'pays non code 2 majuscules → erreur')
+    ok(a(avec({ ton: '' }), 'ton') && a(sans('public'), 'public') && a(sans('secteur'), 'secteur') && a(sans('offre'), 'offre'), 'chaînes obligatoires vides ou absentes → erreur')
+    ok(a(base(), 'zzz') === false && P.validerProfil(avec({ urls: { dev: 'http://localhost:8080', prod: 'https://exemple.test' } })).length === 0, 'urls http(s) valides acceptées')
+    ok(a(avec({ urls: { prod: 'ftp://x' } }), 'urls.prod') && a(avec({ urls: { dev: 'pas une url' } }), 'urls.dev'), 'urls invalides → erreur')
+    ok(a(avec({ mots_cles: { accueil: 'x' } }), 'mots_cles') && a(avec({ termes_a_eviter: 'x' }), 'termes_a_eviter'), 'mots_cles / termes_a_eviter mal typés → erreur')
+    ok(a(avec({ pages: [{ url: '/x' }] }), 'pages') && P.validerProfil(avec({ pages: [{ url: '/x', source: 'x.html' }] })).length === 0, 'pages : url et source requis')
+    ok(a(avec({ historique: [{ date: '2026-01-01', lot: 'meta' }] }), 'historique') && P.validerProfil(avec({ historique: [{ date: '2026-01-01', lot: 'meta', controles: ['T-TITLE-ABSENT'] }] })).length === 0, 'historique : date, lot, controles requis')
+    ok(P.validerProfil(null).length > 0, 'profil non objet → erreur')
+
+    const tmp = mkdtempSync(path.join(tmpdir(), 'seo-profil-'))
+    try {
+      const cli = (...args) => spawnSync(process.execPath, [path.join(plugin, 'outils', 'seo.mjs'), ...args], { encoding: 'utf8' })
+      const doc = readFileSync(path.join(plugin, 'references', 'profil.md'), 'utf8')
+      const m = doc.match(/```markdown\r?\n(---[\s\S]*?\r?\n---[\s\S]*?)```/)
+      ok(m !== null, 'profil.md : exemple complet présent')
+      if (m) {
+        const ex = parseFrontMatter(m[1])
+        ok(P.validerProfil(ex.meta).length === 0, 'profil.md : l’exemple passe validerProfil (' + P.validerProfil(ex.meta).join(' | ') + ')')
+        const f = path.join(tmp, 'profil.md')
+        writeFileSync(f, m[1])
+        ok(P.lireProfil(f).meta.stack === ex.meta.stack, 'lireProfil lit le fichier')
+        let c = cli('profil-valider', f)
+        let s = null
+        try { s = JSON.parse(c.stdout) } catch { /* reported below */ }
+        ok(c.status === 0 && s?.valide === true && s.erreurs.length === 0, 'CLI profil-valider : profil valide → code 0')
+        const g = path.join(tmp, 'mauvais.md')
+        writeFileSync(g, m[1].replace(/^confirme_le:.*\r?\n/m, ''))
+        c = cli('profil-valider', g)
+        s = null
+        try { s = JSON.parse(c.stdout) } catch { /* reported below */ }
+        ok(c.status === 1 && s?.valide === false && s.erreurs.some((e) => e.includes('confirme_le')), 'CLI profil-valider : confirme_le absent → code 1, erreur')
+        writeFileSync(g, 'pas de front matter')
+        c = cli('profil-valider', g)
+        ok(c.status === 1 && JSON.parse(c.stdout).valide === false, 'CLI profil-valider : sans front matter → invalide, code 1')
+        c = cli('profil-valider', path.join(tmp, 'inexistant.md'))
+        ok(c.status !== 0 && c.status !== 1 || (c.status === 1 && c.stdout === '' && c.stderr.length > 0), 'CLI profil-valider : fichier illisible → ≠ 0, stderr')
+        c = cli('profil-valider')
+        ok(c.status !== 0 && c.stderr.length > 0, 'CLI profil-valider : sans fichier → usage')
+      }
+      const schema = readFileSync(path.join(plugin, 'references', 'audit-schema.md'), 'utf8')
+      ok(['fichier_source', 'correction_proposee', 'contenus-a-saisir.md', 'texte proposé'].every((t) => schema.includes(t)), 'audit-schema.md : audit.json et contenus-a-saisir décrits')
+    } finally { rmSync(tmp, { recursive: true, force: true }) }
+  }
 }
 
 console.log(ko ? `\n${ko} KO` : '\ntout est ok')

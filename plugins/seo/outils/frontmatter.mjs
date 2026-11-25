@@ -7,6 +7,8 @@ export function parseFrontMatter(text) {
   const root = {}
   let key = null
   let sub = null
+  let item = null // last list item parsed as an object (`- k: v`), receives its continuation lines
+  let itemIndent = 0
   const scalar = (v) => {
     v = v.trim()
     if (v === '') return ''
@@ -21,14 +23,21 @@ export function parseFrontMatter(text) {
     const indent = raw.match(/^ */)[0].length
     const line = raw.trim()
     if (line.startsWith('- ')) {
+      const body = line.slice(2)
+      const ikv = body.match(/^([\w.-]+):\s+(.*)$/)
+      const value = ikv ? { [ikv[1]]: scalar(ikv[2]) } : scalar(body)
+      item = ikv ? value : null
+      itemIndent = indent
       const target = sub && indent >= 4 ? root[key][sub] : root[key]
-      if (Array.isArray(target)) target.push(scalar(line.slice(2)))
-      else if (sub && indent >= 4) root[key][sub] = [scalar(line.slice(2))]
-      else root[key] = [scalar(line.slice(2))]
+      if (Array.isArray(target)) target.push(value)
+      else if (sub && indent >= 4) root[key][sub] = [value]
+      else root[key] = [value]
       continue
     }
     const kv = line.match(/^([\w.-]+):\s*(.*)$/)
     if (!kv) throw new Error('unreadable line: ' + line)
+    if (item && indent > itemIndent) { item[kv[1]] = scalar(kv[2]); continue }
+    item = null
     if (indent === 0) {
       key = kv[1]; sub = null
       root[key] = kv[2] === '' ? {} : scalar(kv[2])
