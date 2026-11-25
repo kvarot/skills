@@ -2,7 +2,9 @@
 
 Le profil est la mémoire du plugin sur le site audité : ce qu'il est, pour qui, avec quel ton, et ce que le développeur a confirmé. Il est écrit **uniquement** dans `.claude/seo/profil.md` du projet cible. Il se compose d'un front matter YAML (les champs ci-dessous) suivi d'un corps libre pour les notes.
 
-Validation : `node <base du skill>/../../outils/seo.mjs profil-valider .claude/seo/profil.md` affiche `{ "valide": true|false, "erreurs": [...] }` ; code 0 si valide, 1 sinon.
+Les textes d'une liste qui contiennent `: ` doivent être entre guillemets (`- "guérison: garantie"`), sinon `- clé: valeur` est lu comme un objet.
+
+Validation : `node <base du skill>/../../outils/seo.mjs profil-valider .claude/seo/profil.md` affiche `{ "valide": true|false, "erreurs": [...] }` ; code 0 si valide, 1 si invalide, 2 si mauvais usage, 3 si le fichier est illisible (message sur stderr).
 
 ## Champs obligatoires
 

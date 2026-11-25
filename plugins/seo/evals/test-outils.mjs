@@ -438,6 +438,10 @@ if (collecterUrl) {
     ok(fm.meta.pages.length === 2 && fm.meta.pages[1].source === 'b.html' && fm.meta.pages[0].url === '/a', 'frontmatter : liste d’objets')
     ok(fm.meta.x === 1 && fm.meta.mc.accueil.length === 2, 'frontmatter : clés suivantes inchangées après une liste d’objets')
   } catch (e) { ok(false, 'frontmatter : liste d’objets : ' + e.message) }
+  try {
+    const q = parseFrontMatter('---\nt:\n  - "guérison: garantie"\n  - \'le meilleur: oui\'\n  - a: b\n---\n')
+    ok(q.meta.t[0] === 'guérison: garantie' && q.meta.t[1] === 'le meilleur: oui' && q.meta.t[2].a === 'b', 'frontmatter : item cité reste un texte, `- k: v` non cité devient un objet')
+  } catch (e) { ok(false, 'frontmatter : items cités : ' + e.message) }
   let P = null
   try { P = await import('../outils/profil.mjs') } catch (e) { ok(false, 'profil.mjs importable : ' + e.message) }
   if (P) {
@@ -491,7 +495,9 @@ if (collecterUrl) {
         c = cli('profil-valider', g)
         ok(c.status === 1 && JSON.parse(c.stdout).valide === false, 'CLI profil-valider : sans front matter → invalide, code 1')
         c = cli('profil-valider', path.join(tmp, 'inexistant.md'))
-        ok(c.status !== 0 && c.status !== 1 || (c.status === 1 && c.stdout === '' && c.stderr.length > 0), 'CLI profil-valider : fichier illisible → ≠ 0, stderr')
+        ok(c.status === 3 && c.stdout === '' && c.stderr.length > 0, 'CLI profil-valider : fichier illisible → code 3, stdout vide, stderr')
+        c = cli('profil-valider', tmp)
+        ok(c.status === 3 && c.stdout === '' && c.stderr.length > 0, 'CLI profil-valider : dossier au lieu d’un fichier → code 3')
         c = cli('profil-valider')
         ok(c.status !== 0 && c.stderr.length > 0, 'CLI profil-valider : sans fichier → usage')
       }

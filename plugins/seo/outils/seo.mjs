@@ -46,19 +46,19 @@ function profilValider(argv) {
   if (positionals.length !== 1) throw Object.assign(new Error('Indiquer le fichier à valider : profil-valider <fichier>'), { usage: true })
   let meta
   try { meta = lireProfil(positionals[0]).meta } catch (e) {
-    if (e.code) throw e // unreadable file: error on stderr, no verdict
+    if (e.code) throw Object.assign(e, { exitCode: 3 }) // unreadable file: error on stderr, no verdict
     process.stdout.write(JSON.stringify({ valide: false, erreurs: ['front matter illisible : ' + e.message] }, null, 2) + '\n')
-    process.exit(1)
+    process.exitCode = 1
+    return
   }
   const erreurs = validerProfil(meta)
   process.stdout.write(JSON.stringify({ valide: erreurs.length === 0, erreurs }, null, 2) + '\n')
-  if (erreurs.length) process.exit(1)
+  if (erreurs.length) process.exitCode = 1
 }
 
 const commandes = { auditer, detecter: detecterStack, 'profil-valider': profilValider }
 const [cmd, ...reste] = process.argv.slice(2)
-if (!Object.hasOwn(commandes, cmd)) { console.error(USAGE); process.exit(2) }
-try { await commandes[cmd](reste) } catch (e) {
+if (!Object.hasOwn(commandes, cmd)) { console.error(USAGE); process.exitCode = 2 } else try { await commandes[cmd](reste) } catch (e) {
   console.error('Erreur : ' + e.message + (e.usage || e.code?.startsWith?.('ERR_PARSE_ARGS') ? '\n' + USAGE : ''))
-  process.exit(e.usage || e.code?.startsWith?.('ERR_PARSE_ARGS') ? 2 : 1)
+  process.exitCode = e.usage || e.code?.startsWith?.('ERR_PARSE_ARGS') ? 2 : (e.exitCode ?? 1)
 }
