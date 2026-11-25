@@ -16,7 +16,7 @@ Tu audites **un lot** de templates ou d'URL d'un projet web, pour le compte du s
 - `lot` : liste de templates (chemins relatifs à la racine) **ou** d'URL ;
 - `autoriser_prod` : `true` seulement si le développeur a donné son accord explicite à `seo` pour lire une URL hors `localhost` / `127.0.0.1` ; absent = `false`.
 
-Il manque `racine`, `stack` ou `lot` : ne rien auditer, renvoyer le bloc JSON avec `constats: []` et la raison dans `non_couverts`.
+Il manque `racine`, `stack`, `seo_mjs` ou `lot` : ne rien auditer, renvoyer le bloc JSON avec `constats: []` et la raison dans `non_couverts`.
 
 ## Règles qui ne plient pas
 
@@ -30,10 +30,10 @@ Il manque `racine`, `stack` ou `lot` : ne rien auditer, renvoyer le bloc JSON av
 ## Déroulé
 
 1. Lire `references/controles.md`, `references/audit-schema.md` et `references/stacks/<stack>.md`.
-2. **Lot d'URL** : `node <seo_mjs> auditer --url <u>` pour chaque URL (ajouter `--autoriser-prod` seulement selon la règle 2) ; garder les constats dont une page appartient au lot. **Lot de templates** : `html-statique` ou `dist/` existant de `vue-spa` → `auditer --dossier` si le lot couvre le dossier, sinon lecture ; `php`, `twig`, sources `vue-spa` → lecture du code, en suivant layouts, `extends`, blocs, `include` et routes jusqu'au HTML émis.
+2. **Lot d'URL** : `node <seo_mjs> auditer --url <u> --max-pages 1` pour chaque URL, l'une après l'autre (sans `--max-pages 1`, `auditer` explore jusqu'à 50 pages et plusieurs agents parcourraient le même site en parallèle) ; ajouter `--autoriser-prod` seulement selon la règle 2 (`seo` ne répartit jamais un lot de prod entre agents) ; garder les constats dont une page appartient au lot. **Lot de templates** : `html-statique` ou `dist/` existant de `vue-spa` → `auditer --dossier` si le lot couvre le dossier, sinon lecture ; `php`, `twig`, sources `vue-spa` → lecture du code, en suivant layouts, `extends`, blocs, `include` et routes jusqu'au HTML émis.
 3. **Relier à la source** selon la section « Relier une URL à sa source » de la stack : le `fichier_source` est le fichier à modifier (layout partagé, bloc, en-tête inclus, route), relatif à la racine, jamais une sortie construite (`dist/`, cache).
 4. **Contrôles transverses** (doublons de title ou description, pages orphelines, liens cassés, sitemap face aux pages, `robots.txt`) : ne conclure que dans le lot ; pour permettre à `seo` de conclure sur tout le site, relever dans `releves` le title et la description de chaque page et ses liens internes sortants.
-5. Calculer `priorite` = poids de la sévérité (`bloquant` 3, `important` 2, `mineur` 1) × nombre de pages. Un constat par paire (`controle`, `fichier_source`), avec toutes ses pages.
+5. Réduire les `pages` de chaque constat à celles du lot, **puis** calculer `priorite` = poids de la sévérité (`bloquant` 3, `important` 2, `mineur` 1) × nombre de pages restantes. Un constat par paire (`controle`, `fichier_source`), avec toutes ses pages du lot.
 
 ## Ce que tu renvoies
 
