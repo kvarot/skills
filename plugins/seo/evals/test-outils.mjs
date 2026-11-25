@@ -355,5 +355,67 @@ if (collecterUrl) {
   } finally { rmSync(dir, { recursive: true, force: true }) }
 }
 
+// 5. Stack detection: one temp folder per rule, via module and CLI.
+{
+  const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const { spawnSync } = await import('node:child_process')
+  let detecter = null
+  try { ({ detecter } = await import('../outils/detecter.mjs')) } catch (e) { ok(false, 'détection : module chargeable — ' + e.message) }
+  const racines = []
+  const creer = (fichiers) => {
+    const d = mkdtempSync(path.join(tmpdir(), 'seo-detect-')); racines.push(d)
+    for (const [f, c] of Object.entries(fichiers)) { mkdirSync(path.dirname(path.join(d, f)), { recursive: true }); writeFileSync(path.join(d, f), c) }
+    return d
+  }
+  try {
+    if (detecter) {
+      let s = detecter(creer({
+        'package.json': '{"dependencies":{"vue":"^3.4.0","vue-router":"^4.0.0"}}',
+        'index.html': '<!DOCTYPE html><html lang="fr"><head><title>x</title></head><body><div id="app"></div></body></html>',
+        'src/router/index.js': 'export default createRouter({ routes: [] })',
+        'src/main.js': 'createApp(App).mount("#app")',
+      }))
+      ok(s.stack === 'vue-spa' && s.rendu === 'client', 'détection : vue + #app → vue-spa / client')
+      ok(s.fichiersCles.includes('package.json') && s.fichiersCles.includes('index.html') && s.fichiersCles.includes('src/router/index.js'), 'détection : vue-spa fichiersCles (package.json, index.html, routeur)')
+      ok(s.langues.includes('fr') && s.indices.some((i) => i.includes('vue')), 'détection : vue-spa langues et indices')
+      s = detecter(creer({ 'package.json': '{"dependencies":{"vue":"^3"}}', 'index.html': '<div id="app"></div>', 'index.twig': '<html lang="fr"></html>' }))
+      ok(s.stack === 'vue-spa', 'détection : règle 1 prioritaire sur twig')
+      s = detecter(creer({ 'templates/base.html.twig': '<html lang="en"><head>{% block title %}{% endblock %}</head></html>', 'templates/page.html.twig': '{% extends "base.html.twig" %}', 'page.php': '<html></html>' }))
+      ok(s.stack === 'twig' && s.rendu === 'serveur', 'détection : twig / serveur (prioritaire sur php)')
+      ok(JSON.stringify(s.fichiersCles) === JSON.stringify([...s.fichiersCles].sort()) && s.fichiersCles.includes('templates/base.html.twig') && s.langues.includes('en'), 'détection : twig fichiersCles triés, langue en')
+      s = detecter(creer({ 'index.php': '<?php include "inc/entete.php"; ?><body></body>', 'inc/entete.php': '<!DOCTYPE html><html lang="fr"><head><title>T</title></head>', 'lib.php': '<?php function f() {}' }))
+      ok(s.stack === 'php' && s.rendu === 'serveur', 'détection : php / serveur')
+      ok(s.fichiersCles.includes('inc/entete.php') && s.fichiersCles.includes('index.php') && !s.fichiersCles.includes('lib.php'), 'détection : php fichiersCles (en-tête inclus, pas la lib)')
+      s = detecter(creer({ 'lib.php': '<?php function f() {}', 'index.html': '<html lang="fr"><head></head></html>' }))
+      ok(s.stack === 'html-statique' && s.rendu === 'statique', 'détection : php sans HTML ignoré → html-statique / statique')
+      s = detecter(creer({ 'index.html': '<html lang="fr"><head></head></html>', 'contact/index.html': '<html lang="fr"></html>' }))
+      ok(s.stack === 'html-statique' && s.fichiersCles.includes('index.html'), 'détection : html-statique fichiersCles')
+      s = detecter(creer({ 'main.go': 'package main' }))
+      ok(s.stack === 'inconnue' && s.rendu === 'aucun' && s.fichiersCles.length === 0, 'détection : main.go seul → inconnue / aucun')
+      s = detecter(creer({ 'node_modules/x/index.html': '<html></html>', 'vendor/a.twig': 'x', 'dist/index.html': '<html></html>' }))
+      ok(s.stack === 'inconnue', 'détection : node_modules, vendor, dist ignorés → inconnue')
+      s = detecter(creer({ 'package.json': '{"dependencies":{"vue":"^3"}}', 'index.html': '<body><div id="app"></div></body>', 'dist/index.html': '<html></html>' }))
+      ok(!s.fichiersCles.some((f) => f.startsWith('dist/')), 'détection : dist non listé')
+      ok(Object.keys(s).sort().join() === 'fichiersCles,indices,langues,rendu,stack', 'détection : forme du type Stack')
+    }
+    const cli = (...args) => spawnSync(process.execPath, [path.join(plugin, 'outils', 'seo.mjs'), ...args], { encoding: 'utf8' })
+    const d = creer({ 'index.html': '<html lang="fr"></html>' })
+    let c = cli('detecter', d), sortie = null
+    try { sortie = JSON.parse(c.stdout) } catch { /* reported below */ }
+    ok(c.status === 0 && sortie?.stack === 'html-statique', 'CLI detecter : JSON Stack, code 0')
+    c = cli('detecter', path.join(d, 'inexistant'))
+    ok(c.status !== 0 && c.stderr.trim().length > 0, 'CLI detecter : dossier inexistant → code ≠ 0, stderr')
+    c = cli('detecter')
+    ok(c.status !== 0 && c.stderr.length > 0, 'CLI detecter : sans dossier → usage')
+    for (const s of ['html-statique', 'php', 'twig', 'vue-spa']) {
+      const f = path.join(plugin, 'references', 'stacks', s + '.md')
+      const t = existsSync(f) ? readFileSync(f, 'utf8') : ''
+      const n = t.split('\n').length
+      ok(n >= 40 && n <= 160, `référence ${s}.md : présente, taille raisonnable (${n} lignes)`)
+    }
+  } finally { for (const r of racines) rmSync(r, { recursive: true, force: true }) }
+}
+
 console.log(ko ? `\n${ko} KO` : '\ntout est ok')
 process.exit(ko ? 1 : 0)

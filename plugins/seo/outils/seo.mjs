@@ -3,9 +3,11 @@
 import { parseArgs } from 'node:util'
 import { collecterDossier, collecterUrl } from './collecter.mjs'
 import { controler } from './controler.mjs'
+import { detecter } from './detecter.mjs'
 
 const USAGE = `Usage : node seo.mjs <commande> [options]
-  auditer --dossier <d> | --url <u> [--max-pages n] [--delai-ms n] [--autoriser-prod]`
+  auditer --dossier <d> | --url <u> [--max-pages n] [--delai-ms n] [--autoriser-prod]
+  detecter <dossier>`
 
 const entier = (v, nom) => {
   if (v === undefined) return undefined
@@ -31,7 +33,13 @@ async function auditer(argv) {
   process.stdout.write(JSON.stringify({ stack: null, constats: controler(collecte.pages, collecte.site) }, null, 2) + '\n')
 }
 
-const commandes = { auditer }
+function detecterStack(argv) {
+  const { positionals } = parseArgs({ args: argv, allowPositionals: true, options: {} })
+  if (positionals.length !== 1) throw Object.assign(new Error('Indiquer le dossier à analyser : detecter <dossier>'), { usage: true })
+  process.stdout.write(JSON.stringify(detecter(positionals[0]), null, 2) + '\n')
+}
+
+const commandes = { auditer, detecter: detecterStack }
 const [cmd, ...reste] = process.argv.slice(2)
 if (!Object.hasOwn(commandes, cmd)) { console.error(USAGE); process.exit(2) }
 try { await commandes[cmd](reste) } catch (e) {
