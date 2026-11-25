@@ -17,11 +17,12 @@ function decode(s) {
   })
 }
 
-const nettoyer = (s) => decode(s).replace(/\s+/g, ' ').trim()
+const nettoyer = (s) => s.replace(/\s+/g, ' ').trim()
 
 // Elements whose content is raw text (no nested tags).
 const RAW = new Set(['script', 'style', 'noscript', 'title', 'textarea'])
-const VOID_HEAD_STOP = new Set(['body'])
+// Elements allowed in <head>; any other start tag implicitly begins the body.
+const HEAD_OK = new Set(['html', 'head', 'title', 'meta', 'link', 'base', 'script', 'style', 'noscript', 'template'])
 
 // Parses the attributes of a start tag body (after the tag name). Names are lowercased.
 function attributs(s) {
@@ -66,6 +67,8 @@ function analyser(html, url) {
   const f = vide(url)
   let pos = 0
   let dansHead = false
+  let bodyCommence = false
+  let svg = 0
   let hn = null // { niveau, texte }
   let lien = null // { href, texte }
   let texteVisible = ''
@@ -103,6 +106,7 @@ function analyser(html, url) {
       if (/^h[1-6]$/.test(t)) fermerHn()
       else if (t === 'a') fermerLien()
       else if (t === 'head') dansHead = false
+      else if (t === 'svg' && svg > 0) svg--
       continue
     }
     if (!suite || !/[A-Za-z]/.test(suite)) { texte('<'); pos = lt + 1; continue }
@@ -114,6 +118,8 @@ function analyser(html, url) {
     const nom = m[1].toLowerCase()
     const at = attributs(m[2])
 
+    if (!HEAD_OK.has(nom)) { dansHead = false; bodyCommence = true }
+    if (nom === 'svg' && !corps.endsWith('/')) svg++
     if (RAW.has(nom) && !corps.endsWith('/')) {
       // Raw text content runs up to the matching close tag (or end of input if truncated).
       const re = new RegExp('</' + nom + '(?=[\\s>/]|$)', 'i')
@@ -124,8 +130,8 @@ function analyser(html, url) {
         const e = html.indexOf('>', pos + c.index)
         pos = e === -1 ? n : e + 1
       } else pos = n
-      if (nom === 'title') { if (f.title === null) f.title = nettoyer(contenu) }
-      else if (nom === 'script' && /^application\/ld\+json$/i.test((at.type || '').trim())) {
+      if (nom === 'title') { if (f.title === null && svg === 0 && !bodyCommence) f.title = nettoyer(decode(contenu)) }
+      else if (nom === 'script' && /^application\/ld\+json$/i.test((at.type || '').split(';')[0].trim())) {
         const brut = contenu.trim()
         try { f.jsonld.push({ brut, objet: JSON.parse(brut), erreur: null }) }
         catch (e) { f.jsonld.push({ brut, objet: null, erreur: String(e && e.message || e) || 'invalid JSON' }) }
@@ -135,7 +141,7 @@ function analyser(html, url) {
 
     if (nom === 'html') { if (f.lang === null && at.lang !== undefined) f.lang = at.lang.trim() }
     else if (nom === 'head') dansHead = true
-    else if (VOID_HEAD_STOP.has(nom)) dansHead = false
+    else if (nom === 'body') { dansHead = false; bodyCommence = true }
     else if (nom === 'meta') {
       const name = (at.name || '').trim().toLowerCase()
       const prop = (at.property || '').trim().toLowerCase()

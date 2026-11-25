@@ -91,6 +91,11 @@ if (extraire) {
   let f6 = null, err = null
   try { f6 = extraire('<html><head><title>X', 'u') } catch (e) { err = e }
   ok(err === null && f6?.title === 'X', 'extraction : HTML tronqué sans exception, title X')
+  ok(extraire('<html><head></head><body><svg><title>Icone</title></svg><p>x</p></body></html>', 'u').title === null, 'extraction : title SVG ignoré')
+  ok(extraire('<title>Vrai</title><body><svg><title>Icone</title></svg></body>', 'u').title === 'Vrai', 'extraction : title head prioritaire sur SVG')
+  ok(extraire('<script type="Application/LD+JSON; charset=utf-8">{"a":1}</script>', 'u').jsonld[0]?.objet?.a === 1, 'extraction : ld+json avec paramètres')
+  ok(extraire('<html><head><title>T</title><meta charset="utf-8"><h1>Titre</h1><p>un deux trois</p>', 'u').mots === 4, 'extraction : head non fermé terminé par un élément de body')
+  ok(extraire('<title>A &amp;amp; B</title><p>x</p>', 'u').title === 'A &amp; B', 'extraction : pas de double décodage')
   let sains = true
   for (const bad of ['', '<', '<a href="', '<!-- x', '<script>', '<h1>x', undefined, null, 42]) {
     try { extraire(bad, 'u') } catch { sains = false }
