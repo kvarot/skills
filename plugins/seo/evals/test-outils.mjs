@@ -103,5 +103,115 @@ if (extraire) {
   ok(sains, 'extraction : entrées dégénérées sans exception')
 }
 
+// 3. Controls: catalogue and engine on hand-built facts.
+let CATALOGUE = null, controler = null
+try { ({ CATALOGUE, controler } = await import('../outils/controler.mjs')) } catch (e) { ok(false, 'contrôles : module chargeable — ' + e.message) }
+if (controler) {
+  const mots = (n) => Array.from({ length: n }, (_, i) => 'mot' + i).join(' ')
+  // A fully compliant page; each test overrides one field.
+  const bon = (url = '/', o = {}) => ({
+    url, lang: 'fr', title: 'Cabinet de kinésithérapie à Lyon ' + url, // unique per url, 30-60 chars
+    description: 'Cabinet de kinésithérapie à Lyon : rééducation, massages et suivi personnalisé de chaque patient. ' + url,
+    canonical: new URL(url, 'https://ex.test').href, robots: null, hreflang: [],
+    og: { title: 'Cabinet', description: 'Un cabinet', image: null },
+    hn: [{ niveau: 1, texte: 'Cabinet' }, { niveau: 2, texte: 'Soins' }],
+    images: [{ src: 'a.jpg', alt: 'Salle', width: '10', height: '10' }],
+    liens: [], jsonld: [{ brut: '{}', objet: { '@type': 'Organization' }, erreur: null }],
+    mots: 400, corpsVide: false, ...o,
+  })
+  const site = (o = {}) => ({ robotsTxt: 'User-agent: *\nDisallow:\n', sitemapXml: null, urlsConnues: [], origine: 'https://ex.test', ...o })
+  const sitemapDe = (...u) => '<urlset>' + u.map((x) => `<url><loc>${x}</loc></url>`).join('') + '</urlset>'
+  const ids = (cs) => cs.map((c) => c.controle)
+  const a = (id, pages, s = site(), msg = id) => {
+    const cs = controler(pages, s)
+    ok(ids(cs).includes(id), 'contrôles : ' + msg + ' déclenché')
+    return cs.find((c) => c.controle === id)
+  }
+  const vide = (pages, s = site(), msg = 'conforme') => {
+    const cs = controler(pages, s)
+    ok(cs.length === 0, 'contrôles : ' + msg + ' → aucun constat' + (cs.length ? ' — ' + ids(cs).join(', ') : ''))
+  }
+  const ABS = site({ sitemapXml: sitemapDe('https://ex.test/') })
+  vide([bon('/')], ABS, 'page conforme')
+  vide([bon('https://ex.test/')], ABS, 'page conforme (url absolue)')
+
+  const t = a('T-TITLE-ABSENT', [bon('/', { title: '  ' }), bon('/b', { title: null }), bon('/c')])
+  ok(t.severite === 'bloquant' && t.lot === 'meta' && t.pages.length === 2 && t.priorite === 6 && typeof t.preuve === 'string' && t.preuve.length > 0, 'contrôles : forme du constat (sévérité, lot, pages, priorité 3×2, preuve)')
+  const d = controler([bon('/a', { title: 'Même titre de page  ici ok ok ok' }), bon('/b', { title: ' même TITRE de page  ici ok ok ok' }), bon('/c', { title: 'Autre titre assez long pour passer' }), bon('/d', { title: null }), bon('/e', { title: null })], site())
+  const dt = d.filter((c) => c.controle === 'T-TITLE-DOUBLON')
+  ok(dt.length === 1 && dt[0].pages.length === 2, 'contrôles : T-TITLE-DOUBLON un constat par valeur, casse/espaces ignorés, absents exclus')
+  a('T-TITLE-LONGUEUR', [bon('/', { title: 'Court' })])
+  a('T-TITLE-LONGUEUR', [bon('/', { title: 'x'.repeat(61) })], site(), 'T-TITLE-LONGUEUR (trop long)')
+  a('T-DESC-ABSENT', [bon('/', { description: null })])
+  a('T-DESC-DOUBLON', [bon('/a', { description: mots(15) }), bon('/b', { description: mots(15).toUpperCase() })])
+  a('T-DESC-LONGUEUR', [bon('/', { description: 'courte' })])
+  a('T-DESC-LONGUEUR', [bon('/', { description: 'x'.repeat(161) })], site(), 'T-DESC-LONGUEUR (trop long)')
+  a('T-CANONICAL-ABSENT', [bon('/', { canonical: null })])
+  a('T-CANONICAL-INVALIDE', [bon('/', { canonical: '/relatif' })])
+  a('T-CANONICAL-INVALIDE', [bon('/', { canonical: 'https://autre.test/' })], site(), 'T-CANONICAL-INVALIDE (autre domaine, origine)')
+  vide([bon('/', { canonical: 'https://autre.test/' })], site({ origine: undefined, sitemapXml: sitemapDe('/') }), 'canonical autre domaine sans origine')
+  a('T-ROBOTS-NOINDEX', [bon('/', { robots: 'Noindex, follow' })])
+  a('T-ROBOTSTXT-ABSENT', [bon('/')], site({ robotsTxt: null }))
+  a('T-ROBOTSTXT-BLOQUE-TOUT', [bon('/')], site({ robotsTxt: 'User-agent: bot\nDisallow: /x\n\nUser-agent: *\n# c\nDisallow: /\n' }))
+  vide([bon('/')], { ...ABS, robotsTxt: 'User-agent: Bot\nDisallow: /\nUser-agent: *\nDisallow:\n' }, 'Disallow / réservé à un autre agent, vide = autorisé')
+  a('T-SITEMAP-ABSENT', [bon('/')], site({ sitemapXml: null }))
+  a('T-SITEMAP-INCOHERENT', [bon('/'), bon('/soins.html')], site({ sitemapXml: sitemapDe('https://ex.test/') }), 'T-SITEMAP-INCOHERENT (page absente du sitemap)')
+  a('T-SITEMAP-INCOHERENT', [bon('/')], site({ sitemapXml: sitemapDe('https://ex.test/', 'https://ex.test/fantome') }), 'T-SITEMAP-INCOHERENT (URL inconnue)')
+  vide([bon('/', { liens: [{ href: '/soins.html', texte: 'Soins' }] }), bon('/soins.html')], site({ sitemapXml: sitemapDe('https://ex.test/', 'https://ex.test/soins.html'), urlsConnues: ['/', '/soins.html'] }), 'sitemap absolu vs pages en chemin')
+  const hl = (l) => [{ lang: 'fr', href: 'https://ex.test/' }, { lang: 'en', href: 'https://ex.test/en' }, ...(l ? [{ lang: 'x-default', href: 'https://ex.test/' }] : [])]
+  const SM2 = site({ sitemapXml: sitemapDe('https://ex.test/', 'https://ex.test/en') })
+  a('T-HREFLANG-INCOHERENT', [bon('/', { hreflang: hl(true) }), bon('/en', { hreflang: [{ lang: 'en', href: 'https://ex.test/en' }] })], SM2, 'T-HREFLANG-INCOHERENT (sans réciproque)')
+  a('T-HREFLANG-INCOHERENT', [bon('/', { hreflang: hl(false) }), bon('/en', { hreflang: hl(false) })], SM2, 'T-HREFLANG-INCOHERENT (sans x-default)')
+  vide([bon('/', { hreflang: hl(true), liens: [{ href: '/en', texte: 'English' }] }), bon('/en', { hreflang: hl(true), liens: [{ href: '/', texte: 'Français' }] })], SM2, 'hreflang réciproque avec x-default')
+  a('T-LANG-ABSENT', [bon('/', { lang: null })])
+  a('T-OG-ABSENT', [bon('/', { og: { title: 'x', description: null, image: null } })])
+  a('T-H1-ABSENT', [bon('/', { hn: [{ niveau: 2, texte: 'x' }] })])
+  a('T-H1-MULTIPLE', [bon('/', { hn: [{ niveau: 1, texte: 'a' }, { niveau: 1, texte: 'b' }] })])
+  a('T-HN-SAUT', [bon('/', { hn: [{ niveau: 1, texte: 'a' }, { niveau: 2, texte: 'b' }, { niveau: 4, texte: 'c' }] })])
+  vide([bon('/', { hn: [{ niveau: 1, texte: 'a' }, { niveau: 2, texte: 'b' }, { niveau: 3, texte: 'c' }, { niveau: 2, texte: 'd' }] })], ABS, 'remontée de niveau h3 → h2')
+  a('T-ALT-ABSENT', [bon('/', { images: [{ src: 'a.jpg', alt: null, width: '1', height: '1' }] })])
+  vide([bon('/', { images: [{ src: 'a.jpg', alt: '', width: '1', height: '1' }] })], ABS, 'alt vide décoratif')
+  a('T-IMG-DIMENSIONS', [bon('/', { images: [{ src: 'a.jpg', alt: 'x', width: '1', height: null }] })])
+  a('T-LIEN-CASSE', [bon('/', { liens: [{ href: '/inconnue', texte: 'Page' }] })])
+  vide([bon('/', { liens: [{ href: 'mailto:a@ex.test', texte: 'Mail' }, { href: 'tel:+33100000000', texte: 'Tel' }, { href: '#haut', texte: 'Haut' }, { href: 'javascript:void(0)', texte: 'x' }, { href: 'https://externe.test/x', texte: 'Ext' }, { href: '/#ancre', texte: 'Accueil' }] })], ABS, 'liens mailto/tel/ancre/js/externes ignorés')
+  a('T-PAGE-ORPHELINE', [bon('/', { liens: [] }), bon('/seule')], site({ sitemapXml: sitemapDe('/', '/seule') }))
+  vide([bon('/', { liens: [{ href: 'https://ex.test/seule', texte: 'Seule' }] }), bon('/seule', { liens: [{ href: '/', texte: 'Accueil' }] })], site({ sitemapXml: sitemapDe('/', '/seule') }), 'liens internes absolus/relatifs')
+  a('T-SPA-HTML-VIDE', [bon('/', { corpsVide: true })])
+  a('T-JSONLD-INVALIDE', [bon('/', { jsonld: [{ brut: '{', objet: null, erreur: 'Unexpected end' }] })])
+  a('T-JSONLD-INVALIDE', [bon('/', { jsonld: [{ brut: '{}', objet: { name: 'x' }, erreur: null }] })], site(), 'T-JSONLD-INVALIDE (sans @type)')
+  const ld = (o) => [bon('/', { jsonld: [{ brut: '', objet: o, erreur: null }] })]
+  a('T-JSONLD-INTERDIT', ld({ '@type': 'AggregateRating', ratingValue: 5 }))
+  a('T-JSONLD-INTERDIT', ld({ '@context': 'https://schema.org', '@graph': [{ '@type': 'Organization' }, { '@type': 'Review' }] }), site(), 'T-JSONLD-INTERDIT (@graph)')
+  a('T-JSONLD-INTERDIT', ld({ '@type': ['LocalBusiness'], aggregateRating: { '@type': 'AggregateRating' } }), site(), 'T-JSONLD-INTERDIT (imbriqué)')
+  a('T-JSONLD-INTERDIT', ld({ '@type': ['Thing', 'Review'] }), site(), 'T-JSONLD-INTERDIT (@type tableau)')
+  a('C-PAGE-PAUVRE', [bon('/', { mots: 120 })])
+  for (const x of ['Cliquez ici !', 'ICI', 'En savoir plus…', 'Lire la suite', 'click here', 'Here.', 'read more']) {
+    const c = controler([bon('/', { liens: [{ href: 'https://externe.test/', texte: x }] })], ABS)
+    ok(ids(c).includes('C-ANCRE-GENERIQUE'), 'contrôles : ancre générique « ' + x + ' »')
+  }
+  vide([bon('/', { liens: [{ href: 'https://externe.test/', texte: 'Prendre rendez-vous' }] })], ABS, 'ancre explicite')
+
+  // Ordering and catalogue shape.
+  const mix = controler([bon('/', { title: null, lang: null, mots: 10 }), bon('/b', { title: null })], site())
+  ok(mix.every((c, i) => i === 0 || mix[i - 1].priorite >= c.priorite), 'contrôles : constats triés par priorité décroissante')
+  ok(Array.isArray(CATALOGUE) && CATALOGUE.length === 28 && new Set(CATALOGUE.map((c) => c.id)).size === 28, 'catalogue : 28 ids uniques')
+  ok(CATALOGUE.every((c) => ['bloquant', 'important', 'mineur'].includes(c.severite) && c.lot && c.description), 'catalogue : sévérité, lot, description')
+  const tout = controler([bon('/', { title: null, hn: [], lang: null })], site({ robotsTxt: null, sitemapXml: null }))
+  ok(tout.every((c) => CATALOGUE.some((k) => k.id === c.controle && k.severite === c.severite && k.lot === c.lot)), 'contrôles : constats cohérents avec le catalogue')
+
+  // controles.md must list exactly the catalogue ids.
+  const md = path.join(plugin, 'references', 'controles.md')
+  if (!existsSync(md)) ok(false, 'controles.md : présent')
+  else {
+    const lignes = readFileSync(md, 'utf8').split(/\r?\n/)
+    const rows = lignes.filter((l) => /^\|\s*[TC]-[A-Z0-9-]+\s*\|/.test(l))
+    const mdIds = rows.map((l) => l.split('|')[1].trim())
+    const cat = CATALOGUE.map((c) => c.id)
+    ok(mdIds.length === cat.length && cat.every((i) => mdIds.includes(i)) && mdIds.every((i) => cat.includes(i)), 'controles.md : mêmes ids que le catalogue')
+    ok(rows.every((l) => /https:\/\/\S+/.test(l)), 'controles.md : une source par id')
+    ok(rows.every((l) => { const c = l.split('|'); const k = CATALOGUE.find((x) => x.id === c[1].trim()); return k && c[2].trim() === k.severite && c[3].trim() === k.lot }), 'controles.md : sévérité et lot alignés sur le catalogue')
+  }
+}
+
 console.log(ko ? `\n${ko} KO` : '\ntout est ok')
 process.exit(ko ? 1 : 0)
