@@ -26,6 +26,8 @@
   {"query": "Our clinic pages have weak copy for search: write better titles, meta descriptions and headline wording for each page", "skill_attendu": "seo-contenu"},
   {"query": "Vérifie sur le rendu réel que les corrections SEO d'hier sont bien en place", "skill_attendu": "seo-verification"},
   {"query": "Check with Lighthouse that the SEO fixes actually show up in the rendered HTML", "skill_attendu": "seo-verification"},
+  {"query": "Le lot meta est appliqué : repasse les pages sur l'URL de dev et dis-moi quels constats SEO ont disparu et lesquels restent", "skill_attendu": "seo-verification"},
+  {"query": "Re-check the pages on localhost after the SEO changes and tell me which issues are gone, which remain and whether anything regressed", "skill_attendu": "seo-verification"},
 
   {"query": "Lance une campagne Google Ads pour mon cabinet de kiné avec un budget de 300 € par mois", "skill_attendu": null},
   {"query": "Trouve-moi des sites où acheter des backlinks pour faire du netlinking", "skill_attendu": null},

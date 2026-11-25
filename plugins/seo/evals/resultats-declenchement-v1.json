@@ -1,0 +1,612 @@
+{
+ "filtre": null,
+ "modele": "sonnet",
+ "runs": 1,
+ "date": "2026-11-25T18:43:08.485Z",
+ "summary": {
+  "total": 40,
+  "cas": 40,
+  "reussis": 40,
+  "rappel": 1,
+  "precision": 1,
+  "faux_declenchements": 0,
+  "exclus": {
+   "erreur": 0,
+   "timeout": 0
+  },
+  "par_skill": {
+   "seo": {
+    "cas": 7,
+    "rappel": 1,
+    "precision": 1
+   },
+   "seo-contenu": {
+    "cas": 4,
+    "rappel": 1,
+    "precision": 1
+   },
+   "seo-donnees-structurees": {
+    "cas": 4,
+    "rappel": 1,
+    "precision": 1
+   },
+   "seo-profil": {
+    "cas": 4,
+    "rappel": 1,
+    "precision": 1
+   },
+   "seo-technique": {
+    "cas": 4,
+    "rappel": 1,
+    "precision": 1
+   },
+   "seo-verification": {
+    "cas": 4,
+    "rappel": 1,
+    "precision": 1
+   }
+  }
+ },
+ "results": [
+  {
+   "query": "Fais un audit SEO de mon site et dis-moi ce qu'il faut corriger en priorité",
+   "skill_attendu": "seo",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Mon site n'apparaît pas sur Google, tu peux regarder dans le code pourquoi ?",
+   "skill_attendu": "seo",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Améliore le référencement naturel de ce projet PHP",
+   "skill_attendu": "seo",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Prépare le site pour le référencement avant la mise en ligne de lundi",
+   "skill_attendu": "seo",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Optimise le site du cabinet pour Google et pour les moteurs de réponse IA (GEO)",
+   "skill_attendu": "seo",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Run an SEO audit on this repo and fix the issues directly in the templates",
+   "skill_attendu": "seo",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Is my Vue app indexable by search engines? Check it and propose fixes",
+   "skill_attendu": "seo",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Crée le profil SEO de ce site (public, offre, ton) avant qu'on rédige quoi que ce soit",
+   "skill_attendu": "seo-profil",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-profil"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-profil",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Mets à jour le profil SEO du projet : le public a changé, on vise maintenant les sportifs",
+   "skill_attendu": "seo-profil",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-profil"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-profil",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Définis avec moi le ton, le public et les mots-clés cibles du site pour le référencement",
+   "skill_attendu": "seo-profil",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-profil"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-profil",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Update the SEO profile of this project: the site is now also published in English",
+   "skill_attendu": "seo-profil",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-profil"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-profil",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Génère un sitemap.xml et un robots.txt corrects pour ce site",
+   "skill_attendu": "seo-technique",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-technique"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-technique",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Fix the canonical and hreflang tags in my Twig base layout",
+   "skill_attendu": "seo-technique",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-technique"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-technique",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Ajoute le schema.org de mon cabinet",
+   "skill_attendu": "seo-donnees-structurees",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-donnees-structurees"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-donnees-structurees",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Add JSON-LD LocalBusiness structured data to the homepage",
+   "skill_attendu": "seo-donnees-structurees",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-donnees-structurees"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-donnees-structurees",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Mon robots.txt bloque tout le site et le plan du site n'y est pas déclaré, répare ça",
+   "skill_attendu": "seo-technique",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-technique"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-technique",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "My pages have two h1 tags and jump from h2 to h4, fix the heading levels in the templates without changing the wording",
+   "skill_attendu": "seo-technique",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-technique"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-technique",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Le test des résultats enrichis de Google signale une erreur dans le script ld+json de ma page contact, corrige-le",
+   "skill_attendu": "seo-donnees-structurees",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-donnees-structurees"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-donnees-structurees",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Mark up our practitioners' bios with schema.org Person entities so search engines understand who works at the clinic",
+   "skill_attendu": "seo-donnees-structurees",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-donnees-structurees"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-donnees-structurees",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Réécris les meta descriptions de mes pages",
+   "skill_attendu": "seo-contenu",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-contenu"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-contenu",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Rewrite the page titles and image alt texts so the pages rank better",
+   "skill_attendu": "seo-contenu",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-contenu"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-contenu",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Mes liens disent tous « en savoir plus » et la page des soins n'a que trois lignes : reformule les ancres et étoffe le texte",
+   "skill_attendu": "seo-contenu",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-contenu"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-contenu",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Our clinic pages have weak copy for search: write better titles, meta descriptions and headline wording for each page",
+   "skill_attendu": "seo-contenu",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-contenu"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-contenu",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Vérifie sur le rendu réel que les corrections SEO d'hier sont bien en place",
+   "skill_attendu": "seo-verification",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-verification"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-verification",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Check with Lighthouse that the SEO fixes actually show up in the rendered HTML",
+   "skill_attendu": "seo-verification",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-verification"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-verification",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Le lot meta est appliqué : repasse les pages sur l'URL de dev et dis-moi quels constats SEO ont disparu et lesquels restent",
+   "skill_attendu": "seo-verification",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-verification"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-verification",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Re-check the pages on localhost after the SEO changes and tell me which issues are gone, which remain and whether anything regressed",
+   "skill_attendu": "seo-verification",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-verification"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-verification",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Lance une campagne Google Ads pour mon cabinet de kiné avec un budget de 300 € par mois",
+   "skill_attendu": null,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": null
+    }
+   ],
+   "statut": "ok",
+   "observe": null,
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Trouve-moi des sites où acheter des backlinks pour faire du netlinking",
+   "skill_attendu": null,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": null
+    }
+   ],
+   "statut": "ok",
+   "observe": null,
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Mon API REST est lente, la route /patients met 4 secondes à répondre",
+   "skill_attendu": null,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill superpowers:systematic-debugging"
+    }
+   ],
+   "statut": "ok",
+   "observe": null,
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Écris un test unitaire PHPUnit pour la classe Facture",
+   "skill_attendu": null,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill superpowers:test-driven-development"
+    }
+   ],
+   "statut": "ok",
+   "observe": null,
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Fais une refonte graphique de la page d'accueil, plus moderne, avec une nouvelle palette",
+   "skill_attendu": null,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill superpowers:brainstorming"
+    }
+   ],
+   "statut": "ok",
+   "observe": null,
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Corrige l'erreur 500 du formulaire de contact en production",
+   "skill_attendu": null,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill superpowers:systematic-debugging"
+    }
+   ],
+   "statut": "ok",
+   "observe": null,
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Écris un post LinkedIn pour annoncer l'ouverture de mon cabinet",
+   "skill_attendu": null,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": null
+    }
+   ],
+   "statut": "ok",
+   "observe": null,
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Set up a Google Ads campaign for my dental clinic",
+   "skill_attendu": null,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill superpowers:brainstorming"
+    }
+   ],
+   "statut": "ok",
+   "observe": null,
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Write a Playwright end-to-end test for the login page",
+   "skill_attendu": null,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Bash"
+    }
+   ],
+   "statut": "ok",
+   "observe": null,
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "The buttons on my site fail colour contrast checks, fix the CSS",
+   "skill_attendu": null,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill chrome-devtools-mcp:a11y-debugging"
+    }
+   ],
+   "statut": "ok",
+   "observe": null,
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Mets en place un suivi hebdomadaire de mes positions Google sur mes dix mots-clés principaux",
+   "skill_attendu": null,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill superpowers:brainstorming"
+    }
+   ],
+   "statut": "ok",
+   "observe": null,
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Analyse le SEO des sites de mes trois concurrents et dis-moi ce qu'ils font mieux que moi",
+   "skill_attendu": null,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": null
+    }
+   ],
+   "statut": "ok",
+   "observe": null,
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "My Lighthouse performance score is 42, make the page load faster",
+   "skill_attendu": null,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill chrome-devtools-mcp:debug-optimize-lcp"
+    }
+   ],
+   "statut": "ok",
+   "observe": null,
+   "taux": 1,
+   "pass": true
+  }
+ ]
+}

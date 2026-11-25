@@ -1,18 +1,12 @@
 {
- "filtre": [
-  "seo",
-  "seo-profil",
-  "seo-technique",
-  "seo-donnees-structurees",
-  "seo-contenu"
- ],
+ "filtre": null,
  "modele": "sonnet",
  "runs": 1,
- "date": "2026-11-25T18:31:05.634Z",
+ "date": "2026-11-25T18:43:08.485Z",
  "summary": {
-  "total": 36,
-  "cas": 36,
-  "reussis": 36,
+  "total": 40,
+  "cas": 40,
+  "reussis": 40,
   "rappel": 1,
   "precision": 1,
   "faux_declenchements": 0,
@@ -42,6 +36,11 @@
     "precision": 1
    },
    "seo-technique": {
+    "cas": 4,
+    "rappel": 1,
+    "precision": 1
+   },
+   "seo-verification": {
     "cas": 4,
     "rappel": 1,
     "precision": 1
@@ -372,6 +371,62 @@
    "pass": true
   },
   {
+   "query": "Vérifie sur le rendu réel que les corrections SEO d'hier sont bien en place",
+   "skill_attendu": "seo-verification",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-verification"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-verification",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Check with Lighthouse that the SEO fixes actually show up in the rendered HTML",
+   "skill_attendu": "seo-verification",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-verification"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-verification",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Le lot meta est appliqué : repasse les pages sur l'URL de dev et dis-moi quels constats SEO ont disparu et lesquels restent",
+   "skill_attendu": "seo-verification",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-verification"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-verification",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Re-check the pages on localhost after the SEO changes and tell me which issues are gone, which remain and whether anything regressed",
+   "skill_attendu": "seo-verification",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-verification"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-verification",
+   "taux": 1,
+   "pass": true
+  },
+  {
    "query": "Lance une campagne Google Ads pour mon cabinet de kiné avec un budget de 300 € par mois",
    "skill_attendu": null,
    "essais": [
@@ -419,7 +474,7 @@
    "essais": [
     {
      "statut": "ok",
-     "appel": "Bash"
+     "appel": "Skill superpowers:test-driven-development"
     }
    ],
    "statut": "ok",
@@ -545,7 +600,7 @@
    "essais": [
     {
      "statut": "ok",
-     "appel": "Bash"
+     "appel": "Skill chrome-devtools-mcp:debug-optimize-lcp"
     }
    ],
    "statut": "ok",
