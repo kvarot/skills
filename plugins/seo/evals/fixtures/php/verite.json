@@ -8,10 +8,21 @@
       "detection": "controle",
       "verif_apres": {
         "type": "motif",
+        "fichier": ".",
+        "present": "(?:<\\?=|echo|print)\\s*seo_meta\\s*\\(",
+        "echantillon_ok": "<?= seo_meta($titre, $description) ?>",
+        "echantillon_ko": "function seo_meta(string $titre, string $description): string {"
+      }
+    },
+    {
+      "controle": "T-TITLE-DOUBLON",
+      "fichier_source": "inc/header.php",
+      "detection": "controle",
+      "verif_apres": {
+        "type": "motif",
         "fichier": "index.php",
-        "present": "seo_meta\\(",
         "absent": "<title",
-        "echantillon_ok": "<?= seo_meta('Cabinet Exemple, kinésithérapie', $description) ?>",
+        "echantillon_ok": "<?= seo_meta($titre, $description) ?>",
         "echantillon_ko": "<title>Cabinet Exemple</title>"
       }
     },
@@ -22,9 +33,8 @@
       "verif_apres": {
         "type": "motif",
         "fichier": "soins.php",
-        "present": "seo_meta\\(",
         "absent": "<title",
-        "echantillon_ok": "<?= seo_meta('Nos soins de kinésithérapie', $description) ?>",
+        "echantillon_ok": "<?= seo_meta($titre, $description) ?>",
         "echantillon_ko": "<title>Cabinet Exemple</title>"
       }
     },
@@ -35,9 +45,8 @@
       "verif_apres": {
         "type": "motif",
         "fichier": "contact.php",
-        "present": "seo_meta\\(",
         "absent": "<title",
-        "echantillon_ok": "<?= seo_meta('Contacter le cabinet', $description) ?>",
+        "echantillon_ok": "<?= seo_meta($titre, $description) ?>",
         "echantillon_ko": "<title>Cabinet Exemple</title>"
       }
     },

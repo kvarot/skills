@@ -7,11 +7,11 @@
  ],
  "modele": "sonnet",
  "runs": 1,
- "date": "2026-11-25T18:13:35.195Z",
+ "date": "2026-11-25T18:21:32.390Z",
  "summary": {
-  "total": 28,
-  "cas": 28,
-  "reussis": 28,
+  "total": 32,
+  "cas": 32,
+  "reussis": 32,
   "rappel": 1,
   "precision": 1,
   "faux_declenchements": 0,
@@ -26,7 +26,7 @@
     "precision": 1
    },
    "seo-donnees-structurees": {
-    "cas": 2,
+    "cas": 4,
     "rappel": 1,
     "precision": 1
    },
@@ -36,7 +36,7 @@
     "precision": 1
    },
    "seo-technique": {
-    "cas": 2,
+    "cas": 4,
     "rappel": 1,
     "precision": 1
    }
@@ -254,12 +254,68 @@
    "pass": true
   },
   {
+   "query": "Mon robots.txt bloque tout le site et le plan du site n'y est pas déclaré, répare ça",
+   "skill_attendu": "seo-technique",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-technique"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-technique",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "My pages have two h1 tags and jump from h2 to h4, fix the heading levels in the templates without changing the wording",
+   "skill_attendu": "seo-technique",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-technique"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-technique",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Le test des résultats enrichis de Google signale une erreur dans le script ld+json de ma page contact, corrige-le",
+   "skill_attendu": "seo-donnees-structurees",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-donnees-structurees"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-donnees-structurees",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Mark up our practitioners' bios with schema.org Person entities so search engines understand who works at the clinic",
+   "skill_attendu": "seo-donnees-structurees",
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo-donnees-structurees"
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo-donnees-structurees",
+   "taux": 1,
+   "pass": true
+  },
+  {
    "query": "Lance une campagne Google Ads pour mon cabinet de kiné avec un budget de 300 € par mois",
    "skill_attendu": null,
    "essais": [
     {
      "statut": "ok",
-     "appel": null
+     "appel": "Skill superpowers:brainstorming"
     }
    ],
    "statut": "ok",
@@ -301,7 +357,7 @@
    "essais": [
     {
      "statut": "ok",
-     "appel": null
+     "appel": "Bash"
     }
    ],
    "statut": "ok",
