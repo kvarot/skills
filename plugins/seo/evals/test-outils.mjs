@@ -381,6 +381,12 @@ if (collecterUrl) {
       ok(s.langues.includes('fr') && s.indices.some((i) => i.includes('vue')), 'détection : vue-spa langues et indices')
       s = detecter(creer({ 'package.json': '{"dependencies":{"vue":"^3"}}', 'index.html': '<div id="app"></div>', 'index.twig': '<html lang="fr"></html>' }))
       ok(s.stack === 'vue-spa', 'détection : règle 1 prioritaire sur twig')
+      for (const corps of ['<!--' + '-'.repeat(50000), '<!-- ' + '<!-- '.repeat(20000), '<a '.repeat(100000)]) {
+        const dPath = creer({ 'package.json': '{"dependencies":{"vue":"^3"}}', 'index.html': '<div id="app">' + corps })
+        const t0 = Date.now()
+        s = detecter(dPath)
+        ok(Date.now() - t0 < 200 && typeof s.stack === 'string' && s.stack !== 'vue-spa', 'détection : entrée pathologique (commentaire non fermé) rapide et non vide')
+      }
       s = detecter(creer({ 'api.php': '<?php echo 1; ?><header>x</header>', 'index.html': '<html></html>' }))
       ok(s.stack === 'html-statique', 'détection : .php avec seulement <header> n\'est pas php')
       s = detecter(creer({ 'api.php': '<?php echo 1; ?><header>x</header>' }))

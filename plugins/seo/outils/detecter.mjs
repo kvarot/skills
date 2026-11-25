@@ -65,6 +65,23 @@ function phpHtml(dir, php) {
   return { directs, html }
 }
 
+const MAX_HTML = 512 * 1024
+
+// True when the html holds an element with id="app" whose content is empty (whitespace and comments only).
+// Linear scans only: the id is located first, then one anchored regex whose comment match has a single way to succeed.
+function conteneurVide(html) {
+  const h = html.slice(0, MAX_HTML)
+  for (const m of h.matchAll(/\bid\s*=\s*["']app["']/gi)) {
+    const debut = h.lastIndexOf('<', m.index)
+    const fin = h.indexOf('>', m.index)
+    if (debut < 0 || fin < 0 || h.slice(debut, m.index).includes('>')) continue
+    const nom = /^<(\w+)/.exec(h.slice(debut, debut + 40))
+    if (!nom) continue
+    if (new RegExp('^(?:\\s|<!--(?:(?!-->)[\\s\\S])*-->)*</' + nom[1] + '>', 'i').test(h.slice(fin + 1))) return true
+  }
+  return false
+}
+
 export function detecter(dir) {
   if (!existsSync(dir) || !statSync(dir).isDirectory()) throw new Error(`dossier introuvable : ${dir}`)
   const fichiers = lister(dir)
@@ -76,7 +93,7 @@ export function detecter(dir) {
   try { pkg = JSON.parse(lire(dir, 'package.json')) } catch { /* no usable package.json */ }
   const indexRacine = lire(dir, 'index.html')
   const aVue = !!pkg && !!(pkg.dependencies?.vue || pkg.devDependencies?.vue)
-  if (aVue && /<(\w+)\b[^>]*\bid\s*=\s*["']app["'][^>]*>(?:\s|<!--[\s\S]*?-->)*<\/\1>/i.test(indexRacine)) {
+  if (aVue && conteneurVide(indexRacine)) {
     const routeur = fichiers.filter((f) => /\.(js|ts)$/.test(f) && (/(^|\/)router(\/|\.)/.test(f) || /(^|\/)main\.(js|ts)$/.test(f)))
     return stack('vue-spa', 'client', ['package.json', 'index.html', ...routeur], ['index.html'], ['dépendance vue dans package.json', 'index.html racine avec conteneur vide id="app" (rendu côté navigateur)'])
   }
