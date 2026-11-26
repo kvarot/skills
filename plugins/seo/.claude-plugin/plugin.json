@@ -1,7 +1,7 @@
 {
   "name": "seo",
   "version": "0.1.0",
-  "description": "Audit SEO et GEO d'un site, avec outils déterministes et plan d'actions priorisé.",
+  "description": "Audit SEO d'un site web puis corrections écrites dans le code du projet, lot par lot, après validation du développeur ; outils déterministes en Node.",
   "author": { "name": "kvarot" },
   "license": "MIT"
 }

@@ -5,3 +5,4 @@ node_modules/
 *.conf/
 
 plugins/seo/evals/.noms-interdits.local
+plugins/seo/evals/resultats-declenchement.json

@@ -11,7 +11,7 @@ Bibliothèque de skills pour Claude Code (et autres agents qui lisent le même f
 
 | Plugin | À quoi il sert |
 |---|---|
-| [`seo`](plugins/seo/README.md) | Audit SEO et GEO d'un site web : outils Node déterministes, six skills et un agent d'audit, plan d'actions priorisé. Sous licence MIT. |
+| [`seo`](plugins/seo/README.md) | Audit SEO d'un site web et corrections écrites dans le code du projet, lot par lot après validation du développeur : outils Node déterministes, six skills et un agent d'audit. Sous licence MIT. |
 
 Installation : `/plugin marketplace add kvarot/skills` puis `/plugin install seo@kvarot-skills`.
 

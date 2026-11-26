@@ -1,6 +1,6 @@
 # seo
 
-Plugin Claude Code d'audit SEO et GEO d'un site web. Il s'appuie sur des outils déterministes en Node (sans dépendance) pour mesurer ce qui peut l'être, puis sur le modèle pour interpréter les résultats et produire un plan d'actions priorisé.
+Plugin Claude Code qui audite le SEO d'un site web et corrige les défauts **dans le code du projet**, à l'endroit d'où ils viennent (layout, template, route), dans les conventions du projet. Chaque lot de corrections est présenté (diff, avant / après des textes) et n'est écrit qu'après votre validation, puis vérifié. Des outils déterministes en Node (sans dépendance) mesurent ce qui peut l'être ; le modèle relie chaque constat à son fichier source, classe les lots et rédige les corrections.
 
 ## Installation
 
@@ -9,7 +9,7 @@ Plugin Claude Code d'audit SEO et GEO d'un site web. Il s'appuie sur des outils 
 /plugin install seo@kvarot-skills
 ```
 
-Prérequis : Node 18 ou plus pour les outils (`outils/*.mjs`, zéro dépendance npm). Sans Node, les skills continuent en lecture du code et le disent.
+Prérequis : Node 18.3 ou plus pour les outils (`outils/*.mjs`, zéro dépendance npm). Sans Node, les skills continuent en lecture du code et le disent.
 
 Optionnel, jamais requis :
 
