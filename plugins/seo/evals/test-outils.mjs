@@ -89,6 +89,8 @@ if (extraire) {
   ok(f5.corpsVide === true, 'extraction : moins de 20 mots = corpsVide')
   ok(extraire('<body><div id="app"></div><script src="x.js"></script></body>', 'u').corpsVide === true, 'extraction : coquille SPA = corpsVide')
   ok(extraire('<body><p>' + 'mot '.repeat(25) + '</p></body>', 'u').corpsVide === false, 'extraction : page fournie = corpsVide false')
+  ok(extraire('<body><div id="app"></div><script src="x.js"></script></body>', 'u').montageSpa === true && extraire('<body><div id=root></div></body>', 'u').montageSpa === true, 'extraction : conteneur de montage SPA (#app, #root) = montageSpa')
+  ok(extraire('<body><h1>Mentions légales</h1><p>Éditeur : cabinet fictif.</p></body>', 'u').montageSpa === false, 'extraction : page courte sans conteneur de montage = montageSpa false')
   let f6 = null, err = null
   try { f6 = extraire('<html><head><title>X', 'u') } catch (e) { err = e }
   ok(err === null && f6?.title === 'X', 'extraction : HTML tronqué sans exception, title X')
@@ -179,7 +181,14 @@ if (controler) {
   vide([bon('/', { liens: [{ href: '/doc.pdf', texte: 'Plaquette' }, { href: '/img/x.png', texte: 'Image' }] })], ABS, 'liens vers fichiers non HTML ignorés')
   a('T-PAGE-ORPHELINE', [bon('/', { liens: [] }), bon('/seule')], site({ sitemapXml: sitemapDe('/', '/seule') }))
   vide([bon('/', { liens: [{ href: 'https://ex.test/seule', texte: 'Seule' }] }), bon('/seule', { liens: [{ href: '/', texte: 'Accueil' }] })], site({ sitemapXml: sitemapDe('/', '/seule') }), 'liens internes absolus/relatifs')
-  a('T-SPA-HTML-VIDE', [bon('/', { corpsVide: true })])
+  a('T-SPA-HTML-VIDE', [bon('/', { corpsVide: true, montageSpa: true })])
+  vide([bon('/', { corpsVide: true, montageSpa: false })], ABS, 'page courte sans conteneur SPA : pas de T-SPA-HTML-VIDE')
+  const http = a('T-HTTP-ERREUR', [bon('/')], { ...ABS, anomaliesHttp: [{ url: 'https://ex.test/x', preuve: 'HTTP 404' }, { url: 'https://ex.test/y', preuve: 'redirection vers un autre hôte' }] })
+  ok(http?.pages.length === 2 && http.severite === 'important' && /404/.test(http.preuve), 'contrôles : T-HTTP-ERREUR liste les URL en erreur')
+  vide([bon('/', { liens: [{ href: '/hors-limite', texte: 'Plus loin' }, { href: '/ancienne', texte: 'Ancienne' }] })], { ...ABS, urlsExistantes: ['/hors-limite', 'https://ex.test/ancienne'] }, 'lien vers URL existante non collectée (hors limite, redirection) ni cassé ni hors sitemap')
+  vide([bon('/', { liens: [{ href: '/b', texte: 'B' }] }), bon('/b', { liens: [{ href: '/', texte: 'Accueil' }, { href: '/c', texte: 'C' }] })], { ...ABS, sitemapXml: sitemapDe('/', '/b'), urlsExistantes: ['/c'] }, 'URL existante non collectée : ni orpheline ni absente du sitemap')
+  vide([bon('/')], site({ sitemapXml: null, sitemapNonLu: true }), 'sitemap non lu (robots.txt) : pas de T-SITEMAP-ABSENT')
+  vide([bon('/')], site({ sitemapXml: sitemapDe('https://ex.test/', 'https://ex.test/non-explore'), limiteAtteinte: true }), 'limite d\'exploration atteinte : URL du sitemap non explorée pas inconnue')
   a('T-JSONLD-INVALIDE', [bon('/', { jsonld: [{ brut: '{', objet: null, erreur: 'Unexpected end' }] })])
   a('T-JSONLD-INVALIDE', [bon('/', { jsonld: [{ brut: '{}', objet: { name: 'x' }, erreur: null }] })], site(), 'T-JSONLD-INVALIDE (sans @type)')
   const ld = (o) => [bon('/', { jsonld: [{ brut: '', objet: o, erreur: null }] })]
@@ -197,7 +206,7 @@ if (controler) {
   // Ordering and catalogue shape.
   const mix = controler([bon('/', { title: null, lang: null, mots: 10 }), bon('/b', { title: null })], site())
   ok(mix.every((c, i) => i === 0 || mix[i - 1].priorite >= c.priorite), 'contrôles : constats triés par priorité décroissante')
-  ok(Array.isArray(CATALOGUE) && CATALOGUE.length === 28 && new Set(CATALOGUE.map((c) => c.id)).size === 28, 'catalogue : 28 ids uniques')
+  ok(Array.isArray(CATALOGUE) && CATALOGUE.length === 29 && new Set(CATALOGUE.map((c) => c.id)).size === 29, 'catalogue : 29 ids uniques')
   ok(CATALOGUE.every((c) => ['bloquant', 'important', 'mineur'].includes(c.severite) && c.lot && c.description), 'catalogue : sévérité, lot, description')
   const tout = controler([bon('/', { title: null, hn: [], lang: null })], site({ robotsTxt: null, sitemapXml: null }))
   ok(tout.every((c) => CATALOGUE.some((k) => k.id === c.controle && k.severite === c.severite && k.lot === c.lot)), 'contrôles : constats cohérents avec le catalogue')
@@ -223,7 +232,7 @@ if (collecterUrl) {
   const { createServer } = await import('node:http')
   const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import('node:fs')
   const { tmpdir } = await import('node:os')
-  const { spawnSync } = await import('node:child_process')
+  const { spawn, spawnSync } = await import('node:child_process')
   const page = (titre, liens) => `<!DOCTYPE html><html lang="fr"><head><title>${titre}</title></head><body><h1>${titre}</h1>${liens.map((l) => `<a href="${l}">lien</a>`).join('')}</body></html>`
   const routes = {
     '/': page('Accueil', ['/a', '/b', '/prive/x', 'https://externe.invalid/z', '/doc.pdf', 'mailto:a@b.c', '#haut', '/a#frag']),
@@ -260,6 +269,11 @@ if (collecterUrl) {
   const rb = lireRobots('User-agent: bot\nDisallow: /\n\nUser-agent: *\nDisallow: /x/\nAllow: /x/ok\nDisallow: /fin$\n')
   ok(!rb.estAutorise('/x/y') && rb.estAutorise('/x/ok') && rb.estAutorise('/z') && !rb.estAutorise('/fin') && rb.estAutorise('/fin2'), 'robots : préfixe le plus long, groupe *')
   ok(lireRobots('User-agent: *\nDisallow:\n').estAutorise('/a'), 'robots : Disallow vide autorise tout')
+  const rj = lireRobots('User-agent: *\nDisallow: /*.php$\nDisallow: /a$b\nDisallow: /p*r?x\n')
+  ok(!rj.estAutorise('/x.php') && rj.estAutorise('/x.php?y=1') && !rj.estAutorise('/a$bc') && rj.estAutorise('/ab') && !rj.estAutorise('/pour?x=1') && rj.estAutorise('/pourx'), 'robots : * joker, $ ancre en fin seulement, $ et ? littéraux ailleurs')
+  const t0 = Date.now()
+  const lourd = lireRobots('User-agent: *\nDisallow: /' + 'a*'.repeat(13) + 'b\n').estAutorise('/' + 'a'.repeat(40))
+  ok(lourd === true && Date.now() - t0 < 200, 'robots : motif pathologique (13 jokers) traité en temps linéaire (' + (Date.now() - t0) + ' ms)')
 
   // Dev host: robots is read but not obeyed; BFS, external/pdf/mailto not followed.
   vus.length = 0
@@ -299,6 +313,7 @@ if (collecterUrl) {
   r = await collecterUrl(base + '/lien-ext', { delaiMs: 0 })
   ok(autre.length === 0 && r.erreurs.some((e) => /autre hôte/.test(e.erreur)), 'redirection : lien redirigé hors hôte → 0 requête, consigné dans erreurs')
   ok(r.erreurs.some((e) => /5 Mo/.test(e.erreur)) && !urls(r).includes('/gros'), 'garde-fou : corps > 5 Mo ignoré et consigné')
+  ok(controler(r.pages, r.site).find((k) => k.controle === 'T-HTTP-ERREUR')?.pages.some((u) => u.endsWith('/r-ext')), 'redirection hors hôte : T-HTTP-ERREUR')
   ok(urls(r).filter((x) => x === '/a').length === 1, 'redirection même hôte : URL finale dédoublonnée (/r-a → /a)')
   ok(/boucle|redirections/.test((await rejet(base + '/boucle')) ?? ''), 'redirection : boucle bornée à 5 sauts')
   ok(/HTML/.test((await rejet(base + '/pdf.php')) ?? ''), 'départ en 200 non HTML → rejet explicite')
@@ -321,6 +336,68 @@ if (collecterUrl) {
   ok(r.pages.length === 1 && r.site.robotsTxt === null, 'robots 404 hors dev → tout autorisé')
   await new Promise((r2) => srv5.close(r2))
   await new Promise((r2) => srvAutre.close(r2))
+
+  // Crawl cap, redirects, HTTP errors, sitemap and robots, stalled body, IPv6 loopback.
+  {
+    const six = (i) => `<html lang="fr"><head><title>Page ${i}</title></head><body><h1>P${i}</h1>` +
+      [0, 1, 2, 3, 4, 5].map((k) => `<a href="/p${k}.html">p${k}</a>`).join('') + '<a href="/old">old</a></body></html>'
+    let robots6 = null, demandes = []
+    const srv6 = createServer((req, res) => {
+      demandes.push(req.url)
+      if (req.url === '/old') { res.writeHead(301, { location: '/p1.html' }); return res.end() }
+      if (req.url === '/robots.txt') { if (robots6 === null) { res.writeHead(404); return res.end() } res.setHeader('content-type', 'text/plain'); return res.end(robots6) }
+      if (req.url === '/plan.xml') { res.setHeader('content-type', 'text/xml'); return res.end('<urlset><url><loc>/p0.html</loc></url></urlset>') }
+      if (req.url === '/sitemap.xml') { res.writeHead(404); return res.end() }
+      if (req.url === '/casse-depart') { res.setHeader('content-type', 'text/html'); return res.end(six('C').replace('<a href="/old">', '<a href="/absente.html">x</a><a href="/old">')) }
+      if (req.url === '/absente.html') { res.writeHead(404); return res.end() }
+      if (req.url === '/lent-depart') { res.setHeader('content-type', 'text/html'); return res.end('<html lang="fr"><body><h1>L</h1><a href="/lent">l</a></body></html>') }
+      if (req.url === '/lent') { res.writeHead(200, { 'content-type': 'text/html' }); return res.write('<html><body>debut') } // never ends
+      res.writeHead(200, { 'content-type': 'text/html' }); res.end(six(req.url))
+    })
+    await new Promise((r2) => srv6.listen(0, '127.0.0.1', r2))
+    const b6 = 'http://127.0.0.1:' + srv6.address().port
+    const cassesDe = (c) => controler(c.pages, c.site).filter((k) => k.controle === 'T-LIEN-CASSE')
+
+    let c6 = await collecterUrl(b6 + '/p0.html', { delaiMs: 0, maxPages: 3 })
+    ok(c6.pages.length === 3 && cassesDe(c6).length === 0, 'limite d\'exploration : liens vers pages non collectées non signalés cassés' + (cassesDe(c6).length ? ' — ' + cassesDe(c6)[0].preuve : ''))
+    ok(c6.exploration?.pages === 3 && c6.exploration.limite_atteinte === true, 'limite d\'exploration : exploration { pages, limite_atteinte: true }')
+    c6 = await collecterUrl(b6 + '/p0.html', { delaiMs: 0, maxPages: 50 })
+    ok(c6.pages.length === 6 && cassesDe(c6).length === 0, 'redirection interne aboutie (/old → /p1.html) : lien non signalé cassé' + (cassesDe(c6).length ? ' — ' + cassesDe(c6)[0].preuve : ''))
+    ok(c6.exploration?.limite_atteinte === false && Array.isArray(c6.erreurs) && c6.erreurs.length === 0, 'exploration complète : limite_atteinte false, aucune erreur')
+    c6 = await collecterUrl(b6 + '/casse-depart', { delaiMs: 0, maxPages: 50 })
+    const ids6 = controler(c6.pages, c6.site).map((k) => k.controle)
+    ok(ids6.includes('T-LIEN-CASSE') && ids6.includes('T-HTTP-ERREUR') && c6.erreurs.some((e) => /absente/.test(e.url) && /404/.test(e.erreur)), 'page interne en 404 : T-LIEN-CASSE, T-HTTP-ERREUR et erreur consignée')
+    // Sitemap: the robots.txt `Sitemap:` line is used; robots disallowing it off dev means no request at all.
+    robots6 = `User-agent: *\nDisallow:\nSitemap: ${b6}/plan.xml\n`
+    demandes = []
+    c6 = await collecterUrl(b6 + '/p0.html', { delaiMs: 0, maxPages: 1 })
+    ok(demandes.includes('/plan.xml') && !demandes.includes('/sitemap.xml') && /p0\.html/.test(c6.site.sitemapXml ?? ''), 'sitemap : ligne Sitemap: de robots.txt utilisée')
+    robots6 = 'User-agent: *\nDisallow: /sitemap.xml\n'
+    demandes = []
+    c6 = await collecterUrl(b6 + '/p0.html', { delaiMs: 0, maxPages: 1, hotesDev: [], autoriserProd: true })
+    ok(!demandes.includes('/sitemap.xml') && c6.site.sitemapNonLu === true && !controler(c6.pages, c6.site).some((k) => k.controle === 'T-SITEMAP-ABSENT'), 'sitemap interdit par robots.txt hors dev : 0 requête, pas de T-SITEMAP-ABSENT')
+    robots6 = null
+    // A body that stalls after the headers is aborted by the timeout.
+    const t1 = Date.now()
+    c6 = await Promise.race([collecterUrl(b6 + '/lent-depart', { delaiMs: 0, delaiMaxMs: 300 }), new Promise((r2) => setTimeout(() => r2(null), 5000))])
+    ok(c6 !== null && Date.now() - t1 < 4000 && c6.erreurs.some((e) => /\/lent$/.test(e.url)), 'corps bloqué après les en-têtes : abandon par le délai maximal, erreur consignée')
+    // CLI: errors and coverage in the auditer JSON.
+    const cliAsync = (...args) => new Promise((r2) => {
+      const p = spawn(process.execPath, [path.join(plugin, 'outils', 'seo.mjs'), ...args])
+      let out = '', errOut = ''
+      p.stdout.on('data', (d) => { out += d }); p.stderr.on('data', (d) => { errOut += d })
+      p.on('close', (status) => r2({ status, stdout: out, stderr: errOut }))
+    })
+    const cu = await cliAsync('auditer', '--url', b6 + '/casse-depart', '--max-pages', '2', '--delai-ms', '0')
+    let su = null
+    try { su = JSON.parse(cu.stdout) } catch { /* reported below */ }
+    ok(cu.status === 0 && Array.isArray(su?.erreurs) && su.exploration?.pages === 2 && su.exploration.limite_atteinte === true, 'CLI auditer --url : JSON avec erreurs et exploration { pages, limite_atteinte }')
+    srv6.closeAllConnections?.()
+    await new Promise((r2) => srv6.close(r2))
+    // IPv6 loopback is a dev host: refused for being unreachable, never for lacking --autoriser-prod.
+    const m6 = await rejet('http://[::1]:1/')
+    ok(m6 !== null && !m6.includes('--autoriser-prod'), 'hôte [::1] traité comme hôte de dev')
+  }
 
   // Errors.
   msg = null
@@ -346,7 +423,7 @@ if (collecterUrl) {
     let c = cli('auditer', '--dossier', dir)
     let sortie = null
     try { sortie = JSON.parse(c.stdout) } catch { /* reported below */ }
-    ok(c.status === 0 && sortie && sortie.stack === null && Array.isArray(sortie.constats), 'CLI auditer --dossier : JSON { stack, constats }, code 0')
+    ok(c.status === 0 && sortie && sortie.stack === null && Array.isArray(sortie.constats) && Array.isArray(sortie.erreurs) && sortie.exploration?.pages === 3 && sortie.exploration.limite_atteinte === false, 'CLI auditer --dossier : JSON { stack, constats, erreurs, exploration }, code 0')
     c = cli('auditer', '--dossier', path.join(dir, 'inexistant'))
     ok(c.status !== 0 && c.stderr.trim().length > 0, 'CLI auditer : dossier inexistant → code ≠ 0, message sur stderr')
     c = cli('auditer')
@@ -468,6 +545,8 @@ if (collecterUrl) {
     ok(a(avec({ pages: [{ url: '/x' }] }), 'pages') && P.validerProfil(avec({ pages: [{ url: '/x', source: 'x.html' }] })).length === 0, 'pages : url et source requis')
     ok(a(avec({ historique: [{ date: '2026-01-01', lot: 'meta' }] }), 'historique') && P.validerProfil(avec({ historique: [{ date: '2026-01-01', lot: 'meta', controles: ['T-TITLE-ABSENT'] }] })).length === 0, 'historique : date, lot, controles requis')
     ok(P.validerProfil(null).length > 0, 'profil non objet → erreur')
+    ok(a(avec({ note: 3 }), 'note') && P.validerProfil(avec({ note: "confirmé d'avance, non relu" })).length === 0, 'note : texte accepté, autre type → erreur')
+    try { ok(parseFrontMatter("---\nnote: confirmé d'avance, non relu\n---\n").meta.note === "confirmé d'avance, non relu", 'frontmatter : note avec apostrophe et virgule lue telle quelle') } catch (e) { ok(false, 'frontmatter : note — ' + e.message) }
 
     const tmp = mkdtempSync(path.join(tmpdir(), 'seo-profil-'))
     try {

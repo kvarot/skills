@@ -32,7 +32,8 @@ async function auditer(argv) {
     if (d !== undefined) opts.delaiMs = d
     collecte = await collecterUrl(values.url, opts)
   }
-  process.stdout.write(JSON.stringify({ stack: null, constats: controler(collecte.pages, collecte.site) }, null, 2) + '\n')
+  const sortie = { stack: null, constats: controler(collecte.pages, collecte.site), erreurs: collecte.erreurs ?? [], exploration: collecte.exploration ?? { pages: collecte.pages.length, limite_atteinte: false } }
+  process.stdout.write(JSON.stringify(sortie, null, 2) + '\n')
 }
 
 function detecterStack(argv) {

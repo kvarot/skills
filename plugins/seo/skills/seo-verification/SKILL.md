@@ -15,7 +15,7 @@ Outils : `node <base du skill>/../../outils/seo.mjs <commande>` (`<base du skill
 2. **Lecture seule.** Aucun fichier du projet modifié, créé ou supprimé. Un défaut trouvé est rapporté, jamais corrigé ici : la correction repasse par le skill du lot, avec validation.
 3. **Ni build, ni installation, ni serveur lancé sans accord.** Un serveur lancé avec accord est arrêté à la fin (étape 3).
 4. **Toujours annoncer le niveau atteint** : `navigateur`, `http` ou `code`, page par page s'il varie. Jamais « vérifié » sans niveau ; un contrôle fait sur le code seul est **annoncé comme tel**.
-5. **Hôtes de dev seulement** (`localhost`, `127.0.0.1`). Toute autre URL demande l'accord explicite du développeur, puis `--autoriser-prod` (débit limité, `robots.txt` respecté). Rappeler qu'une prod ne montre la correction qu'après déploiement.
+5. **Hôtes de dev seulement** (`localhost`, `127.0.0.1`, `[::1]`). Toute autre URL demande l'accord explicite du développeur, puis `--autoriser-prod` (débit limité, `robots.txt` respecté). Rappeler qu'une prod ne montre la correction qu'après déploiement.
 6. **Rien d'inventé** : chaque statut s'appuie sur une preuve observée (balise lue, valeur extraite, sortie de `auditer`, ligne de code).
 7. **Jamais de commit ni de push**, jamais d'écriture en base, dans un CMS ou en production.
 

@@ -44,6 +44,7 @@ export function validerProfil(meta) {
     if (!objet(meta.mots_cles)) e.push('mots_cles doit être un objet type de page → liste')
     else for (const [t, l] of Object.entries(meta.mots_cles)) if (!Array.isArray(l) || !l.every(texte)) e.push(`mots_cles.${t} doit être une liste de textes`)
   }
+  if (meta.note !== undefined && !texte(meta.note)) e.push('note doit être un texte non vide (ex. confirmé d’avance, non relu)')
   if (meta.termes_a_eviter !== undefined && (!Array.isArray(meta.termes_a_eviter) || !meta.termes_a_eviter.every(texte))) e.push('termes_a_eviter doit être une liste de textes')
   if (meta.pages !== undefined) {
     if (!Array.isArray(meta.pages)) e.push('pages doit être une liste d’objets { url, source }')

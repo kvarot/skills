@@ -31,6 +31,7 @@ Validation : `node <base du skill>/../../outils/seo.mjs profil-valider .claude/s
 | `termes_a_eviter` | liste de textes | formulations à ne pas écrire |
 | `pages` | liste de `{ url, source }` | correspondance URL → fichier source |
 | `historique` | liste de `{ date, lot, controles }` | lots déjà appliqués ; `controles` = ids de `controles.md` |
+| `note` | texte | `confirmé d'avance, non relu` quand le discours a été confirmé d'avance (`seo-profil`, étape 3) ; retiré quand le développeur l'a relu avec le premier lot de textes (`seo-contenu`) |
 
 ## Déduit ou confirmé
 

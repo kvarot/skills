@@ -17,6 +17,7 @@ export const CATALOGUE = [
   ['T-ROBOTSTXT-BLOQUE-TOUT', 'bloquant', 'indexation', 'Disallow: / pour User-agent: *'],
   ['T-SITEMAP-ABSENT', 'important', 'indexation', 'Sitemap absent'],
   ['T-SITEMAP-INCOHERENT', 'mineur', 'indexation', 'Page connue absente du sitemap, ou URL du sitemap inconnue'],
+  ['T-HTTP-ERREUR', 'important', 'indexation', 'URL interne en erreur HTTP (4xx, 5xx), redirigée hors du site ou par une chaîne trop longue (mode URL)'],
   ['T-HREFLANG-INCOHERENT', 'important', 'international', 'hreflang sans réciproque ou sans x-default quand au moins deux langues'],
   ['T-LANG-ABSENT', 'important', 'international', "Pas d'attribut lang"],
   ['T-OG-ABSENT', 'mineur', 'partage', 'og:title ou og:description absent'],
@@ -139,7 +140,8 @@ const PAR_PAGE = {
   },
   'T-ALT-ABSENT': (p) => { const n = p.images.filter((i) => i.alt === null).length; return n ? `${n} image(s) sans alt, ex. ${p.images.find((i) => i.alt === null).src}` : null },
   'T-IMG-DIMENSIONS': (p) => { const l = p.images.filter((i) => vide(i.width) || vide(i.height)); return l.length ? `${l.length} image(s) sans width/height, ex. ${l[0].src}` : null },
-  'T-SPA-HTML-VIDE': (p) => (p.corpsVide ? `corps quasi vide (${p.mots} mots visibles)` : null),
+  // A short page alone is not a SPA shell: an empty mount container (#app, #root...) is required.
+  'T-SPA-HTML-VIDE': (p) => (p.corpsVide && p.montageSpa ? `corps quasi vide (${p.mots} mots visibles) autour d'un conteneur de montage d'application` : null),
   'T-JSONLD-INVALIDE': (p) => {
     for (const j of p.jsonld) {
       if (j.erreur) return `JSON-LD non parsable : ${j.erreur}`
@@ -185,7 +187,7 @@ export function controler(pages, site = {}) {
   // Site-level files.
   if (site.robotsTxt == null) ajouter('T-ROBOTSTXT-ABSENT', ['/robots.txt'], 'robots.txt introuvable')
   else if (groupeRobotsBloqueTout(site.robotsTxt)) ajouter('T-ROBOTSTXT-BLOQUE-TOUT', ['/robots.txt'], 'Disallow: / pour User-agent: *')
-  if (site.sitemapXml == null) ajouter('T-SITEMAP-ABSENT', ['/sitemap.xml'], 'sitemap introuvable')
+  if (site.sitemapXml == null && !site.sitemapNonLu) ajouter('T-SITEMAP-ABSENT', ['/sitemap.xml'], 'sitemap introuvable')
 
   // Known pages by pathname (collected pages + discovered URLs).
   const connus = new Map() // pathname -> url as given
@@ -193,12 +195,17 @@ export function controler(pages, site = {}) {
     const r = resoudre(u, DUMMY)
     if (r && !connus.has(chemin(r))) connus.set(chemin(r), u)
   }
+  // URLs that exist without a collected page (redirect sources, beyond the crawl cap, robots-blocked):
+  // valid link targets, but kept out of the sitemap and orphan computations.
+  const existantes = new Set()
+  for (const u of site.urlsExistantes ?? []) { const r = resoudre(u, DUMMY); if (r) existantes.add(chemin(r)) }
 
   if (site.sitemapXml != null && !/<sitemapindex/i.test(site.sitemapXml)) {
     const entrees = pathsSitemap(site.sitemapXml)
     const dansSitemap = new Set(entrees.map((e) => e.chemin))
     const absentes = [...connus].filter(([c]) => !dansSitemap.has(c)).map(([, u]) => u)
-    const inconnues = entrees.filter((e) => !connus.has(e.chemin)).map((e) => e.loc)
+    // With an incomplete crawl, a sitemap URL not reached proves nothing.
+    const inconnues = site.limiteAtteinte ? [] : entrees.filter((e) => !connus.has(e.chemin) && !existantes.has(e.chemin)).map((e) => e.loc)
     if (absentes.length || inconnues.length) {
       const morceaux = []
       if (absentes.length) morceaux.push(`${absentes.length} page(s) absente(s) du sitemap, ex. ${absentes[0]}`)
@@ -236,11 +243,15 @@ export function controler(pages, site = {}) {
     for (const l of p.liens) {
       const c = cibleInterne(l.href, p, site.origine)
       if (c === null) continue
-      if (!connus.has(c)) casses.push({ url: p.url, preuve: `lien vers ${l.href} (URL inconnue)` })
+      if (!connus.has(c) && !existantes.has(c)) casses.push({ url: p.url, preuve: `lien vers ${l.href} (URL inconnue)` })
       else if (!self || c !== chemin(self)) entrants.add(c)
     }
   }
   if (casses.length) ajouter('T-LIEN-CASSE', [...new Set(casses.map((c) => c.url))], resume(casses))
+  // HTTP anomalies seen while crawling (URL mode only).
+  const anomalies = site.anomaliesHttp ?? []
+  if (anomalies.length) ajouter('T-HTTP-ERREUR', anomalies.map((a) => a.url), resume(anomalies))
+
   if (connus.size >= 2) {
     const orphelines = [...connus].filter(([c]) => c !== '/' && !entrants.has(c)).map(([, u]) => u)
     if (orphelines.length) ajouter('T-PAGE-ORPHELINE', orphelines, `${orphelines.length} page(s) sans lien entrant, ex. ${orphelines[0]}`)

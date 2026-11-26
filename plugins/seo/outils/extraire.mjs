@@ -21,6 +21,8 @@ const nettoyer = (s) => s.replace(/\s+/g, ' ').trim()
 
 // Elements whose content is raw text (no nested tags).
 const RAW = new Set(['script', 'style', 'noscript', 'title', 'textarea'])
+// Ids of client-side application mount containers (Vue, React, Nuxt, Next, Quasar, Svelte...).
+const MONTAGE_SPA = new Set(['app', 'root', '__nuxt', '__next', 'q-app', 'svelte'])
 // Elements allowed in <head>; any other start tag implicitly begins the body.
 const HEAD_OK = new Set(['html', 'head', 'title', 'meta', 'link', 'base', 'script', 'style', 'noscript', 'template'])
 
@@ -53,7 +55,7 @@ function vide(url) {
   return {
     url, lang: null, title: null, description: null, canonical: null, robots: null, hreflang: [],
     og: { title: null, description: null, image: null }, hn: [], images: [], liens: [],
-    jsonld: [], mots: 0, corpsVide: true,
+    jsonld: [], mots: 0, corpsVide: true, montageSpa: false,
   }
 }
 
@@ -119,6 +121,7 @@ function analyser(html, url) {
     const at = attributs(m[2])
 
     if (!HEAD_OK.has(nom)) { dansHead = false; bodyCommence = true }
+    if (at.id !== undefined && MONTAGE_SPA.has(at.id.trim().toLowerCase())) f.montageSpa = true
     if (nom === 'svg' && !corps.endsWith('/')) svg++
     if (RAW.has(nom) && !corps.endsWith('/')) {
       // Raw text content runs up to the matching close tag (or end of input if truncated).

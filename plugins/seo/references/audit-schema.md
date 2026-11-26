@@ -23,6 +23,11 @@ Un **Constat** (produit par `auditer`) :
 | `preuve` | texte | ce qui a été observé, vérifiable |
 | `priorite` | nombre | poids de la sévérité (`bloquant` 3, `important` 2, `mineur` 1) × nombre de pages concernées ; la plus haute se traite en premier |
 
+Sortie d'`auditer` : `{ stack, constats, erreurs, exploration }`. Les deux dernières clés ne vont pas dans `audit.json`, le skill les annonce dans son résumé :
+
+- `erreurs` : liste de `{ url, erreur }`, ce qui n'a pas pu être lu pendant l'exploration (page en 4xx ou 5xx, redirection hors du site, corps de plus de 5 Mo, contenu non HTML, délai dépassé, sitemap interdit par `robots.txt`) ; toujours vide en mode dossier ;
+- `exploration` : `{ pages, limite_atteinte }`, nombre de pages collectées et `true` si `--max-pages` a arrêté l'exploration avant la fin (couverture incomplète).
+
 Ajoutés par le skill, après lecture du code : `fichier_source` (fichier à modifier, relatif à la racine du projet) et `correction_proposee` (texte de la correction, issu de `controles.md` et adapté au projet).
 
 Règles de forme :
