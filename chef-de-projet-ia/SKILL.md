@@ -57,9 +57,20 @@ One writer per area. `claim` records the task's `area` (path prefixes separated 
 
 On "arrête toute nouvelle attribution" (or any stop order): run `taches.ps1 stop -Note "<why>"` for every project, assign nothing, start no session, merge nothing; let running workers finish their current step and report, then hold. Tell the owner what is still running. Resume only on his explicit word (`start`).
 
-## Local AI first (paid tokens only where they pay off)
+## Local AI as a worker session (paid tokens only where they pay off)
 
-Before giving a task to a paid session (Claude, Codex), apply the routing ladder of the `ia-locale` plugin: deterministic tool → small local model → local coding agent (`ia-run.ps1`, isolated worktree, time limit, never commits) → stronger local model → paid model. Paid models get architecture, critical security, risky cross-cutting refactors, two failed local attempts and independent reviews of sensitive changes; send them the needed files and the diff only. A local run reaches `tests_green` on the same proofs as any worker (suites run by you, exit codes read). Record the worker as `local:<model>` in the register and the board (`machine` = the PC that runs the local engine). Report local usage and savings with `/ia-usage`.
+A local model is a **worker like any other**, started and followed with the `ia-locale` plugin. Before giving a task to a paid session (Claude, Codex), apply its routing ladder: deterministic tool → small local model (`ia-ask.ps1`, one shot) → local agent session (`ia-run.ps1`) → stronger local model → paid model. Paid models keep architecture, critical security, authentication, payments, data migrations, risky cross-cutting refactors, two failed local attempts and independent reviews of sensitive changes.
+
+Running a local session:
+
+1. Write the brief to a file (template below, short sentences, exact files, checks). `claim -Id <ID> -Par local:<model> -Machine <PC that runs the engine> -Zone "<area>"`.
+2. Start it in the background: `ia-run.ps1 -Repo <repo> -BriefFile <brief> -TaskId <ID> -Base <base branch>`. Card to `doing` with worker `local:<model>`, machine, branch.
+3. Follow it with `ia-run.ps1 -Status` (JSON: `running`, `done`, `no_change`, `timeout`). Do not read its transcript unless it failed.
+4. On `done`: the agent has **not** committed and has **not** run the suites. In its worktree, run the project's suites, read each exit code, then commit on its branch yourself. Only then `set implemented` (sha), `tests_run`, `tests_green` — same proofs as any worker.
+5. On `timeout`, `no_change` or red suites: one more local attempt with a sharper brief or the stronger model; after 2 failed attempts `release` and give the task to a paid session with the brief, the diff and the failing output only.
+6. Review and merge gate are unchanged. A local model may give first-pass review notes (`ia-ask.ps1` on the diff); it never counts as the independent review.
+
+Limits specific to local workers: **one local session per machine** (it counts in the WIP of that PC), none during the owner's calls (the script refuses while the microphone is in use), never an area the project file reserves for paid models. Keep your own cost low: give paths, read the one-line result, verify by exit codes. Report usage and savings with `/ia-usage`.
 
 ## Assigning ready tasks
 

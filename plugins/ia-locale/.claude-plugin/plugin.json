@@ -1,7 +1,9 @@
 {
   "name": "ia-locale",
-  "version": "0.1.0",
-  "description": "Déléguer des tâches de développement à une IA locale (Ollama + agent OpenCode) avant toute IA payante, et mesurer l'usage local et l'économie de tokens et d'argent.",
-  "author": { "name": "kvarot" },
+  "version": "0.2.0",
+  "description": "Faire faire le développement par une IA locale (llama.cpp ou Ollama + agent OpenCode) avant toute IA payante : question directe, session locale déléguée, commande /ia-usage pour l'usage local et l'économie de tokens et d'argent.",
+  "author": {
+    "name": "kvarot"
+  },
   "license": "LicenseRef-AllRightsReserved"
 }

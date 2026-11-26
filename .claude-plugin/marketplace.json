@@ -12,7 +12,7 @@
     {
       "name": "ia-locale",
       "source": "./plugins/ia-locale",
-      "description": "Déléguer les tâches de développement à une IA locale (Ollama + OpenCode) avant toute IA payante ; commande /ia-usage pour l'usage local et l'économie de tokens et d'argent."
+      "description": "Faire faire le développement par une IA locale (llama.cpp ou Ollama + agent OpenCode) avant toute IA payante : question directe, session locale déléguée, commande /ia-usage pour l'usage local et l'économie de tokens et d'argent."
     }
   ]
 }
