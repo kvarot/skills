@@ -1,24 +1,96 @@
 {
-  "note": "Copy to $AI_ROOT/config/projets/<project>/carte.json and adapt. Kept outside the repository. Paths are relative to the git root. Globs: ** = any folders, * = within one folder.",
+  "note": "Copy to $AI_ROOT/config/projets/<project>/carte.json and adapt. Kept outside the repository. Paths are relative to the git root. Globs: ** = any folders, * = within one folder. \"fiches\" hold what code cannot tell: role, business rules, security constraints, docs — by module name (modules) and/or by file path (files).",
   "repo": "/path/to/the/repository",
   "ctags": "ctags",
-  "include_ext": [".php", ".vue", ".js", ".mjs", ".ts", ".twig", ".scss", ".sql"],
-  "exclude": ["**/vendor/**", "**/node_modules/**", "public/build/**", "**/*.min.js", "docs/**", "var/**"],
-  "tests": ["tests/**", "**/*.test.js", "**/*.spec.ts"],
-  "aliases": { "@": "assets/js" },
+  "include_ext": [
+    ".php",
+    ".vue",
+    ".js",
+    ".mjs",
+    ".ts",
+    ".twig",
+    ".scss",
+    ".sql"
+  ],
+  "exclude": [
+    "**/vendor/**",
+    "**/node_modules/**",
+    "public/build/**",
+    "**/*.min.js",
+    "docs/**",
+    "var/**"
+  ],
+  "tests": [
+    "tests/**",
+    "**/*.test.js",
+    "**/*.spec.ts"
+  ],
+  "aliases": {
+    "@": "assets/js"
+  },
   "auto_depth": 3,
   "modules": [
-    { "regex": "^tests/([^/]+)/", "name": "tests/$1" },
-    { "regex": "^src/([^/]+)/", "name": "$1" },
-    { "regex": "^assets/js/pages/([^/]+)/", "name": "front/$1" },
-    { "name": "billing", "paths": ["src/Billing/**", "src/Invoice/**"],
-      "role": "Invoices and payments.",
-      "rules": ["Amounts are integers in cents.", "Never delete an issued invoice: cancel it with a credit note."],
-      "docs": ["docs/billing.md"] }
+    {
+      "regex": "^tests/([^/]+)/",
+      "name": "tests/$1"
+    },
+    {
+      "regex": "^src/([^/]+)/",
+      "name": "$1"
+    },
+    {
+      "regex": "^assets/js/pages/([^/]+)/",
+      "name": "front/$1"
+    }
   ],
-  "tables": { "schema_json": "config/schema.json", "scan": ["src/Repository/**"] },
+  "tables": {
+    "schema_json": "config/schema.json",
+    "scan": [
+      "src/Repository/**"
+    ]
+  },
   "routes": [
-    { "name": "http", "files": ["config/routes.php"],
-      "regex": "^[ \\t]*\\$router->(get|post|put|delete)\\(\\s*'([^']+)'\\s*,\\s*'([^']+)'", "fields": ["method", "path", "handler"] }
+    {
+      "name": "http",
+      "files": [
+        "config/routes.php"
+      ],
+      "regex": "^[ \\t]*\\$router->(get|post|put|delete)\\(\\s*'([^']+)'\\s*,\\s*'([^']+)'",
+      "fields": [
+        "method",
+        "path",
+        "handler"
+      ]
+    }
+  ],
+  "fiches": [
+    {
+      "topic": "billing",
+      "modules": [
+        "Billing",
+        "front/invoices"
+      ],
+      "files": [
+        "**/*Invoice*",
+        "**/*invoice*"
+      ],
+      "role": "Invoices and payments.",
+      "rules": [
+        "Amounts are integers in cents.",
+        "Never delete an issued invoice: cancel it with a credit note."
+      ],
+      "docs": [
+        "docs/billing.md"
+      ]
+    },
+    {
+      "topic": "sql",
+      "modules": [
+        "Repository"
+      ],
+      "rules": [
+        "Every query filters on the tenant id."
+      ]
+    }
   ]
 }

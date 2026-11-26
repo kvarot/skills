@@ -16,6 +16,10 @@
 //   tables.jsonl    {table, path, n}            which file touches which database table
 //   routes.jsonl    {set, path, line, ...fields}
 //   modules.json    per module: size, languages, depends_on, used_by, tables, tested_by, entry files
+//
+// Knowledge that code cannot give (role, business rules, security constraints, reference docs) is
+// declared in the config as "fiches": {topic, modules:[globs on module names], files:[globs on paths],
+// role, rules:[], docs:[]}. Module matches are merged here; file matches are applied by contexte.mjs.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
@@ -202,8 +206,11 @@ for (const e of uniqEdges) {
 for (const t of tables) { const m = M(files.get(t.path).module); m.tables[t.table] = (m.tables[t.table] || 0) + t.n; }
 const top = (o, n) => Object.fromEntries(Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, n));
 const declared = new Map((cfg.modules || []).map((m) => [m.name, m]));
+const fiches = (cfg.fiches || []).filter((f) => f.modules?.length).map((f) => ({ ...f, is: matcher(f.modules) }));
+const ficheOf = (name) => { const hit = fiches.filter((f) => f.is(name)); const d = declared.get(name) || {};
+  return { role: [d.role, ...hit.map((f) => f.role)].filter(Boolean).pop() || '', rules: [...new Set([...(d.rules || []), ...hit.flatMap((f) => f.rules || [])])], docs: [...new Set([...(d.docs || []), ...hit.flatMap((f) => f.docs || [])])] }; };
 const modules = [...mods.values()].sort((a, b) => b.lines - a.lines).map((m) => ({
-  name: m.name, role: declared.get(m.name)?.role || '', docs: declared.get(m.name)?.docs || [], rules: declared.get(m.name)?.rules || [],
+  name: m.name, ...ficheOf(m.name),
   files: m.files, lines: m.lines, langs: m.langs, symbols: m.symbols,
   depends_on: top(m.depends_on, 15), used_by: top(m.used_by, 15), tables: top(m.tables, 25),
   most_used_files: [...m.fan_in.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([p, n]) => ({ path: p, used_by_files: n })),

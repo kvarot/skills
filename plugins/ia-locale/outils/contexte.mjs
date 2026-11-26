@@ -123,7 +123,10 @@ const best = top.length ? top[0][1] : 0;
 // sections, most important first; "must" sections are never cut
 const sections = [];
 const mods = [...new Set(top.map(([p]) => files.get(p).module))];
-const ruleLines = []; for (const m of mods) { const mm = modules.get(m); if (mm?.rules?.length) ruleLines.push(`- [${m}] ` + mm.rules.join(`\n- [${m}] `)); }
+const ruleLines = []; const seenRule = new Set(); const pushRule = (tag, r) => { if (!seenRule.has(r)) { seenRule.add(r); ruleLines.push(`- [${tag}] ${r}`); } };
+const fileFiches = (cfg.fiches || []).filter((f) => f.files?.length).map((f) => ({ ...f, is: matcher(f.files) }));
+for (const f of fileFiches) if (top.some(([p]) => f.is(p))) for (const r of f.rules || []) pushRule(f.topic || 'topic', r);
+for (const m of mods) for (const r of modules.get(m)?.rules || []) pushRule(m, r);
 for (const [p] of top) { const r = riskOf(p); if (r === 'FORBIDDEN') ruleLines.push(`- ${p}: FORBIDDEN path — never edit it`); else if (LEVELS.indexOf(r) >= 2) ruleLines.push(`- ${p}: risk ${r} — a human must approve any change`); }
 sections.push({ must: true, text: `# Context pack — ${projet} @ ${head.slice(0, 10)}${dirtyNow ? ' (+ uncommitted changes)' : ''}\nTask: ${tache}\nTerms used: ${singles.join(', ') || '(none)'}` });
 if (ruleLines.length) sections.push({ must: true, text: '## Rules and constraints (complete, never truncated)\n' + ruleLines.join('\n') });

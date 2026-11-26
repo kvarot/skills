@@ -1,6 +1,6 @@
 {
   "name": "ia-locale",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Faire faire le développement par une IA locale (llama.cpp ou Ollama + agent OpenCode) avant toute IA payante : question directe, session locale déléguée, cartographie du dépôt et paquets de contexte compacts, validation objective sans IA, commande /ia-usage pour l'usage local et l'économie de tokens et d'argent.",
   "author": {
     "name": "kvarot"
