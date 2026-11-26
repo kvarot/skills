@@ -25,6 +25,12 @@ Un **Constat** (produit par `auditer`) :
 
 Ajoutés par le skill, après lecture du code : `fichier_source` (fichier à modifier, relatif à la racine du projet) et `correction_proposee` (texte de la correction, issu de `controles.md` et adapté au projet).
 
+Règles de forme :
+
+- `fichier_source` : **un seul chemin**, relatif à la racine, sans numéro de ligne, ni parenthèse, ni commentaire (`index.html`, pas `index.html (lignes 21-25)` ni `a.html, b.html`). Un défaut corrigé dans plusieurs fichiers donne **un constat par fichier**, même `controle`, avec les `pages` qui viennent de ce fichier. Exception : un défaut qui vient d'un **gabarit partagé** (layout, gabarit de base, en-tête inclus : title ou description par défaut repris sur toutes les pages, `lang` absent) a pour `fichier_source` ce gabarit partagé, en un seul constat ; les pages ou gabarits enfants à retoucher sont nommés dans `correction_proposee`. Un fichier à créer (`sitemap.xml`) est cité par le chemin qu'il aura. La ligne et les précisions vont dans `preuve`.
+- `controle` : l'id **exact** du catalogue, sans annotation ; un constat trouvé par lecture du code garde son id et le dit dans `preuve`. Un problème sans id au catalogue ne va pas dans `audit.json` : le signaler dans la réponse.
+- Chaque audit, relance comprise, **réécrit** `audit.json` en entier avec les constats du moment.
+
 Exemple :
 
 ```json

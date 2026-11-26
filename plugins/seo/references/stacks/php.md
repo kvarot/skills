@@ -22,9 +22,9 @@ $description = 'Réservez votre consultation en ligne.';
 include __DIR__ . '/inc/entete.php';
 ```
 
-Dans l'en-tête : `<title><?= htmlspecialchars($titre ?? 'Titre par défaut') ?></title>`, et de même pour la description et le canonical. Toujours échapper la valeur et prévoir une valeur de repli, sinon une page oubliée sort sans title.
+**D'abord chercher un helper existant** (fonction qui produit title et meta, tableau de métadonnées par route), par exemple en cherchant `function` dans les fichiers inclus. Un helper défini mais jamais appelé est un suspect classique du title en doublon. S'il existe, **l'appeler** dans l'en-tête (`<?= nom_du_helper($titre, $description) ?>`) à la place des balises écrites à la main, sans en écrire un second.
 
-Avant d'écrire un nouveau mécanisme, chercher un helper existant (fonction `titre()`, tableau de métadonnées par route) et le réutiliser.
+Sans helper : dans l'en-tête, `<title><?= htmlspecialchars($titre ?? 'Titre par défaut') ?></title>`, et de même pour la description et le canonical. Toujours échapper la valeur et prévoir une valeur de repli, sinon une page oubliée sort sans title.
 
 ## 3. Ajouter sitemap et robots
 

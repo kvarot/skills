@@ -7,7 +7,7 @@ description: Use when the SEO texts of a web project must be written or rewritte
 
 Rédige **toute valeur de texte** du SEO, à la source, dans la langue et le ton du profil : title, meta description, libellé des Hn, `alt`, ancres de liens, FAQ, enrichissement des pages pauvres (`C-PAGE-PAUVRE`), ancres génériques (`C-ANCRE-GENERIQUE`). Les mécanismes (bloc de meta, niveaux des Hn, canonical…) sont à `seo-technique` ; le JSON-LD, `FAQPage` compris, à `seo-donnees-structurees`.
 
-Outils : `node <base du skill>/../../outils/seo.mjs <commande>` (`<base du skill>` = dossier de base affiché au chargement de ce skill). Si Node manque, travailler en lisant le code, vérifier le profil à la main contre `references/profil.md`, et **le dire** dans le résumé.
+Outils : `node <base du skill>/../../outils/seo.mjs <commande>` (`<base du skill>` = dossier de base affiché au chargement de ce skill). **Une commande `node` seule par appel**, chemin complet, sans `cd` ni enchaînement (`&&`, `;`, `|`, `2>&1`) : une session peut n'autoriser que `node`. Les références (`references/…`) sont dans `<base du skill>/../../references/`, à lire avec l'outil de lecture. Si Node manque, travailler en lisant le code, vérifier le profil à la main contre `references/profil.md`, et **le dire** dans le résumé.
 
 ## Règles qui ne plient pas
 

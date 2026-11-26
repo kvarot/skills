@@ -7,7 +7,7 @@ description: Use when SEO fixes already written in a web project must be checked
 
 Contrôle qu'un lot de corrections **écrit** produit bien l'effet attendu sur la page réelle, et compare les constats avant / après. Ce skill **n'écrit rien** dans le projet, `.claude/seo/` compris : `audit.json` n'a pas de champ d'état (`references/audit-schema.md`), il reste tel que l'audit l'a écrit, et l'`historique` du profil est mis à jour par le skill qui a porté le lot.
 
-Outils : `node <base du skill>/../../outils/seo.mjs <commande>` (`<base du skill>` = dossier de base affiché au chargement de ce skill). Si Node manque, vérifier en lisant le code et **le dire** dans le résumé.
+Outils : `node <base du skill>/../../outils/seo.mjs <commande>` (`<base du skill>` = dossier de base affiché au chargement de ce skill). **Une commande `node` seule par appel**, chemin complet, sans `cd` ni enchaînement (`&&`, `;`, `|`, `2>&1`) : une session peut n'autoriser que `node`. Les références (`references/…`) sont dans `<base du skill>/../../references/`, à lire avec l'outil de lecture. Si Node manque, vérifier en lisant le code et **le dire** dans le résumé.
 
 ## Règles qui ne plient pas
 

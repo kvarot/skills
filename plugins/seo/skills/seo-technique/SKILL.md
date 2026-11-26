@@ -7,13 +7,13 @@ description: Use when a technical SEO mechanism of a web project must be added o
 
 Pose ou répare les **mécanismes** : là où naissent title et description (helper, bloc, en-tête partagé, meta de route), canonical, meta robots et `robots.txt`, `sitemap.xml`, hreflang, `lang`, balisage Open Graph, niveaux des Hn (un seul `<h1>`, pas de saut de niveau), `width`/`height` des images, liens internes, et l'explication des défauts d'architecture. Il n'écrit **aucune valeur de texte** : titles, descriptions, libellés de Hn, alt, ancres et FAQ sont à `seo-contenu`. Le JSON-LD est à `seo-donnees-structurees`.
 
-Outils : `node <base du skill>/../../outils/seo.mjs <commande>` (`<base du skill>` = dossier de base affiché au chargement de ce skill). Si Node manque, travailler en lisant le code et **le dire** dans le résumé.
+Outils : `node <base du skill>/../../outils/seo.mjs <commande>` (`<base du skill>` = dossier de base affiché au chargement de ce skill). **Une commande `node` seule par appel**, chemin complet, sans `cd` ni enchaînement (`&&`, `;`, `|`, `2>&1`) : une session peut n'autoriser que `node`. Les références (`references/…`) sont dans `<base du skill>/../../references/`, à lire avec l'outil de lecture. Si Node manque, travailler en lisant le code et **le dire** dans le résumé.
 
 ## Règles qui ne plient pas
 
 1. **Les règles du projet priment** (CLAUDE.md, conventions, style) : les lire avant tout.
 2. **Rien n'est écrit sans validation explicite du lot.** Avant, seuls `.claude/seo/profil.md`, `.claude/seo/audit.json` et `.claude/seo/contenus-a-saisir.md` peuvent être écrits. Ni build, ni installation, ni serveur lancé sans accord.
-3. **Rien d'inventé.** Pas de texte rédigé ici : un mécanisme se branche sur les valeurs existantes ou attend celles de `seo-contenu`. Pas d'URL, de domaine ni d'identifiant de route deviné : les demander.
+3. **Rien d'inventé.** Pas de texte rédigé ici : un mécanisme se branche sur les valeurs existantes ou attend celles de `seo-contenu`. Pas d'URL, de domaine ni d'identifiant de route deviné : les demander. Un nombre du projet (téléphone, adresse, horaires) est recopié **à l'identique**, sans reformatage.
 4. **Aucune pratique pénalisable** : pas de texte caché, de cloaking (HTML différent pour les robots), de pages satellites, de canonical posé sur une page au contenu distinct vers une autre page (pour la faire disparaître ou concentrer le classement artificiellement). Un canonical vers la version de référence d'un **vrai doublon** (paramètres d'URL, tri, variante d'impression) est au contraire la correction attendue.
 5. **Pas de refonte d'architecture** : pas de passage en SSR, pas de changement de framework, **pas de dépendance de rendu ajoutée** (pré-rendu, SSR, bibliothèque de `<head>`) de sa propre initiative.
 6. **Jamais d'écriture en base, dans un CMS distant ni en production** ; jamais de commit ni de push. Lecture de la prod seulement avec accord et `--autoriser-prod`.

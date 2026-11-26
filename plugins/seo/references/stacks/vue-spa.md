@@ -32,7 +32,7 @@ Faire de même pour le canonical et les balises Open Graph. Repérer d'abord un 
 
 ## 4. Relier une URL à sa source
 
-URL, puis entrée du fichier de routes (`src/router/index.js`), puis composant de page. Vérifier le mode d'historique : avec `createWebHistory`, les URL sont propres et le serveur doit renvoyer `index.html` pour toute route ; avec `createWebHashHistory`, l'URL contient `#/…` et les robots ne voient qu'une seule page.
+URL, puis entrée du fichier de routes (`src/router/index.js` ou `src/router.js`), puis composant de page. Vérifier le mode d'historique : avec `createWebHistory`, les URL sont propres et le serveur doit renvoyer `index.html` pour toute route ; avec `createWebHashHistory`, l'URL contient `#/…` et les robots ne voient qu'une seule page.
 
 ## 5. Pièges connus et limites
 
@@ -40,6 +40,14 @@ URL, puis entrée du fichier de routes (`src/router/index.js`), puis composant d
 - Mode `#` : une seule page pour les robots.
 - Routes inconnues qui renvoient 200 avec la coquille : pas de vraies erreurs 404.
 - Un audit du dossier construit ne montre que la coquille (T-SPA-HTML-VIDE).
+
+### Compléter l'audit de `dist/` par la lecture du code
+
+L'audit de `dist/` ne voit qu'une page. Lire aussi le fichier de routes :
+
+- **T-SPA-HTML-VIDE** : deux constats, `fichier_source` `index.html` (la coquille servie) et `package.json` (le build, où se brancherait un pré-rendu).
+- **T-TITLE-DOUBLON** : routes sans `meta.title`, ou aucun `document.title` mis à jour à la navigation → toutes les routes gardent le title de `index.html` ; constat sur le fichier de routes, `pages` = les routes publiques.
+- **T-DESC-ABSENT** sur la coquille : `fichier_source` `index.html` ; la description par route est un second constat sur le fichier de routes.
 
 ### Pistes d'architecture, à proposer seulement
 
