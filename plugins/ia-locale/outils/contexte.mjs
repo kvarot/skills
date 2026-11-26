@@ -80,7 +80,9 @@ if (arg('refs')) {
 const tache = arg('tache'); if (!tache || tache === true) { console.error('Give --tache, --plus or --refs.'); process.exit(1); }
 const budget = Number(arg('budget', 6000)); const maxFiles = Number(arg('fichiers', 8));
 const cacheDir = path.join(idx, 'cache'); fs.mkdirSync(cacheDir, { recursive: true });
-const cacheFile = path.join(cacheDir, createHash('sha1').update([stateKey, tache, budget, maxFiles, arg('json') ? 'j' : 't'].join('\u0000')).digest('hex') + '.txt');
+// semantic layer: off unless the project config enables it; --semantique on|off overrides (for measures)
+const semArg = arg('semantique'); const semOn = semArg === 'on' || semArg === true ? true : semArg === 'off' ? false : cfg.semantique?.actif === true;
+const cacheFile = path.join(cacheDir, createHash('sha1').update([stateKey, tache, budget, maxFiles, arg('json') ? 'j' : 't', semOn ? 's' + JSON.stringify(cfg.semantique || {}) : ''].join('\u0000')).digest('hex') + '.txt');
 if (fs.existsSync(cacheFile) && !arg('no-cache')) { const c = fs.readFileSync(cacheFile, 'utf8'); console.log(c); log({ mode: 'tache', query: tache, budget, cache: true, tokens_est: tok(c) }); process.exit(0); }
 
 const STOP = new Set('les des une que qui dans pour par sur avec sans est son ses aux pas plus tout tous cette cet ces mais donc car lors quand elle ils nous vous leur leurs être avoir faire fait doit doivent peut afin entre the and for with from that this when then into not all are was has have its does should must can add fix bug make use new get set ajouter ajoute corriger corrige créer crée modifier modifie mettre fonction fichier file function code'.split(' '));
@@ -116,7 +118,20 @@ for (const [p, v] of score) { const f = files.get(p); const got = [...(covered.g
   let k = Math.sqrt((got + 0.1) / (totalRar + 0.1));
   const inName = singles.filter((t) => path.posix.basename(p).toLowerCase().includes(t)).length; if (inName > 1) k *= 1 + 0.6 * (inName - 1);
   if (isTest(p)) k *= 0.35; else if (['scss', 'sql', 'twig'].includes(f.lang)) k *= 0.6; if (f.lines > 4000) k *= 0.8; score.set(p, v * k); }
-const ranked = [...score.entries()].sort((a, b) => b[1] - a[1]);
+let ranked = [...score.entries()].sort((a, b) => b[1] - a[1]);
+if (semOn) { // optional semantic layer: reciprocal rank fusion of the lexical and the semantic rankings
+  try {
+    const so = cfg.semantique || {}; const sdir = path.join(idx, 'semantique'); const { refresh, rank, rrf, DEFAULTS } = await import('./semantique.mjs');
+    const r = await refresh({ dir: sdir, files: [...files.values()].filter((f) => !isTest(f.path)), read, syms: (p) => (symsOf.get(p) || []).map((s) => s.name), opt: so, limit: so.max_maj ?? DEFAULTS.max_maj });
+    if (r.skipped) console.error(`semantic layer skipped: ${r.todo} file(s) to embed; run semantique.mjs --projet ${projet} first.`);
+    else {
+      const sem = await rank({ dir: sdir, query: String(tache), opt: so, n: 60 }); const lex = ranked.slice(0, 60).map(([p]) => p);
+      const fused = rrf([lex, sem.map(([p]) => p)], [1, so.poids ?? DEFAULTS.poids]).filter(([p]) => files.has(p)); const inFused = new Set(fused.map(([p]) => p));
+      sem.slice(0, 10).forEach(([p], i) => { if (files.has(p)) (why.get(p) || why.set(p, new Set()).get(p)).add(`semantic rank ${i + 1}`); });
+      ranked = [...fused, ...ranked.filter(([p]) => !inFused.has(p)).map(([p, v]) => [p, v * 1e-9])];
+    }
+  } catch (e) { console.error(`semantic layer unavailable (${e.message}); lexical ranking only.`); }
+}
 const top = ranked.filter(([p]) => !isTest(p)).slice(0, maxFiles); const topSet = new Set(top.map(([p]) => p));
 const best = top.length ? top[0][1] : 0;
 

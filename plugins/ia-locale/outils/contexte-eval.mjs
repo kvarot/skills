@@ -5,7 +5,7 @@
 // hand-written expectations. The files are looked up in the CURRENT map, so recent commits give
 // the fairest picture; files that no longer exist are ignored.
 //
-//   node contexte-eval.mjs --projet <name> [--commits 40] [--fichiers 8] [--since "3 months ago"]
+//   node contexte-eval.mjs --projet <name> [--commits 40] [--fichiers 8] [--since "3 months ago"] [--semantique on|off]
 //
 // Output: recall@k (share of changed files found), hit rate (commits with at least one file found),
 // worst cases, and one JSON line appended to $AI_ROOT/benchmarks/contexte/<projet>.jsonl so that a
@@ -35,7 +35,7 @@ if (!cases.length) { console.error('No usable commit found.'); process.exit(1); 
 
 let found = 0, total = 0, hits = 0, tokens = 0; const rows = [];
 for (const c of cases) {
-  const out = execFileSync(process.execPath, [path.join(here, 'contexte.mjs'), '--projet', projet, '--tache', c.subject, '--fichiers', String(k), '--budget', '100000', '--json', '--no-cache'], { encoding: 'utf8', env: process.env, maxBuffer: 1 << 26 });
+  const out = execFileSync(process.execPath, [path.join(here, 'contexte.mjs'), '--projet', projet, '--tache', c.subject, '--fichiers', String(k), '--budget', '100000', '--json', '--no-cache', ...(arg('semantique') ? ['--semantique', String(arg('semantique'))] : [])], { encoding: 'utf8', env: process.env, maxBuffer: 1 << 26 });
   const pack = JSON.parse(out); const got = new Set(pack.files.map((f) => f.path));
   const ok = c.gold.filter((g) => got.has(g)).length;
   found += ok; total += c.gold.length; if (ok) hits++; tokens += pack.tokens_est;
@@ -47,4 +47,4 @@ console.log(`hit rate  = ${(100 * res.hit_rate).toFixed(1)} %  (${hits}/${cases.
 console.log(`average pack size = ${res.avg_pack_tokens} tokens`);
 console.log('worst cases:'); for (const r of rows.filter((x) => x.recall === 0).slice(0, 8)) console.log(`  ${r.sha} "${r.subject.slice(0, 90)}" -> ${r.gold[0]}`);
 const dir = path.join(AI_ROOT, 'benchmarks', 'contexte'); fs.mkdirSync(dir, { recursive: true });
-fs.appendFileSync(path.join(dir, `${projet}.jsonl`), JSON.stringify({ ...res, label: arg('label', '') }) + '\n');
+fs.appendFileSync(path.join(dir, `${projet}.jsonl`), JSON.stringify({ ...res, semantique: arg('semantique') || 'config', label: arg('label', '') }) + '\n');
