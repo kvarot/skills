@@ -34,6 +34,23 @@ Delegation only saves money if **you** stay cheap. The local model reads the fil
 
 Never more than 2 local attempts on the same failing check, then escalate or mark blocked with the facts. A technical error (engine stopped, timeout, busy worker) is fixed and retried; it is not a reason to escalate.
 
+## Project map and context packs (no model involved)
+
+A small model cannot explore a large repository: give it the few files that matter, not the repository.
+
+```powershell
+node "$env:CLAUDE_PLUGIN_ROOT\outils\contexte.mjs" --projet <name> --tache "<task>" [--budget 6000] [--fichiers 8]
+node "$env:CLAUDE_PLUGIN_ROOT\outils\contexte.mjs" --projet <name> --plus <path>       # one file in depth
+node "$env:CLAUDE_PLUGIN_ROOT\outils\contexte.mjs" --projet <name> --refs <symbol>     # definition and callers
+node "$env:CLAUDE_PLUGIN_ROOT\outils\carte.mjs" --projet <name> [--full]              # (re)build the map
+node "$env:CLAUDE_PLUGIN_ROOT\outils\contexte-eval.mjs" --projet <name>               # measure relevance on past commits
+```
+- `carte.mjs` builds the map under `$env:AI_ROOT\indexes\<name>` from git, universal-ctags and regular expressions: files and modules, symbols, file-to-file dependencies, database tables per file, routes, tests per module. Pinned to a git revision, rebuilt incrementally, refreshed automatically by `contexte.mjs` when stale. Config: `$env:AI_ROOT\config\projets\<name>\carte.json` (copy `outils\carte.exemple.json`), outside the repository.
+- `contexte.mjs --tache` returns a pack within a token budget: the most relevant files with their matching symbols and line numbers, what they depend on, who uses them, their tests, their tables, their risk level, the modules concerned and their rules. Put the pack in the brief of a local session instead of letting the agent search.
+- **Rules and security constraints are never cut**: if they do not fit the budget the command fails (exit 3). Anything else dropped is counted in an `omitted:` line.
+- Start small (4 000 to 6 000 tokens) and let the agent ask for more with `--plus` and `--refs`. Every pack is logged in `$env:AI_ROOT\logs\contexte.jsonl` (task, revision, files given).
+- Honest limits: ranking is lexical (words of the task against names, symbols and text); a task worded far from the code's vocabulary ranks badly — name a file, class, function or table in the task. Measure before trusting it: `contexte-eval.mjs` uses recent commits as ground truth (subject = task, changed files = expected) and appends each result to `$env:AI_ROOT\benchmarks\contexte`, so a ranking change is compared, not guessed.
+
 ## One-shot question (no agent loop)
 
 ```powershell
@@ -53,7 +70,7 @@ Files are read by the script and sent to the local engine only. It refuses secre
 - When the project has a validation config (next section), the session records the baseline before the agent starts and validates when it stops: read `validation` in the state (`pass`, `fail`, `human_required`) and open the report only on `fail`. Without a config, run the project's suites yourself in that worktree and read each exit code.
 - **One local session at a time** per machine: a second start is refused while one is alive.
 - **The machine stays usable**: a start is refused while a call is in progress (microphone in use) unless `-EvenInCall`. Run the engine at low priority with threads left for the IDE.
-- Write the brief like any brief, but for a small model: one goal, the exact files, the acceptance checks, what not to touch, short sentences. Small context: point to files, do not paste them.
+- Write the brief like any brief, but for a small model: one goal, the exact files **and file names to create**, the acceptance checks, what not to touch, short sentences. Small context: point to files (a context pack), do not paste them.
 
 ## Objective validation (no model involved)
 

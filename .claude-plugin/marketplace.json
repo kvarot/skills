@@ -12,7 +12,7 @@
     {
       "name": "ia-locale",
       "source": "./plugins/ia-locale",
-      "description": "Faire faire le développement par une IA locale (llama.cpp ou Ollama + agent OpenCode) avant toute IA payante : question directe, session locale déléguée, validation objective sans IA (risque, tests protégés, avant/après), commande /ia-usage pour l'usage local et l'économie de tokens et d'argent."
+      "description": "Faire faire le développement par une IA locale (llama.cpp ou Ollama + agent OpenCode) avant toute IA payante : question directe, session locale déléguée, cartographie du dépôt et paquets de contexte compacts, validation objective sans IA, commande /ia-usage pour l'usage local et l'économie de tokens et d'argent."
     }
   ]
 }
