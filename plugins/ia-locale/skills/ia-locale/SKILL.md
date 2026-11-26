@@ -11,6 +11,10 @@ Goal: spend paid tokens only where they add measurable value. Every task first a
 
 The tools that call no model work alone and serve the paid session directly: `contexte.mjs` (which files matter for a task, their symbols, tests, tables, risk and rules, within a token budget), `carte.mjs` (the map behind it), `ia-valider.ps1` (objective check of a change) and `router.mjs`. They need only Node, git and universal-ctags, an `$env:AI_ROOT` folder for the configuration and the index, and `"local_models": false` in `routage.json`. On such a machine: before exploring a repository for a task, ask `contexte.mjs` and read only the files it names; after a change, run `ia-valider.ps1` and trust its verdict for low and moderate risk. Ignore `ia-ask`, `ia-patch`, `ia-run` and `/ia-usage`: they need a local engine.
 
+## Paid tiers: the cheapest model that can do it
+
+When the router answers level 4 it also gives a **tier**. Follow it: `light` and `standard` mean « delegate to a sub-agent running that model » (in Claude Code: the `model` of the sub-agent), `strong` means « keep it in the main session ». A sub-agent has a large fixed context, but on the cheapest model that context costs little, while every file read by the strongest model costs many times more. Give the sub-agent the context pack and the acceptance test, tell it which directory it may edit, and check its work with `ia-valider.ps1` instead of rereading it. On knowledge tasks (safe database migration, payment webhook, tenant-scoped endpoint, slow query, server tuning, accessible dialog, refusing real personal data in a fixture) the cheapest and the mid tier both passed 7 out of 7 without any skill: do not write generic technology skills for them, write the acceptance test.
+
 ## Cost rule for the paid session (read this first)
 
 Delegation only saves money if **you** stay cheap. The local model reads the files; you do not.

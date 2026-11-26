@@ -9,7 +9,9 @@
 //   node router.mjs --projet <name> --tache "<task>" [--json] [--urgent]
 //
 // Levels: 0 no model | 1 local one-shot question | 2 local direct change | 3 local agent session
-//         | 4 paid model (Claude, Codex) | H human decision first
+//         | 4 paid model, with a TIER: light (cheapest), standard, strong | H human decision first
+// The tier is where the money is: the cheapest paid model costs a small fraction of the strongest
+// and does routine, narrow, testable work well. Tier names map to models in the policy (paid_tiers).
 // Policy file (optional, versioned by you): $AI_ROOT/config/routage.json — see routage.exemple.json.
 // "local_models": false in the policy = a machine with no local model: only levels 0, 4 and H are used.
 import { execFileSync } from 'node:child_process';
@@ -25,6 +27,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const readJson = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8').replace(/^﻿/, '')); } catch { return d; } };
 const policy = { version: 0, direct_max_files: 2, direct_max_chars: 50000, min_relevance: 60, min_samples: 5, min_success: 0.5,
   free_hours: [], day_model: 'small', agent_model: 'coding',
+  paid_tiers: { light: 'haiku', standard: 'sonnet', strong: 'the session model' },
   keywords: {
     human: ['prix', 'tarif', 'cgv', 'cgu', 'mentions légales', 'rgpd', 'contrat', 'secret', 'mot de passe', 'production', 'prod '],
     paid: ['architecture', 'refonte', 'réécri', 'migration', 'sécurité', 'security', 'faille', 'vulnérab', 'authentification', 'multi-tenant', 'isolation', 'transvers', 'audit'],
@@ -68,8 +71,23 @@ out.machine = { free_gb: Math.round(freeGb), free_hours_now: freeNow, next_free_
 const matrix = readJson(path.join(AI_ROOT, 'benchmarks', 'matrice.json'), {}); // { "<tool>|<model>": {n, success} }
 const trusted = (tool, model) => { const m = matrix[`${tool}|${model}`]; if (!m || m.n < policy.min_samples) return { known: false, ok: true }; return { known: true, ok: m.success / m.n >= policy.min_success, rate: m.success / m.n, n: m.n }; };
 
+// ---------- which paid tier ----------
+const charsTop = likely.slice(0, policy.direct_max_files).reduce((a, f) => a + size(f.path), 0);
+const narrowTop = charsTop > 0 && charsTop <= policy.direct_max_chars;
+const paidTier = () => {
+  const order = ['light', 'standard', 'strong']; let t; const kw = (list) => (list || []).find((x) => lower.includes(x));
+  if (worst === 'critical' || kw(policy.keywords.paid)) { t = 'strong'; reasons.push('tier strong: critical file, or architecture / security work'); }
+  else if (!files.length) { t = 'strong'; reasons.push('tier strong: no file matched, the task needs exploring'); }
+  else if (kw(policy.keywords.ask)) { t = 'light'; reasons.push('tier light: reading and summarising'); }
+  else if (worst === 'high') { t = 'standard'; reasons.push('tier standard: a target file is rated high'); }
+  else if (!narrowTop) { t = 'standard'; reasons.push(`tier standard: the likely files are large or many (${Math.round(charsTop / 1000)} k characters)`); }
+  else { t = 'light'; reasons.push(`tier light: narrow change in ${policy.direct_max_files} file(s) at most (${Math.round(charsTop / 1000)} k characters), moderate risk${withTests ? ', tests exist' : ''}`); }
+  while (t !== 'strong') { const m = trusted('paid', policy.paid_tiers[t]); if (m.ok) break; reasons.push(`measured success of ${policy.paid_tiers[t]} is too low (${Math.round(100 * m.rate)} % over ${m.n} tasks): one tier up`); t = order[order.indexOf(t) + 1]; }
+  return t;
+};
+
 // ---------- decision ----------
-const decide = (level, tool, model, when, command) => Object.assign(out, { level, tool, model, when, command });
+const decide = (level, tool, model, when, command) => { Object.assign(out, { level, tool, model, when, command }); if (tool === 'paid') { out.tier = paidTier(); out.model = policy.paid_tiers[out.tier]; } };
 const q = JSON.stringify(tache); let k;
 if (worst === 'FORBIDDEN') { reasons.push('a file that must never be edited is among the targets'); decide('H', 'human', null, 'now', null); }
 else if ((k = has(policy.keywords.human))) { reasons.push(`the task mentions "${k.trim()}": a decision that belongs to the owner`); decide('H', 'human', null, 'now', null); }
@@ -78,8 +96,8 @@ else if (policy.local_models === false) {
   // No local model on this machine: the deterministic tools serve the paid session directly.
   reasons.push('local models are disabled on this machine (routage.json: local_models = false)');
   if (worst === 'critical' || worst === 'high') reasons.push(`a target file is rated ${worst}: a human must approve the change`);
-  reasons.push('give the paid session the context pack instead of letting it explore, then check its change with ia-valider.ps1');
   decide(4, 'paid', null, 'now', `node contexte.mjs --projet ${projet} --tache ${q} --budget 6000`);
+  reasons.push(out.tier === 'strong' ? 'keep it in the main session, with the context pack instead of exploring' : `delegate it to a sub-agent running ${out.model}, give it the context pack and the acceptance test, then check its change with ia-valider.ps1`);
 }
 else if ((k = has(policy.keywords.ask))) {
   const m = modelName('small'); reasons.push(`"${k.trim()}": reading and summarising, the small local model is enough`);
@@ -112,7 +130,7 @@ fs.appendFileSync(path.join(AI_ROOT, 'logs', 'routage.jsonl'), JSON.stringify({ 
 if (arg('json')) console.log(JSON.stringify(out, null, 1));
 else {
   const label = { 0: 'no model', 1: 'local question', 2: 'local direct change', 3: 'local agent session', 4: 'paid model', H: 'owner decides first' }[out.level];
-  console.log(`LEVEL ${out.level} — ${label}${out.model ? ' — model ' + out.model : ''} — ${out.when}`);
+  console.log(`LEVEL ${out.level} — ${label}${out.tier ? ' — tier ' + out.tier : ''}${out.model ? ' — model ' + out.model : ''} — ${out.when}`);
   for (const r of reasons) console.log(`  because: ${r}`);
   console.log(`  targets: ${out.facts.top_files.slice(0, 3).join(' ; ') || '(none)'}`);
   if (out.command) console.log(`  run: ${out.command}`);
