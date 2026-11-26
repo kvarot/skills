@@ -28,9 +28,10 @@ Delegation only saves money if **you** stay cheap. The local model reads the fil
 
 1. **No AI**: ripgrep, AST tools, formatters, linters, the project's own tests and scripts.
 2. **Small local model**, one shot (`ia-ask.ps1`): classification, extraction, summaries of files, logs or diffs, commit messages, first-pass review notes.
-3. **Local coding model as an agent session** (`ia-run.ps1`): a code change, tests or docs in one narrow area.
-4. **Stronger local model** when step 3 fails its checks once (slow: batch use, not interactive).
-5. **Paid model (Claude, Codex)** only for: architecture decisions, critical security, authentication, payments, data migrations, cross-cutting risky refactors, two failed local attempts, independent review of sensitive changes. Send it only the needed files and the diff.
+3. **Local model, direct change** (`ia-patch.ps1`, one model call, no agent): a narrow change in files known in advance, with a check command. First choice on a machine without a fast GPU.
+4. **Local coding model as an agent session** (`ia-run.ps1`): a change that needs exploring, several steps or running tools. Needs a large model and a machine that is free.
+5. **Stronger local model, or more reasoning effort**, when the previous step fails its checks once.
+6. **Paid model (Claude, Codex)** only for: architecture decisions, critical security, authentication, payments, data migrations, cross-cutting risky refactors, two failed local attempts, independent review of sensitive changes. Send it only the needed files and the diff.
 
 Never more than 2 local attempts on the same failing check, then escalate or mark blocked with the facts. A technical error (engine stopped, timeout, busy worker) is fixed and retried; it is not a reason to escalate.
 
@@ -58,6 +59,17 @@ node "$env:CLAUDE_PLUGIN_ROOT\outils\contexte-eval.mjs" --projet <name>         
 git diff | & "$env:CLAUDE_PLUGIN_ROOT\outils\ia-ask.ps1" -Task "<question about this diff>" -Stdin -Quiet
 ```
 Files are read by the script and sent to the local engine only. It refuses secret-looking files (`.env`, keys, credentials), a non-loopback engine, and material over the size limit — it never cuts silently. The answer goes to a file under `$env:AI_ROOT\logs\ask`.
+
+## Direct change (one model call, no agent)
+
+```powershell
+& "$env:CLAUDE_PLUGIN_ROOT\outils\ia-patch.ps1" -Repo <worktree> -Task "<task>" -Files <a>,<b> [-ReadOnly <test>] [-Check "<command>"] [-Reasoning medium] [-Attempts 2] [-Quiet]
+```
+- The script reads the files, the model answers with exact SEARCH/REPLACE blocks, the script applies them (only when the searched text matches once), runs the check, and sends a failure back once. The model never loops over tools.
+- Why: an agent harness sends thousands of tokens of instructions and tool definitions before the task and again at every step. On CPU a local model reads about 20 to 30 tokens per second while the machine is in use: an agent session needs ten minutes before its first action, a direct change is done in a few minutes.
+- Choose the files with `contexte.mjs` (top files of the pack) and give the acceptance test as `-ReadOnly`: it tells the model the exact names expected. Files must fit in the input limit; nothing is cut silently.
+- Give reasoning models at least `-Reasoning medium` for code: at the lowest effort a small model gets details wrong (a misplaced regular-expression anchor) and repeats the same wrong edit.
+- It edits the directory in place and commits nothing: point it at a worktree, then validate with `ia-valider.ps1`.
 
 ## One local worker session
 

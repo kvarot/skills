@@ -59,7 +59,7 @@ On "arrête toute nouvelle attribution" (or any stop order): run `taches.ps1 sto
 
 ## Local AI as a worker session (paid tokens only where they pay off)
 
-A local model is a **worker like any other**, started and followed with the `ia-locale` plugin. Before giving a task to a paid session (Claude, Codex), apply its routing ladder: deterministic tool → small local model (`ia-ask.ps1`, one shot) → local agent session (`ia-run.ps1`) → stronger local model → paid model. Paid models keep architecture, critical security, authentication, payments, data migrations, risky cross-cutting refactors, two failed local attempts and independent reviews of sensitive changes.
+A local model is a **worker like any other**, started and followed with the `ia-locale` plugin. Before giving a task to a paid session (Claude, Codex), apply its routing ladder: deterministic tool → small local model (`ia-ask.ps1`, one shot) → direct local change in known files (`ia-patch.ps1`, one model call) → local agent session (`ia-run.ps1`, when the machine is free) → stronger local model → paid model. Paid models keep architecture, critical security, authentication, payments, data migrations, risky cross-cutting refactors, two failed local attempts and independent reviews of sensitive changes.
 
 Running a local session:
 
