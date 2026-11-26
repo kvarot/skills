@@ -191,7 +191,10 @@ $rules = @"
 Rules for this session: you work only inside the current directory. Edit files; do not commit, push, merge or delete branches. Do not read or print secrets (.env, keys, credentials). When done, end with a short report: what you changed (files), what you did not do, what the reviewer must check.
 "@
 $permission = if ($AllowShell) { '{"edit":"allow","bash":"allow","webfetch":"deny","external_directory":"deny"}' } else { '{"edit":"allow","bash":"deny","webfetch":"deny","external_directory":"deny"}' }
-$agentArgs = @('run'); if ($Model) { $agentArgs += @('--model', $Model) }; $agentArgs += ($Task + $rules)
+# On Windows the agent is started through a .cmd shim, and cmd.exe cuts an argument at its
+# first line break: the agent would get the first line of the brief only. Join the lines.
+$prompt = (($Task + $rules) -split '\r?\n' | ForEach-Object { $_.Trim() } | Where-Object { $_ }) -join ' '
+$agentArgs = @('run'); if ($Model) { $agentArgs += @('--model', $Model) }; $agentArgs += $prompt
 $pidFile = Join-Path $logs "run-$runId.pid"
 $t0 = Get-Date
 $job = Start-Job -ScriptBlock {
