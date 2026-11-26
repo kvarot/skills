@@ -1,0 +1,1221 @@
+{
+ "summary": {
+  "fixtures": [
+   "propre",
+   "php",
+   "html-statique",
+   "twig",
+   "vue-spa"
+  ],
+  "seuils": [
+   {
+    "seuil": "detection_bonne_source_90",
+    "pass": true,
+    "detail": "25/25"
+   },
+   {
+    "seuil": "phase1_zero_ecriture_hors_claude_seo",
+    "pass": true,
+    "detail": "0 fixture(s) en défaut"
+   },
+   {
+    "seuil": "zero_chiffre_invente",
+    "pass": true,
+    "detail": null
+   },
+   {
+    "seuil": "propre_zero_bloquant_important",
+    "pass": true,
+    "detail": null
+   },
+   {
+    "seuil": "vue_spa_aucune_dependance_de_rendu",
+    "pass": true,
+    "detail": null
+   },
+   {
+    "seuil": "php_appel_seo_meta",
+    "pass": true,
+    "detail": null
+   }
+  ],
+  "defauts": 25,
+  "detectes_bonne_source": 25,
+  "verif_apres_reussies": "25/25",
+  "relance_sans_reapparition": "20/20",
+  "controles_en_echec": [],
+  "cout_usd": 2,
+  "duree_min": 8
+ },
+ "fixtures": {
+  "propre": {
+   "statut": "ok",
+   "phases": [
+    {
+     "phase": "1-audit",
+     "prompt": "Audite le SEO de ce projet sans rien corriger. Le profil que tu proposes est confirmé tel quel. Je confirme le discours que tu proposes tel quel.",
+     "statut": "ok",
+     "raison": null,
+     "duree_s": 39,
+     "cout_usd": 0.2011,
+     "tours": 25,
+     "skills": [
+      "seo:seo",
+      "seo:seo-profil"
+     ],
+     "agents": [],
+     "outils": {
+      "Skill": 2,
+      "Bash": 4,
+      "Glob": 2,
+      "Read": 12,
+      "Write": 2
+     },
+     "refus": [
+      "Bash cd \"<fixture>\"; ls -a; for f in index soins contact; do echo $f $(sed -e 's/<script.*<\\/script>//' $f.html | sed 's…"
+     ],
+     "reponse": "L'audit est terminé et je n'ai corrigé aucune page. Il ne relève aucun constat du catalogue.\n\n**Niveau atteint :** dossier statique (`auditer --dossier`), complété par la lecture du code des trois pages, de `robots.txt` et de `sitemap.xml`. Je n'ai pas utilisé de navigateur, d'URL de dev ni de prod. Le décompte des mots a été refusé par la session, donc `C-PAGE-PAUVRE` n'est pas vérifié par un comptage. D'après ma lecture des pages, elles ont toutes un contenu substantiel.\n\n**Fichiers écrits :**…"
+    },
+    {
+     "phase": "2-tous-lots",
+     "prompt": "J'approuve tous les lots proposés. J'approuve aussi les textes et les diffs que tu proposes : écris-les sans me redemander.",
+     "statut": "ok",
+     "raison": null,
+     "duree_s": 8,
+     "cout_usd": 0.0144,
+     "tours": 1,
+     "skills": [],
+     "agents": [],
+     "outils": {},
+     "refus": [],
+     "reponse": "Il n'y a rien à écrire. L'audit n'a proposé aucun lot, car il ne relève aucun constat du catalogue. Votre approbation ne porte donc sur aucun diff ni aucun texte, et je n'ai modifié aucune page.\n\nJe n'ai pas non plus transformé les cinq points hors catalogue en corrections de ma propre initiative. Je ne vous ai présenté ni diff ni texte pour eux, donc votre approbation ne les couvre pas. Voici pourquoi je les laisse de côté :\n- **`og:image`** : il faut une image que vous fournissez. Je ne peux p…"
+    },
+    {
+     "phase": "3-relance",
+     "prompt": "Refais l'audit.",
+     "statut": "ok",
+     "raison": null,
+     "duree_s": 11,
+     "cout_usd": 0.0289,
+     "tours": 4,
+     "skills": [],
+     "agents": [],
+     "outils": {
+      "Bash": 2,
+      "Write": 1
+     },
+     "refus": [
+      "Bash git -C \"<fixture>\" status --short"
+     ],
+     "reponse": "J'ai refait l'audit : il ne relève toujours aucun constat du catalogue, comme le premier. J'ai réécrit `.claude/seo/audit.json` avec une liste de constats vide, et aucune page n'a été modifiée.\n\nLa relance n'a fait que relancer l'outil `auditer --dossier`. Je n'ai pas relu le code à la main, et la commande `git status` a été refusée par la session. Je n'ai donc pas confirmé que les fichiers sont restés identiques depuis le premier audit.\n\nLes cinq points hors catalogue de mon premier compte rend…"
+    }
+   ],
+   "defauts": [],
+   "controles": [
+    {
+     "nom": "phase1_aucune_ecriture_hors_claude_seo",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "phase1_audit_json_valide",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "phase1_profil_valide",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "propre_aucun_constat_grave",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "contenu_aucun_chiffre_invente",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "contenu_pas_d_avis_ni_note",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "phase3_aucune_ecriture_hors_claude_seo",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "phase3_audit_json_valide",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "phase3_historique_lots_appliques",
+     "pass": true,
+     "raison": null,
+     "historique": []
+    }
+   ],
+   "constats_en_plus": [],
+   "cout_usd": 0.24,
+   "duree_s": 58,
+   "modele": "sonnet",
+   "date": "2026-11-26T05:23:56.476Z"
+  },
+  "php": {
+   "statut": "ok",
+   "phases": [
+    {
+     "phase": "1-audit",
+     "prompt": "Audite le SEO de ce projet sans rien corriger. Le profil que tu proposes est confirmé tel quel. Je confirme le discours que tu proposes tel quel.",
+     "statut": "ok",
+     "raison": null,
+     "duree_s": 43,
+     "cout_usd": 0.2036,
+     "tours": 23,
+     "skills": [
+      "seo:seo",
+      "seo:seo-profil"
+     ],
+     "agents": [],
+     "outils": {
+      "Skill": 2,
+      "Bash": 3,
+      "Glob": 1,
+      "Read": 12,
+      "Write": 2
+     },
+     "refus": [],
+     "reponse": "J'ai audité le site sans rien corriger. Je n'ai pas lancé de serveur : j'ai utilisé celui de l'évaluation sur http://127.0.0.1:50071/, donc rien n'est à arrêter. Le niveau atteint est le HTML rendu des 3 pages, complété par la lecture du code (stack PHP sans framework). Je n'ai pas utilisé de navigateur.\n\n**Profil.** Je l'ai écrit dans `.claude/seo/profil.md` tel que vous l'aviez confirmé d'avance, et `profil-valider` le déclare valide.\n- **Public :** patients de Paris, adultes, enfants et perso…"
+    },
+    {
+     "phase": "2-tous-lots",
+     "prompt": "J'approuve tous les lots proposés. J'approuve aussi les textes et les diffs que tu proposes : écris-les sans me redemander.",
+     "statut": "ok",
+     "raison": null,
+     "duree_s": 38,
+     "cout_usd": 0.1646,
+     "tours": 18,
+     "skills": [
+      "seo:seo-technique",
+      "seo:seo-contenu"
+     ],
+     "agents": [],
+     "outils": {
+      "Skill": 2,
+      "Read": 2,
+      "Edit": 6,
+      "Write": 2,
+      "Bash": 3
+     },
+     "refus": [
+      "Bash curl -s http://127.0.0.1:53298/soins.php | head -16; curl -s http://127.0.0.1:53298/robots.txt"
+     ],
+     "reponse": "Les 3 lots sont écrits (header partagé, indexation, structure). Le nouvel audit sur http://127.0.0.1:53298/ ne remonte plus qu'un constat, attendu en dev. Je n'ai pas relancé `curl` pour contrôler le HTML brut : l'évaluation l'a refusé. La vérification repose donc sur l'outil `auditer` seul.\n\n**Fait**\n- **`inc/header.php`**\n  - Il appelle maintenant `seo_meta()`, qui n'était jamais utilisé.\n  - `<html lang=\"fr\">` est ajouté.\n  - Un canonical absolu est ajouté, sur `https://cabinet-exemple.test`.…"
+    },
+    {
+     "phase": "3-relance",
+     "prompt": "Refais l'audit.",
+     "statut": "ok",
+     "raison": null,
+     "duree_s": 13,
+     "cout_usd": 0.0234,
+     "tours": 2,
+     "skills": [],
+     "agents": [],
+     "outils": {
+      "Bash": 1
+     },
+     "refus": [],
+     "reponse": "Le nouvel audit sur http://127.0.0.1:52784/ donne le même résultat qu'avant : un seul constat, sur les 3 pages. Les 5 autres constats du premier audit n'apparaissent plus : title en doublon, `lang`, `robots.txt`, Open Graph et saut de titre.\n\n**`T-CANONICAL-INVALIDE`** (important, priorité 6). Le canonical de chaque page pointe vers `https://cabinet-exemple.test/…`, donc vers un autre domaine que celui du serveur de dev. Ce n'est pas un défaut : ce domaine est celui du sitemap et du profil, et l…"
+    }
+   ],
+   "defauts": [
+    {
+     "controle": "T-TITLE-DOUBLON",
+     "fichier_source": "inc/header.php",
+     "detection": "controle",
+     "verif_type": "motif",
+     "phase1": {
+      "detecte": true,
+      "bonne_source": true,
+      "raison": null
+     },
+     "phase2": {
+      "pass": true,
+      "raison": null
+     },
+     "phase3": {
+      "pass": true,
+      "raison": null
+     }
+    },
+    {
+     "controle": "T-TITLE-DOUBLON",
+     "fichier_source": "inc/header.php",
+     "detection": "controle",
+     "verif_type": "motif",
+     "phase1": {
+      "detecte": true,
+      "bonne_source": true,
+      "raison": null
+     },
+     "phase2": {
+      "pass": true,
+      "raison": null
+     },
+     "phase3": {
+      "pass": true,
+      "raison": null
+     }
+    },
+    {
+     "controle": "T-TITLE-DOUBLON",
+     "fichier_source": "inc/header.php",
+     "detection": "controle",
+     "verif_type": "motif",
+     "phase1": {
+      "detecte": true,
+      "bonne_source": true,
+      "raison": null
+     },
+     "phase2": {
+      "pass": true,
+      "raison": null
+     },
+     "phase3": {
+      "pass": true,
+      "raison": null
+     }
+    },
+    {
+     "controle": "T-TITLE-DOUBLON",
+     "fichier_source": "inc/header.php",
+     "detection": "controle",
+     "verif_type": "motif",
+     "phase1": {
+      "detecte": true,
+      "bonne_source": true,
+      "raison": null
+     },
+     "phase2": {
+      "pass": true,
+      "raison": null
+     },
+     "phase3": {
+      "pass": true,
+      "raison": null
+     }
+    },
+    {
+     "controle": "T-LANG-ABSENT",
+     "fichier_source": "inc/header.php",
+     "detection": "controle",
+     "verif_type": "controle",
+     "phase1": {
+      "detecte": true,
+      "bonne_source": true,
+      "raison": null
+     },
+     "phase2": {
+      "pass": true,
+      "raison": null
+     },
+     "phase3": {
+      "pass": true,
+      "raison": null
+     }
+    },
+    {
+     "controle": "T-ROBOTSTXT-BLOQUE-TOUT",
+     "fichier_source": "robots.txt",
+     "detection": "controle",
+     "verif_type": "controle",
+     "phase1": {
+      "detecte": true,
+      "bonne_source": true,
+      "raison": null
+     },
+     "phase2": {
+      "pass": true,
+      "raison": null
+     },
+     "phase3": {
+      "pass": true,
+      "raison": null
+     }
+    },
+    {
+     "controle": "T-HN-SAUT",
+     "fichier_source": "soins.php",
+     "detection": "controle",
+     "verif_type": "controle",
+     "phase1": {
+      "detecte": true,
+      "bonne_source": true,
+      "raison": null
+     },
+     "phase2": {
+      "pass": true,
+      "raison": null
+     },
+     "phase3": {
+      "pass": true,
+      "raison": null
+     }
+    }
+   ],
+   "controles": [
+    {
+     "nom": "phase1_aucune_ecriture_hors_claude_seo",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "phase1_audit_json_valide",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "phase1_profil_valide",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "contenu_aucun_chiffre_invente",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "contenu_pas_d_avis_ni_note",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "php_appel_seo_meta",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "phase3_aucune_ecriture_hors_claude_seo",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "phase3_audit_json_valide",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "phase3_historique_lots_appliques",
+     "pass": true,
+     "raison": null,
+     "historique": [
+      "meta",
+      "indexation",
+      "international",
+      "partage",
+      "structure"
+     ]
+    }
+   ],
+   "constats_en_plus": [
+    "T-CANONICAL-ABSENT (mineur)",
+    "T-OG-ABSENT (mineur)"
+   ],
+   "cout_usd": 0.39,
+   "duree_s": 94,
+   "modele": "sonnet",
+   "date": "2026-11-26T05:23:56.476Z"
+  },
+  "html-statique": {
+   "statut": "ok",
+   "phases": [
+    {
+     "phase": "1-audit",
+     "prompt": "Audite le SEO de ce projet sans rien corriger. Le profil que tu proposes est confirmé tel quel. Je confirme le discours que tu proposes tel quel.",
+     "statut": "ok",
+     "raison": null,
+     "duree_s": 42,
+     "cout_usd": 0.2091,
+     "tours": 19,
+     "skills": [
+      "seo:seo",
+      "seo:seo-profil"
+     ],
+     "agents": [],
+     "outils": {
+      "Skill": 2,
+      "Bash": 4,
+      "Read": 8,
+      "Write": 2
+     },
+     "refus": [],
+     "reponse": "## Audit SEO : Cabinet Exemple (HTML statique, 3 pages)\n\n**Niveau atteint :** audit du dossier avec l'outil `auditer`, complété par la lecture du code. Je n'ai lancé aucun serveur, aucun build, et je n'ai lu aucune URL de prod. Je n'ai rien corrigé. Je n'ai écrit que `.claude/seo/profil.md` et `.claude/seo/audit.json`. `profil-valider` a validé le profil.\n\n**Profil.** Comme vous l'avez confirmé, je l'ai écrit tel que je le proposais. Il vient du contenu des trois pages : kinésithérapie à Paris, …"
+    },
+    {
+     "phase": "2a-lot-meta",
+     "prompt": "J'approuve uniquement le lot meta. J'approuve aussi les textes et les diffs que tu proposes pour ce lot : écris-les sans me redemander.",
+     "statut": "ok",
+     "raison": null,
+     "duree_s": 33,
+     "cout_usd": 0.1619,
+     "tours": 14,
+     "skills": [
+      "seo:seo-technique",
+      "seo:seo-contenu"
+     ],
+     "agents": [],
+     "outils": {
+      "Skill": 2,
+      "Read": 2,
+      "Edit": 4,
+      "Bash": 2,
+      "Write": 1
+     },
+     "refus": [],
+     "reponse": "J'ai écrit le lot meta dans `index.html`, `soins.html` et `contact.html`. Je n'ai rien committé. Un nouvel audit du dossier ne signale plus les trois défauts meta : title en doublon, description absente de `contact.html` et canonical absent. Cette vérification lit le code statique. Je n'ai ouvert aucune page dans un navigateur et je n'ai lancé aucun serveur.\n\n**Modifications**\n- **`index.html`** : j'ai ajouté `<link rel=\"canonical\" href=\"https://cabinet-exemple.test/\">`. Le title « Cabinet Exemp…"
+    },
+    {
+     "phase": "2-tous-lots",
+     "prompt": "J'approuve tous les lots proposés. J'approuve aussi les textes et les diffs que tu proposes : écris-les sans me redemander.",
+     "statut": "ok",
+     "raison": null,
+     "duree_s": 34,
+     "cout_usd": 0.1233,
+     "tours": 16,
+     "skills": [
+      "seo:seo-donnees-structurees"
+     ],
+     "agents": [],
+     "outils": {
+      "Skill": 1,
+      "Edit": 8,
+      "Write": 3,
+      "Bash": 2
+     },
+     "refus": [],
+     "reponse": "J'ai appliqué les cinq lots restants. Un nouvel audit du dossier ne signale plus aucun constat et le profil passe `profil-valider`. Je n'ai rien committé.\n\nLa vérification porte sur le code statique. Je n'ai ouvert aucune page dans un navigateur.\n\n**Modifications**\n- **Données structurées, `index.html`** : j'ai retiré le bloc `aggregateRating`, qui n'avait aucun avis visible sur la page. Le JSON-LD `MedicalBusiness` reste valide. Le téléphone est recopié à l'identique.\n- **Indexation** : j'ai cr…"
+    },
+    {
+     "phase": "3-relance",
+     "prompt": "Refais l'audit.",
+     "statut": "ok",
+     "raison": null,
+     "duree_s": 10,
+     "cout_usd": 0.0289,
+     "tours": 3,
+     "skills": [],
+     "agents": [],
+     "outils": {
+      "Bash": 2
+     },
+     "refus": [],
+     "reponse": "Le nouvel audit du dossier ne trouve aucun constat sur les 3 pages. Le profil reste valide et `audit.json` est vide (`constats: []`, daté du 2026-11-26). Je n'ai rien modifié.\n\nCet audit lit le code statique. Je n'ai ouvert aucune page dans un navigateur, lancé aucun serveur ni lu aucune URL de prod.\n\nQuelques points restent ouverts, tous hors du catalogue de contrôles :\n- **Domaine :** `https://cabinet-exemple.test/` sert aux canonical, au sitemap et à `og:url`. Il vient seulement du JSON-LD de…"
+    }
+   ],
+   "defauts": [
+    {
+     "controle": "T-TITLE-DOUBLON",
+     "fichier_source": "soins.html",
+     "detection": "controle",
+     "verif_type": "controle",
+     "phase1": {
+      "detecte": true,
+      "bonne_source": true,
+      "raison": null
+     },
+     "phase2": {
+      "pass": true,
+      "raison": null
+     },
+     "phase3": {
+      "pass": true,
+      "raison": null
+     }
+    },
+    {
+     "controle": "T-DESC-ABSENT",
+     "fichier_source": "contact.html",
+     "detection": "controle",
+     "verif_type": "controle",
+     "phase1": {
+      "detecte": true,
+      "bonne_source": true,
+      "raison": null
+     },
+     "phase2": {
+      "pass": true,
+      "raison": null
+     },
+     "phase3": {
+      "pass": true,
+      "raison": null
+     }
+    },
+    {
+     "controle": "T-H1-MULTIPLE",
+     "fichier_source": "index.html",
+     "detection": "controle",
+     "verif_type": "controle",
+     "phase1": {
+      "detecte": true,
+      "bonne_source": true,
+      "raison": null
+     },
+     "phase2": {
+      "pass": true,
+      "raison": null
+     },
+     "phase3": {
+      "pass": true,
+      "raison": null
+     }
+    },
+    {
+     "controle": "T-ALT-ABSENT",
+     "fichier_source": "soins.html",
+     "detection": "controle",
+     "verif_type": "controle",
+     "phase1": {
+      "detecte": true,
+      "bonne_source": true,
+      "raison": null
+     },
+     "phase2": {
+      "pass": true,
+      "raison": null
+     },
+     "phase3": {
+      "pass": true,
+      "raison": null
+     }
+    },
+    {
+     "controle": "T-SITEMAP-ABSENT",
+     "fichier_source": "sitemap.xml",
+     "detection": "controle",
+     "verif_type": "controle",
+     "phase1": {
+      "detecte": true,
+      "bonne_source": true,
+      "raison": null
+     },
+     "phase2": {
+      "pass": true,
+      "raison": null
+     },
+     "phase3": {
+      "pass": true,
+      "raison": null
+     }
+    },
+    {
+     "controle": "T-CANONICAL-ABSENT",
+     "fichier_source": "index.html",
+     "detection": "controle",
+     "verif_type": "controle",
+     "phase1": {
+      "detecte": true,
+      "bonne_source": true,
+      "raison": null
+     },
+     "phase2": {
+      "pass": true,
+      "raison": null
+     },
+     "phase3": {
+      "pass": true,
+      "raison": null
+     }
+    },
+    {
+     "controle": "T-JSONLD-INTERDIT",
+     "fichier_source": "index.html",
+     "detection": "controle",
+     "verif_type": "controle",
+     "phase1": {
+      "detecte": true,
+      "bonne_source": true,
+      "raison": null
+     },
+     "phase2": {
+      "pass": true,
+      "raison": null
+     },
+     "phase3": {
+      "pass": true,
+      "raison": null
+     }
+    },
+    {
+     "controle": "C-ANCRE-GENERIQUE",
+     "fichier_source": "index.html",
+     "detection": "controle",
+     "verif_type": "controle",
+     "phase1": {
+      "detecte": true,
+      "bonne_source": true,
+      "raison": null
+     },
+     "phase2": {
+      "pass": true,
+      "raison": null
+     },
+     "phase3": {
+      "pass": true,
+      "raison": null
+     }
+    }
+   ],
+   "controles": [
+    {
+     "nom": "phase1_aucune_ecriture_hors_claude_seo",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "phase1_audit_json_valide",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "phase1_profil_valide",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "phase2a_lot_meta_seul",
+     "pass": true,
+     "raison": null,
+     "modifies": [
+      "contact.html",
+      "index.html",
+      "soins.html"
+     ]
+    },
+    {
+     "nom": "contenu_aucun_chiffre_invente",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "contenu_pas_d_avis_ni_note",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "phase3_aucune_ecriture_hors_claude_seo",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "phase3_audit_json_valide",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "phase3_historique_lots_appliques",
+     "pass": true,
+     "raison": null,
+     "historique": [
+      "meta",
+      "donnees-structurees",
+      "indexation",
+      "images",
+      "structure",
+      "contenu",
+      "partage"
+     ]
+    }
+   ],
+   "constats_en_plus": [
+    "T-OG-ABSENT (mineur)",
+    "T-OG-ABSENT (mineur)",
+    "T-OG-ABSENT (mineur)"
+   ],
+   "cout_usd": 0.52,
+   "duree_s": 119,
+   "modele": "sonnet",
+   "date": "2026-11-26T05:23:56.476Z"
+  },
+  "twig": {
+   "statut": "ok",
+   "phases": [
+    {
+     "phase": "1-audit",
+     "prompt": "Audite le SEO de ce projet sans rien corriger. Le profil que tu proposes est confirmé tel quel. Je confirme le discours que tu proposes tel quel.",
+     "statut": "ok",
+     "raison": null,
+     "duree_s": 42,
+     "cout_usd": 0.189,
+     "tours": 18,
+     "skills": [
+      "seo:seo",
+      "seo:seo-profil"
+     ],
+     "agents": [],
+     "outils": {
+      "Skill": 2,
+      "Bash": 3,
+      "Read": 8,
+      "Write": 2
+     },
+     "refus": [],
+     "reponse": "## Audit SEO (aucune correction appliquée)\n\n**Niveau atteint : lecture seule du code.** Les 4 gabarits Twig ont été lus. Aucun serveur ni build n'a été lancé, et rien n'a été mesuré sur le rendu réel.\n\n**Fichiers écrits :**\n- `.claude/seo/profil.md` : je l'ai créé et il est valide. Il reprend le profil que j'ai proposé, confirmé tel quel. Les champs viennent des gabarits : clinique de physiothérapie à Londres, en anglais, ton simple, secteur santé, pays GB.\n- `.claude/seo/audit.json` : 10 consta…"
+    },
+    {
+     "phase": "2-tous-lots",
+     "prompt": "J'approuve tous les lots proposés. J'approuve aussi les textes et les diffs que tu proposes : écris-les sans me redemander.",
+     "statut": "ok",
+     "raison": null,
+     "duree_s": 39,
+     "cout_usd": 0.1646,
+     "tours": 15,
+     "skills": [
+      "seo:seo-technique",
+      "seo:seo-contenu"
+     ],
+     "agents": [],
+     "outils": {
+      "Skill": 2,
+      "Read": 2,
+      "Write": 3,
+      "Edit": 4,
+      "Bash": 1
+     },
+     "refus": [],
+     "reponse": "Les lots meta, partage et indexation sont écrits, sauf le canonical et le sitemap qui attendent le domaine de production. Le lot contenu est reporté faute de faits. Je n'ai rien vérifié sur un rendu réel : aucun serveur ni build lancé, relecture du code seule. `profil.md` est valide et son historique est à jour.\n\n**Fait**\n- **`templates/base.html.twig`**\n  - Ajout d'un bloc `description` qui émet la meta description.\n  - Ajout de `og:type`, `og:title` et `og:description`, alimentés par les blocs…"
+    },
+    {
+     "phase": "3-relance",
+     "prompt": "Refais l'audit.",
+     "statut": "ok",
+     "raison": null,
+     "duree_s": 17,
+     "cout_usd": 0.0441,
+     "tours": 2,
+     "skills": [],
+     "agents": [],
+     "outils": {
+      "Write": 1
+     },
+     "refus": [],
+     "reponse": "J'ai refait l'audit : il reste 5 constats, contre 10 au premier passage. Je n'ai rien corrigé. Le niveau atteint est la lecture du code seule : aucun serveur lancé et aucun rendu mesuré. J'ai réécrit `.claude/seo/audit.json` avec les constats actuels.\n\n**Corrigés depuis le premier audit**\n- `T-TITLE-DOUBLON` et `T-TITLE-LONGUEUR` : chaque page a un title propre de 47 à 48 caractères.\n- `T-DESC-ABSENT` : chaque page a une meta description de 110 à 130 caractères.\n- `T-OG-ABSENT` : les balises Ope…"
+    }
+   ],
+   "defauts": [
+    {
+     "controle": "T-TITLE-DOUBLON",
+     "fichier_source": "templates/base.html.twig",
+     "detection": "modele",
+     "verif_type": "motif",
+     "phase1": {
+      "detecte": true,
+      "bonne_source": true,
+      "raison": null
+     },
+     "phase2": {
+      "pass": true,
+      "raison": null
+     },
+     "phase3": {
+      "pass": true,
+      "raison": null
+     }
+    },
+    {
+     "controle": "T-TITLE-DOUBLON",
+     "fichier_source": "templates/base.html.twig",
+     "detection": "modele",
+     "verif_type": "motif",
+     "phase1": {
+      "detecte": true,
+      "bonne_source": true,
+      "raison": null
+     },
+     "phase2": {
+      "pass": true,
+      "raison": null
+     },
+     "phase3": {
+      "pass": true,
+      "raison": null
+     }
+    },
+    {
+     "controle": "T-TITLE-DOUBLON",
+     "fichier_source": "templates/base.html.twig",
+     "detection": "modele",
+     "verif_type": "motif",
+     "phase1": {
+      "detecte": true,
+      "bonne_source": true,
+      "raison": null
+     },
+     "phase2": {
+      "pass": true,
+      "raison": null
+     },
+     "phase3": {
+      "pass": true,
+      "raison": null
+     }
+    },
+    {
+     "controle": "T-DESC-ABSENT",
+     "fichier_source": "templates/base.html.twig",
+     "detection": "modele",
+     "verif_type": "motif",
+     "phase1": {
+      "detecte": true,
+      "bonne_source": true,
+      "raison": null
+     },
+     "phase2": {
+      "pass": true,
+      "raison": null
+     },
+     "phase3": {
+      "pass": true,
+      "raison": null
+     }
+    },
+    {
+     "controle": "T-OG-ABSENT",
+     "fichier_source": "templates/base.html.twig",
+     "detection": "modele",
+     "verif_type": "motif",
+     "phase1": {
+      "detecte": true,
+      "bonne_source": true,
+      "raison": null
+     },
+     "phase2": {
+      "pass": true,
+      "raison": null
+     },
+     "phase3": {
+      "pass": true,
+      "raison": null
+     }
+    }
+   ],
+   "controles": [
+    {
+     "nom": "phase1_aucune_ecriture_hors_claude_seo",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "phase1_audit_json_valide",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "phase1_profil_valide",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "phase1_pays_deduit",
+     "pass": true,
+     "raison": "attendu GB, obtenu GB"
+    },
+    {
+     "nom": "contenu_aucun_chiffre_invente",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "contenu_pas_d_avis_ni_note",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "twig_descriptions_en_anglais",
+     "pass": true,
+     "raison": null,
+     "descriptions": [
+      "Contact Example Physio Clinic at 3 Example Street, London, EX1 1AA, or call 020 7946 0000 to book an appointment.",
+      "Physiotherapy for adults and children in London. Start with an assessment and a treatment plan agreed with you.",
+      "Physiotherapy for back and neck pain, recovery after injury or surgery, and balance and falls prevention at Example Physio Clinic."
+     ]
+    },
+    {
+     "nom": "twig_reponse_droit_local",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "phase3_aucune_ecriture_hors_claude_seo",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "phase3_audit_json_valide",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "phase3_historique_lots_appliques",
+     "pass": true,
+     "raison": null,
+     "historique": [
+      "meta",
+      "partage",
+      "indexation"
+     ]
+    }
+   ],
+   "constats_en_plus": [
+    "T-TITLE-LONGUEUR (mineur)",
+    "T-CANONICAL-ABSENT (mineur)",
+    "T-ROBOTSTXT-ABSENT (mineur)",
+    "T-SITEMAP-ABSENT (important)",
+    "C-PAGE-PAUVRE (mineur)",
+    "C-PAGE-PAUVRE (mineur)",
+    "C-PAGE-PAUVRE (mineur)"
+   ],
+   "cout_usd": 0.4,
+   "duree_s": 98,
+   "modele": "sonnet",
+   "date": "2026-11-26T05:23:56.476Z"
+  },
+  "vue-spa": {
+   "statut": "ok",
+   "phases": [
+    {
+     "phase": "1-audit",
+     "prompt": "Audite le SEO de ce projet sans rien corriger. Le profil que tu proposes est confirmé tel quel. Je confirme le discours que tu proposes tel quel.",
+     "statut": "ok",
+     "raison": null,
+     "duree_s": 54,
+     "cout_usd": 0.2675,
+     "tours": 28,
+     "skills": [
+      "seo:seo",
+      "seo:seo-profil"
+     ],
+     "agents": [],
+     "outils": {
+      "Skill": 2,
+      "Bash": 4,
+      "Glob": 1,
+      "Read": 16,
+      "Write": 2
+     },
+     "refus": [
+      "Bash cd <fixture> && for f in index.html dist/index.html dist/robots.txt dist/sitemap.xml public/robots.txt public/sitem…"
+     ],
+     "reponse": "J'ai audité le projet sans modifier le site. Seuls `.claude/seo/profil.md` et `.claude/seo/audit.json` ont été écrits. Aucun build, serveur ou commit.\n\n**Niveau atteint** : audit de `dist/` avec l'outil, complété par la lecture du code (routes, vues, `public/`). Je n'ai pas fait de rendu navigateur.\n\n**Profil** : il n'existait pas. Je l'ai créé comme proposé, avec votre confirmation d'avance (`confirme_le: 2026-11-26`), et il passe la validation. Il est déduit de `index.html` et des vues. Public…"
+    },
+    {
+     "phase": "2-tous-lots",
+     "prompt": "J'approuve tous les lots proposés. J'approuve aussi les textes et les diffs que tu proposes : écris-les sans me redemander.",
+     "statut": "ok",
+     "raison": null,
+     "duree_s": 34,
+     "cout_usd": 0.1234,
+     "tours": 11,
+     "skills": [
+      "seo:seo-technique",
+      "seo:seo-contenu"
+     ],
+     "agents": [],
+     "outils": {
+      "Skill": 2,
+      "Write": 4,
+      "Edit": 1,
+      "Bash": 1
+     },
+     "refus": [],
+     "reponse": "Les lots meta, partage, structure et indexation sont écrits. Le lot architecture n'est pas appliqué : le pré-rendu demande d'ajouter une dépendance, ce que je ne fais pas sans accord explicite. Je n'ai rien vérifié sur le rendu réel. Je n'ai pas reconstruit `dist/` ni lancé de serveur, donc `dist/index.html` contient encore l'ancienne version. Le profil reste valide.\n\n**Fait**\n- **Meta par route** (`src/router.js`) : chaque route a son title et sa description. Un `router.afterEach` les applique …"
+    },
+    {
+     "phase": "3-relance",
+     "prompt": "Refais l'audit.",
+     "statut": "ok",
+     "raison": null,
+     "duree_s": 19,
+     "cout_usd": 0.0594,
+     "tours": 4,
+     "skills": [],
+     "agents": [],
+     "outils": {
+      "Bash": 2,
+      "Write": 1
+     },
+     "refus": [
+      "Bash cd <fixture>/src/views && for f in *.vue; do echo $f $(sed -E 's/<[^>]+>//g' $f | wc -w); done"
+     ],
+     "reponse": "J'ai refait l'audit et réécrit `.claude/seo/audit.json`. Il ne reste qu'un défaut, avec deux constats : `T-SPA-HTML-VIDE`, bloquant, sur `/`, `/soins` et `/contact`, dans `index.html` et `package.json`.\n\n**Niveau atteint** : lecture du code, plus un audit outillé de `dist/`. Ce dossier est périmé, car je ne l'ai pas reconstruit sans votre accord. L'outil y voit donc encore l'ancienne coquille et signale à tort les anciens défauts : description absente, title de 8 caractères, canonical et Open Gr…"
+    }
+   ],
+   "defauts": [
+    {
+     "controle": "T-SPA-HTML-VIDE",
+     "fichier_source": "index.html",
+     "detection": "controle",
+     "verif_type": "explication",
+     "phase1": {
+      "detecte": true,
+      "bonne_source": true,
+      "raison": null
+     },
+     "phase2": {
+      "pass": true,
+      "raison": "expliqué en phase 2"
+     },
+     "phase3": {
+      "pass": null,
+      "raison": "non applicable"
+     }
+    },
+    {
+     "controle": "T-SPA-HTML-VIDE",
+     "fichier_source": "package.json",
+     "detection": "controle",
+     "verif_type": "motif",
+     "phase1": {
+      "detecte": true,
+      "bonne_source": true,
+      "raison": null
+     },
+     "phase2": {
+      "pass": true,
+      "raison": null
+     },
+     "phase3": {
+      "pass": null,
+      "raison": "non applicable"
+     }
+    },
+    {
+     "controle": "T-DESC-ABSENT",
+     "fichier_source": "index.html",
+     "detection": "controle",
+     "verif_type": "motif",
+     "phase1": {
+      "detecte": true,
+      "bonne_source": true,
+      "raison": null
+     },
+     "phase2": {
+      "pass": true,
+      "raison": null
+     },
+     "phase3": {
+      "pass": null,
+      "raison": "non applicable"
+     }
+    },
+    {
+     "controle": "T-TITLE-DOUBLON",
+     "fichier_source": "src/router.js",
+     "detection": "modele",
+     "verif_type": "motif",
+     "phase1": {
+      "detecte": true,
+      "bonne_source": true,
+      "raison": null
+     },
+     "phase2": {
+      "pass": true,
+      "raison": null
+     },
+     "phase3": {
+      "pass": null,
+      "raison": "non applicable"
+     }
+    },
+    {
+     "controle": "T-TITLE-DOUBLON",
+     "fichier_source": "src/router.js",
+     "detection": "modele",
+     "verif_type": "motif",
+     "phase1": {
+      "detecte": true,
+      "bonne_source": true,
+      "raison": null
+     },
+     "phase2": {
+      "pass": true,
+      "raison": null
+     },
+     "phase3": {
+      "pass": null,
+      "raison": "non applicable"
+     }
+    }
+   ],
+   "controles": [
+    {
+     "nom": "phase1_aucune_ecriture_hors_claude_seo",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "phase1_audit_json_valide",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "phase1_profil_valide",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "contenu_aucun_chiffre_invente",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "contenu_pas_d_avis_ni_note",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "vue_aucune_dependance_ajoutee",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "phase3_aucune_ecriture_hors_claude_seo",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "phase3_audit_json_valide",
+     "pass": true,
+     "raison": null
+    },
+    {
+     "nom": "phase3_historique_lots_appliques",
+     "pass": true,
+     "raison": null,
+     "historique": [
+      "meta",
+      "partage",
+      "structure",
+      "indexation"
+     ]
+    }
+   ],
+   "constats_en_plus": [
+    "T-TITLE-LONGUEUR (mineur)",
+    "T-CANONICAL-ABSENT (mineur)",
+    "T-OG-ABSENT (mineur)",
+    "T-H1-MULTIPLE (mineur)",
+    "T-SITEMAP-INCOHERENT (mineur)"
+   ],
+   "cout_usd": 0.45,
+   "duree_s": 107,
+   "modele": "sonnet",
+   "date": "2026-11-26T05:23:56.476Z"
+  }
+ }
+}
