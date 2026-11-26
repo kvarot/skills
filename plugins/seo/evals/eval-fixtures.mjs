@@ -15,7 +15,7 @@
 // --fixture: results are merged into the existing output file (other fixtures kept).
 // --garder: keep the temp copies (their path is printed on stderr only).
 import { spawn, execFileSync } from 'node:child_process'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:net'
 import os from 'node:os'
@@ -44,6 +44,8 @@ for (const n of choisies) if (!TOUTES.includes(n)) { console.error('fixture inco
 const TIMEOUT_MS = 45 * 60 * 1000
 const today = new Date().toISOString().slice(0, 10)
 const GRAVES = new Set(['bloquant', 'important'])
+// Short hash of this script: tells which results were produced by which harness version.
+const versionHarnais = createHash('sha256').update(readFileSync(fileURLToPath(import.meta.url))).digest('hex').slice(0, 12)
 
 // --- helpers -----------------------------------------------------------------
 
@@ -82,7 +84,8 @@ const cheminPage = (p) => { try { return new URL(p).pathname } catch { return p.
 const fichierDePage = (p) => { const c = cheminPage(p).replace(/^\//, ''); return (c === '' || c.endsWith('/')) ? c + 'index.html' : c }
 
 function git(cwd, ...args) {
-  return execFileSync('git', ['-c', 'core.autocrlf=false', '-c', 'core.quotepath=false', '-c', 'user.name=eval', '-c', 'user.email=eval@example.invalid', ...args], { cwd, encoding: 'utf8', maxBuffer: 64 << 20 })
+  // core.excludesFile= : a global ignore file must not hide files written by the model.
+  return execFileSync('git', ['-c', 'core.autocrlf=false', '-c', 'core.quotepath=false', '-c', 'core.excludesFile=', '-c', 'user.name=eval', '-c', 'user.email=eval@example.invalid', ...args], { cwd, encoding: 'utf8', maxBuffer: 64 << 20 })
 }
 // Paths changed (tracked or untracked) since `ref`, relative, forward slashes.
 function changes(cwd, ref) {
@@ -136,8 +139,11 @@ async function demarrerPhp(racine) {
   const port = await portLibre()
   const proc = spawn('php', ['-S', `127.0.0.1:${port}`, '-t', racine], { stdio: 'ignore' })
   serveurs.add(proc)
+  let echec = null
+  proc.on('error', (e) => { echec = e; serveurs.delete(proc) })
   proc.on('exit', () => serveurs.delete(proc))
   for (let i = 0; i < 50; i++) {
+    if (echec) throw new Error('php -S : ' + (echec.code || echec.message))
     try { await fetch(`http://127.0.0.1:${port}/`); return { port, proc, url: `http://127.0.0.1:${port}/` } } catch { await new Promise((r) => setTimeout(r, 100)) }
   }
   proc.kill()
@@ -301,6 +307,8 @@ async function evaluerFixture(nom) {
   const defauts = verite.defauts.map((d) => ({ controle: d.controle, fichier_source: d.fichier_source, detection: d.detection, verif_type: d.verif_apres.type, phase1: null, phase2: null, phase3: null }))
   res.defauts = defauts
 
+  // Source outside the collected root (racine_rendu, vue-spa: dist/): its fix is not rendered.
+  const horsRendu = (d) => !!verite.racine_rendu && !slash(d.fichier_source).startsWith(verite.racine_rendu + '/')
   let serveur = null
   let coutCumule = 0
   const avecServeur = async (fn) => {
@@ -369,23 +377,30 @@ async function evaluerFixture(nom) {
     p2texte += p2.texteComplet
     if (p2.statut !== 'ok') res.statut = 'partiel'
     const ref2 = snapshot(copie, 'phase 2')
-    // verif_apres per defect.
+    const modifies2 = new Set(changes(copie, ref1).filter((f) => !f.startsWith('.claude/')).map((f) => f.toLowerCase()))
+    // verif_apres per defect. A detection: controle defect whose source is rendered by the
+    // harness is also re-collected, whatever its verif_apres type: a regex on the sources
+    // cannot prove the rendered defect is gone (php: same title on every page via seo_meta).
     for (const d of defauts) {
       const v = verite.defauts[defauts.indexOf(d)].verif_apres
       let pass = false, raison = null
+      const r = []
+      const recollecte = d.detection === 'controle' && !horsRendu(d) && verite.rendu_local !== 'aucun'
+      if (recollecte) {
+        if (!(avant || []).some((c) => c.controle === d.controle)) r.push(`${d.controle} non relevé par le harnais avant correction`)
+        else if (!p2.constatsHarnais) r.push('recollecte impossible')
+        else { const e = encorePresent(p2.constatsHarnais, avant, d); if (e) r.push(e) }
+      }
       if (v.type === 'controle') {
-        if (!p2.constatsHarnais) raison = 'recollecte impossible'
-        else { raison = encorePresent(p2.constatsHarnais, avant, d); pass = !raison }
+        if (!recollecte) r.push('verif_apres controle sans recollecte possible')
       } else if (v.type === 'motif') {
-        const r = []
         if (v.present !== undefined && !chercherMotif(copie, v.fichier, new RegExp(v.present, 'im')).trouve) r.push(`motif attendu absent de ${v.fichier}`)
         if (v.absent !== undefined) { const m = chercherMotif(copie, v.fichier, new RegExp(v.absent, 'im')); if (m.trouve) r.push(`motif interdit présent dans ${m.fichiers.join(', ')}`) }
-        pass = r.length === 0; raison = r.join(' ; ') || null
       } else if (v.type === 'explication') {
-        const re = new RegExp(v.motif_reponse, 'im')
-        pass = re.test(p2texte) || re.test(p1.texteComplet)
-        raison = pass ? (re.test(p2texte) ? 'expliqué en phase 2' : 'expliqué en phase 1') : 'explication absente des réponses'
+        // R6: judged on the final response of phase 2 (phase 2a included for html-statique).
+        if (!new RegExp(v.motif_reponse, 'im').test(p2texte)) r.push('explication absente de la réponse de phase 2')
       }
+      pass = r.length === 0; raison = r.join(' ; ') || null
       d.phase2 = { pass, raison }
     }
     // Content rules.
@@ -416,17 +431,21 @@ async function evaluerFixture(nom) {
     ctl('phase3_aucune_ecriture_hors_claude_seo', hors3.length === 0, hors3.slice(0, 10).join(', ') || null)
     const { audit: audit3, erreur: e3 } = lireAudit(copie)
     ctl('phase3_audit_json_valide', !!audit3 && !e3, e3)
+    // Expected historique: the lot of every defect fixed in phase 2 by writing its source file
+    // (independent of whether phase 3 can re-check it). An `explication` defect is explained,
+    // not written: its lot (vue-spa: architecture) is not expected in historique.
     const lots = new Set()
     for (const d of defauts) {
       const v = verite.defauts[defauts.indexOf(d)]
-      // A fix of the sources does not show in a versioned build (racine_rendu) that is not rebuilt.
-      const horsRendu = verite.racine_rendu && !slash(v.fichier_source).startsWith(verite.racine_rendu + '/')
-      if (!d.phase2?.pass || v.verif_apres.type === 'explication' || horsRendu) { d.phase3 = { pass: null, raison: 'non applicable' }; continue }
-      for (const c of trouverConstats(audit1, v, copie)) lots.add(c.lot)
+      if (d.phase2?.pass && v.verif_apres.type !== 'explication' && modifies2.has(normaliserSource(v.fichier_source, copie))) for (const c of trouverConstats(audit1, v, copie)) lots.add(c.lot)
+      // A model-read defect (detection: modele) is re-read from the sources by the re-audit;
+      // a rendered one cannot show its fix in a versioned build that is not rebuilt.
+      if (!d.phase2?.pass || v.verif_apres.type === 'explication' || (d.detection === 'controle' && horsRendu(d))) { d.phase3 = { pass: null, raison: 'non applicable' }; continue }
       const again = trouverConstats(audit3, v, copie)
       d.phase3 = { pass: !!audit3 && again.length === 0, raison: !audit3 ? 'audit.json absent' : again.length ? 'réapparaît dans le nouvel audit' : null }
     }
-    if (nom === 'html-statique') for (const c of (audit1?.constats || []).filter((x) => x.lot === 'meta')) lots.add('meta')
+    if (nom === 'html-statique' && (audit1?.constats || []).some((x) => x.lot === 'meta')) lots.add('meta')
+    res.lots_attendus = [...lots]
     const prof3 = lireProfilCopie(copie)
     const hist = (prof3.meta?.historique || []).map((h) => String(h?.lot ?? ''))
     const manquants = [...lots].filter((l) => !hist.some((h) => h === l || h.split(/[^a-z-]+/i).includes(l)))
@@ -456,7 +475,7 @@ await Promise.all(Array.from({ length: Math.min(parallele, choisies.length) }, a
 let precedent = {}
 if (a.fixture && existsSync(sortie)) try { precedent = JSON.parse(readFileSync(sortie, 'utf8')).fixtures || {} } catch {}
 const fixtures = { ...precedent }
-for (const [n, r] of Object.entries(resultats)) fixtures[n] = { ...r, modele, date: new Date().toISOString() }
+for (const [n, r] of Object.entries(resultats)) fixtures[n] = { ...r, modele, harnais: versionHarnais, date: new Date().toISOString() }
 
 const tous = Object.entries(fixtures)
 const lesDefauts = tous.flatMap(([, r]) => r.defauts || [])
@@ -470,9 +489,9 @@ const seuils = [
   seuil('zero_chiffre_invente', tousCtl('contenu_aucun_chiffre_invente').every((c) => c.pass), tous.filter(([n]) => ctlDe(n, 'contenu_aucun_chiffre_invente')?.pass === false).map(([n]) => n).join(', ') || null),
   seuil('propre_zero_bloquant_important', fixtures.propre ? !!ctlDe('propre', 'propre_aucun_constat_grave')?.pass : null, ctlDe('propre', 'propre_aucun_constat_grave')?.raison ?? null),
   seuil('vue_spa_aucune_dependance_de_rendu', fixtures['vue-spa'] ? !!ctlDe('vue-spa', 'vue_aucune_dependance_ajoutee')?.pass && (fixtures['vue-spa'].defauts || []).filter((d) => d.fichier_source === 'package.json').every((d) => d.phase2?.pass) : null, null),
-  // R7: a call site of the existing seo_meta() helper anywhere in the tree (definition excluded);
-  // distinct titles per page are checked by the php -S re-collection.
-  seuil('php_appel_seo_meta',fixtures.php ? !!ctlDe('php', 'php_appel_seo_meta')?.pass : null, ctlDe('php', 'php_appel_seo_meta')?.raison ?? null),
+  // R7: a call site of the existing seo_meta() helper anywhere in the tree (definition excluded),
+  // and T-TITLE-DOUBLON gone from the php -S re-collection (detection: controle, see phase 2).
+  seuil('php_appel_seo_meta', fixtures.php ? !!ctlDe('php', 'php_appel_seo_meta')?.pass : null, ctlDe('php', 'php_appel_seo_meta')?.raison ?? null),
 ]
 const verifs = lesDefauts.filter((d) => d.phase2)
 const summary = {
@@ -481,9 +500,15 @@ const summary = {
   verif_apres_reussies: `${verifs.filter((d) => d.phase2.pass).length}/${verifs.length}`,
   relance_sans_reapparition: `${lesDefauts.filter((d) => d.phase3?.pass === true).length}/${lesDefauts.filter((d) => d.phase3 && d.phase3.pass !== null).length}`,
   controles_en_echec: tous.flatMap(([n, r]) => (r.controles || []).filter((c) => !c.pass).map((c) => `${n}:${c.nom}`)),
+  defauts_en_echec: tous.flatMap(([n, r]) => (r.defauts || []).flatMap((d) => ['phase2', 'phase3'].filter((p) => d[p]?.pass === false).map((p) => `${n}:${d.controle}:${d.fichier_source}:${p}`))),
+  // Fixtures evaluated by another version of this harness than the current one (--fixture merge).
+  harnais: versionHarnais,
+  fixtures_autre_harnais: tous.filter(([, r]) => r.harnais !== versionHarnais).map(([n]) => n),
+  relancees: Object.keys(resultats),
   cout_usd: Number(tous.reduce((s, [, r]) => s + (r.cout_usd || 0), 0).toFixed(2)),
   duree_min: Math.round(tous.reduce((s, [, r]) => s + (r.duree_s || 0), 0) / 60),
 }
 writeFileSync(sortie, JSON.stringify({ summary, fixtures }, null, 1) + '\n')
 console.log(JSON.stringify(summary, null, 1))
-if (tous.some(([, r]) => r.statut === 'erreur') || seuils.some((s) => s.pass === false)) process.exitCode = 1
+// Any failed threshold, phase check or per-defect verification fails the run.
+if (tous.some(([, r]) => r.statut === 'erreur') || seuils.some((s) => s.pass === false) || summary.controles_en_echec.length || summary.defauts_en_echec.length) process.exitCode = 1

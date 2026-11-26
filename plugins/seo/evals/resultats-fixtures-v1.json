@@ -42,9 +42,20 @@
   "defauts": 25,
   "detectes_bonne_source": 25,
   "verif_apres_reussies": "25/25",
-  "relance_sans_reapparition": "20/20",
+  "relance_sans_reapparition": "22/22",
   "controles_en_echec": [],
-  "cout_usd": 2,
+  "defauts_en_echec": [],
+  "harnais": "59432d28aeff",
+  "fixtures_autre_harnais": [
+   "propre",
+   "twig"
+  ],
+  "relancees": [
+   "php",
+   "vue-spa",
+   "html-statique"
+  ],
+  "cout_usd": 2.08,
   "duree_min": 8
  },
  "fixtures": {
@@ -173,9 +184,9 @@
      "prompt": "Audite le SEO de ce projet sans rien corriger. Le profil que tu proposes est confirmé tel quel. Je confirme le discours que tu proposes tel quel.",
      "statut": "ok",
      "raison": null,
-     "duree_s": 43,
-     "cout_usd": 0.2036,
-     "tours": 23,
+     "duree_s": 40,
+     "cout_usd": 0.2061,
+     "tours": 24,
      "skills": [
       "seo:seo",
       "seo:seo-profil"
@@ -183,54 +194,55 @@
      "agents": [],
      "outils": {
       "Skill": 2,
-      "Bash": 3,
-      "Glob": 1,
+      "Bash": 5,
       "Read": 12,
       "Write": 2
      },
      "refus": [],
-     "reponse": "J'ai audité le site sans rien corriger. Je n'ai pas lancé de serveur : j'ai utilisé celui de l'évaluation sur http://127.0.0.1:50071/, donc rien n'est à arrêter. Le niveau atteint est le HTML rendu des 3 pages, complété par la lecture du code (stack PHP sans framework). Je n'ai pas utilisé de navigateur.\n\n**Profil.** Je l'ai écrit dans `.claude/seo/profil.md` tel que vous l'aviez confirmé d'avance, et `profil-valider` le déclare valide.\n- **Public :** patients de Paris, adultes, enfants et perso…"
+     "reponse": "## Audit SEO : rien n'a été corrigé\n\n**Niveau atteint :** HTML réellement servi sur `http://127.0.0.1:57046/`, complété par la lecture du code. Je n'ai lancé aucun serveur et rien construit. Pas de navigateur dans cette session.\n\n**Profil :** `.claude/seo/profil.md` est écrit et valide. Il reprend ma proposition, confirmée telle quelle par vous. Le secteur est la santé et le pays la France.\n\nRappel déontologie : les textes de déontologie des kinésithérapeutes interdisent tout procédé visant un r…"
     },
     {
      "phase": "2-tous-lots",
      "prompt": "J'approuve tous les lots proposés. J'approuve aussi les textes et les diffs que tu proposes : écris-les sans me redemander.",
      "statut": "ok",
      "raison": null,
-     "duree_s": 38,
-     "cout_usd": 0.1646,
-     "tours": 18,
+     "duree_s": 36,
+     "cout_usd": 0.1751,
+     "tours": 19,
      "skills": [
       "seo:seo-technique",
-      "seo:seo-contenu"
+      "seo:seo-contenu",
+      "seo:seo-verification"
      ],
      "agents": [],
      "outils": {
-      "Skill": 2,
+      "Skill": 3,
       "Read": 2,
-      "Edit": 6,
       "Write": 2,
+      "Edit": 5,
       "Bash": 3
      },
      "refus": [
-      "Bash curl -s http://127.0.0.1:53298/soins.php | head -16; curl -s http://127.0.0.1:53298/robots.txt"
+      "Bash curl -s http://127.0.0.1:63912/soins.php | head -20"
      ],
-     "reponse": "Les 3 lots sont écrits (header partagé, indexation, structure). Le nouvel audit sur http://127.0.0.1:53298/ ne remonte plus qu'un constat, attendu en dev. Je n'ai pas relancé `curl` pour contrôler le HTML brut : l'évaluation l'a refusé. La vérification repose donc sur l'outil `auditer` seul.\n\n**Fait**\n- **`inc/header.php`**\n  - Il appelle maintenant `seo_meta()`, qui n'était jamais utilisé.\n  - `<html lang=\"fr\">` est ajouté.\n  - Un canonical absolu est ajouté, sur `https://cabinet-exemple.test`.…"
+     "reponse": "Les cinq lots sont écrits. Cinq des six constats de l'audit ont disparu au nouvel audit sur `http://127.0.0.1:63912/`, et un nouveau constat est apparu (voir plus bas).\n\n**Corrections faites**\n- **`robots.txt`** : j'ai retiré `Disallow: /` et ajouté `Sitemap: https://cabinet-exemple.test/sitemap.xml`.\n- **`inc/header.php`** : il inclut maintenant `inc/seo.php` et appelle le helper `seo_meta()`, qui n'était jamais utilisé. J'y ai aussi ajouté `lang=\"fr\"`, un canonical, et les balises Open Graph (…"
     },
     {
      "phase": "3-relance",
      "prompt": "Refais l'audit.",
      "statut": "ok",
      "raison": null,
-     "duree_s": 13,
-     "cout_usd": 0.0234,
-     "tours": 2,
+     "duree_s": 18,
+     "cout_usd": 0.0437,
+     "tours": 4,
      "skills": [],
      "agents": [],
      "outils": {
-      "Bash": 1
+      "Bash": 2,
+      "Write": 1
      },
      "refus": [],
-     "reponse": "Le nouvel audit sur http://127.0.0.1:52784/ donne le même résultat qu'avant : un seul constat, sur les 3 pages. Les 5 autres constats du premier audit n'apparaissent plus : title en doublon, `lang`, `robots.txt`, Open Graph et saut de titre.\n\n**`T-CANONICAL-INVALIDE`** (important, priorité 6). Le canonical de chaque page pointe vers `https://cabinet-exemple.test/…`, donc vers un autre domaine que celui du serveur de dev. Ce n'est pas un défaut : ce domaine est celui du sitemap et du profil, et l…"
+     "reponse": "## Nouvel audit : rien n'a été modifié\n\n**Niveau atteint :** HTML servi sur `http://127.0.0.1:57350/` (`auditer --url`), sans navigateur. Je n'ai lancé aucun serveur. `.claude/seo/audit.json` est réécrit.\n\n**Un seul constat reste :**\n\n| Contrôle | Gravité | Pages | Source | Priorité |\n|---|---|---|---|---|\n| `T-CANONICAL-INVALIDE` | important | `/`, `/soins.php`, `/contact.php` | `inc/header.php` | 6 |\n\n- **Preuve :** le canonical pointe vers `https://cabinet-exemple.test/`, un autre domaine que…"
     }
    ],
    "defauts": [
@@ -414,8 +426,8 @@
      "pass": true,
      "raison": null,
      "historique": [
-      "meta",
       "indexation",
+      "meta",
       "international",
       "partage",
       "structure"
@@ -426,10 +438,17 @@
     "T-CANONICAL-ABSENT (mineur)",
     "T-OG-ABSENT (mineur)"
    ],
-   "cout_usd": 0.39,
+   "lots_attendus": [
+    "meta",
+    "international",
+    "indexation",
+    "structure"
+   ],
+   "cout_usd": 0.42,
    "duree_s": 94,
    "modele": "sonnet",
-   "date": "2026-11-26T05:23:56.476Z"
+   "harnais": "59432d28aeff",
+   "date": "2026-11-26T05:36:24.900Z"
   },
   "html-statique": {
    "statut": "ok",
@@ -439,8 +458,8 @@
      "prompt": "Audite le SEO de ce projet sans rien corriger. Le profil que tu proposes est confirmé tel quel. Je confirme le discours que tu proposes tel quel.",
      "statut": "ok",
      "raison": null,
-     "duree_s": 42,
-     "cout_usd": 0.2091,
+     "duree_s": 40,
+     "cout_usd": 0.2131,
      "tours": 19,
      "skills": [
       "seo:seo",
@@ -449,20 +468,21 @@
      "agents": [],
      "outils": {
       "Skill": 2,
-      "Bash": 4,
+      "Bash": 3,
+      "Glob": 1,
       "Read": 8,
       "Write": 2
      },
      "refus": [],
-     "reponse": "## Audit SEO : Cabinet Exemple (HTML statique, 3 pages)\n\n**Niveau atteint :** audit du dossier avec l'outil `auditer`, complété par la lecture du code. Je n'ai lancé aucun serveur, aucun build, et je n'ai lu aucune URL de prod. Je n'ai rien corrigé. Je n'ai écrit que `.claude/seo/profil.md` et `.claude/seo/audit.json`. `profil-valider` a validé le profil.\n\n**Profil.** Comme vous l'avez confirmé, je l'ai écrit tel que je le proposais. Il vient du contenu des trois pages : kinésithérapie à Paris, …"
+     "reponse": "Audit SEO terminé : 15 constats répartis sur 3 pages, rien n'a été corrigé dans le site. Le niveau atteint est « dossier » (outil `auditer` sur les fichiers HTML) plus la lecture du code. Il n'y a pas de navigateur ni de serveur, et rien n'a été lancé.\n\nJ'ai écrit deux fichiers, les seuls autorisés avant validation d'un lot :\n- `.claude/seo/profil.md` : le profil n'existait pas, je l'ai créé avec votre confirmation anticipée, et il passe `profil-valider`.\n- `.claude/seo/audit.json` : un constat …"
     },
     {
      "phase": "2a-lot-meta",
      "prompt": "J'approuve uniquement le lot meta. J'approuve aussi les textes et les diffs que tu proposes pour ce lot : écris-les sans me redemander.",
      "statut": "ok",
      "raison": null,
-     "duree_s": 33,
-     "cout_usd": 0.1619,
+     "duree_s": 32,
+     "cout_usd": 0.1684,
      "tours": 14,
      "skills": [
       "seo:seo-technique",
@@ -477,15 +497,15 @@
       "Write": 1
      },
      "refus": [],
-     "reponse": "J'ai écrit le lot meta dans `index.html`, `soins.html` et `contact.html`. Je n'ai rien committé. Un nouvel audit du dossier ne signale plus les trois défauts meta : title en doublon, description absente de `contact.html` et canonical absent. Cette vérification lit le code statique. Je n'ai ouvert aucune page dans un navigateur et je n'ai lancé aucun serveur.\n\n**Modifications**\n- **`index.html`** : j'ai ajouté `<link rel=\"canonical\" href=\"https://cabinet-exemple.test/\">`. Le title « Cabinet Exemp…"
+     "reponse": "Le lot meta est écrit et les cinq constats correspondants ne ressortent plus à l'audit. Les autres lots n'ont pas été touchés, et il n'y a eu ni commit ni push.\n\n## Modifications\n\n| Fichier | Changement |\n|---|---|\n| `index.html` | `<link rel=\"canonical\" href=\"https://cabinet-exemple.test/\">` ajouté. Le title et la description existants sont gardés. |\n| `soins.html` | Title changé en « Soins de kinésithérapie à Paris \\| Cabinet Exemple » (49 caractères). Canonical `https://cabinet-exemple.test/s…"
     },
     {
      "phase": "2-tous-lots",
      "prompt": "J'approuve tous les lots proposés. J'approuve aussi les textes et les diffs que tu proposes : écris-les sans me redemander.",
      "statut": "ok",
      "raison": null,
-     "duree_s": 34,
-     "cout_usd": 0.1233,
+     "duree_s": 35,
+     "cout_usd": 0.1275,
      "tours": 16,
      "skills": [
       "seo:seo-donnees-structurees"
@@ -498,23 +518,25 @@
       "Bash": 2
      },
      "refus": [],
-     "reponse": "J'ai appliqué les cinq lots restants. Un nouvel audit du dossier ne signale plus aucun constat et le profil passe `profil-valider`. Je n'ai rien committé.\n\nLa vérification porte sur le code statique. Je n'ai ouvert aucune page dans un navigateur.\n\n**Modifications**\n- **Données structurées, `index.html`** : j'ai retiré le bloc `aggregateRating`, qui n'avait aucun avis visible sur la page. Le JSON-LD `MedicalBusiness` reste valide. Le téléphone est recopié à l'identique.\n- **Indexation** : j'ai cr…"
+     "reponse": "Les six lots restants sont appliqués. Après ces modifications, l'outil `auditer` sur les fichiers ne remonte plus aucun constat. Je n'ai pas fait de vérification sur le rendu réel (pas de navigateur ni de serveur). Je n'ai fait ni commit ni push.\n\n## Ce qui a changé\n\n| Lot | Fichier | Modification |\n|---|---|---|\n| donnees-structurees | `index.html` | Bloc `aggregateRating` retiré du JSON-LD. Il n'y avait pas d'avis visibles sur la page, et le reste du JSON-LD est inchangé. |\n| indexation | `sit…"
     },
     {
      "phase": "3-relance",
      "prompt": "Refais l'audit.",
      "statut": "ok",
      "raison": null,
-     "duree_s": 10,
-     "cout_usd": 0.0289,
-     "tours": 3,
+     "duree_s": 16,
+     "cout_usd": 0.0391,
+     "tours": 5,
      "skills": [],
      "agents": [],
      "outils": {
-      "Bash": 2
+      "Bash": 2,
+      "Grep": 1,
+      "Glob": 1
      },
      "refus": [],
-     "reponse": "Le nouvel audit du dossier ne trouve aucun constat sur les 3 pages. Le profil reste valide et `audit.json` est vide (`constats: []`, daté du 2026-11-26). Je n'ai rien modifié.\n\nCet audit lit le code statique. Je n'ai ouvert aucune page dans un navigateur, lancé aucun serveur ni lu aucune URL de prod.\n\nQuelques points restent ouverts, tous hors du catalogue de contrôles :\n- **Domaine :** `https://cabinet-exemple.test/` sert aux canonical, au sitemap et à `og:url`. Il vient seulement du JSON-LD de…"
+     "reponse": "Le nouvel audit ne relève aucun constat du catalogue sur les 3 pages. Le niveau atteint est « dossier » plus lecture du code, donc pas de rendu navigateur. `audit.json` était déjà vide avec la date du jour, je ne l'ai pas réécrit.\n\n**Contrôles relus**\n- **Meta** : les 3 titles sont uniques et font entre 30 et 60 caractères. Chaque page a une meta description et un canonical absolu.\n- **Partage** : les balises Open Graph de base sont présentes (`og:title`, `og:description`, `og:type`, `og:url`).\n…"
     }
    ],
    "defauts": [
@@ -727,8 +749,8 @@
       "indexation",
       "images",
       "structure",
-      "contenu",
-      "partage"
+      "partage",
+      "contenu"
      ]
     }
    ],
@@ -737,10 +759,19 @@
     "T-OG-ABSENT (mineur)",
     "T-OG-ABSENT (mineur)"
    ],
-   "cout_usd": 0.52,
-   "duree_s": 119,
+   "lots_attendus": [
+    "meta",
+    "structure",
+    "images",
+    "indexation",
+    "donnees-structurees",
+    "contenu"
+   ],
+   "cout_usd": 0.55,
+   "duree_s": 123,
    "modele": "sonnet",
-   "date": "2026-11-26T05:23:56.476Z"
+   "harnais": "59432d28aeff",
+   "date": "2026-11-26T05:36:24.900Z"
   },
   "twig": {
    "statut": "ok",
@@ -993,9 +1024,9 @@
      "prompt": "Audite le SEO de ce projet sans rien corriger. Le profil que tu proposes est confirmé tel quel. Je confirme le discours que tu proposes tel quel.",
      "statut": "ok",
      "raison": null,
-     "duree_s": 54,
-     "cout_usd": 0.2675,
-     "tours": 28,
+     "duree_s": 55,
+     "cout_usd": 0.2473,
+     "tours": 32,
      "skills": [
       "seo:seo",
       "seo:seo-profil"
@@ -1003,24 +1034,24 @@
      "agents": [],
      "outils": {
       "Skill": 2,
-      "Bash": 4,
-      "Glob": 1,
-      "Read": 16,
+      "Bash": 5,
+      "Read": 17,
+      "Glob": 3,
       "Write": 2
      },
      "refus": [
-      "Bash cd <fixture> && for f in index.html dist/index.html dist/robots.txt dist/sitemap.xml public/robots.txt public/sitem…"
+      "Bash cd \"<fixture>\" && for f in src/main.js src/App.vue src/views/*.vue dist/index.html dist/robots.txt dist/sitemap.xml…"
      ],
-     "reponse": "J'ai audité le projet sans modifier le site. Seuls `.claude/seo/profil.md` et `.claude/seo/audit.json` ont été écrits. Aucun build, serveur ou commit.\n\n**Niveau atteint** : audit de `dist/` avec l'outil, complété par la lecture du code (routes, vues, `public/`). Je n'ai pas fait de rendu navigateur.\n\n**Profil** : il n'existait pas. Je l'ai créé comme proposé, avec votre confirmation d'avance (`confirme_le: 2026-11-26`), et il passe la validation. Il est déduit de `index.html` et des vues. Public…"
+     "reponse": "J'ai audité le projet sans rien corriger. J'ai écrit seulement `.claude/seo/profil.md` (valide d'après `profil-valider`) et `.claude/seo/audit.json`.\n\n**Niveau atteint** : analyse du dossier `dist/` par l'outil, complétée par la lecture du code. Je n'ai ouvert aucun navigateur ni serveur, et je n'ai consulté aucune URL de production.\n\n**Profil retenu (confirmé tel quel)** :\n- **Stack** : Vue en SPA, rendu côté navigateur, site en français.\n- **Public** : patients de Paris, adultes, enfants et pe…"
     },
     {
      "phase": "2-tous-lots",
      "prompt": "J'approuve tous les lots proposés. J'approuve aussi les textes et les diffs que tu proposes : écris-les sans me redemander.",
      "statut": "ok",
      "raison": null,
-     "duree_s": 34,
-     "cout_usd": 0.1234,
-     "tours": 11,
+     "duree_s": 39,
+     "cout_usd": 0.1726,
+     "tours": 13,
      "skills": [
       "seo:seo-technique",
       "seo:seo-contenu"
@@ -1028,20 +1059,21 @@
      "agents": [],
      "outils": {
       "Skill": 2,
-      "Write": 4,
-      "Edit": 1,
+      "Read": 2,
+      "Write": 3,
+      "Edit": 2,
       "Bash": 1
      },
      "refus": [],
-     "reponse": "Les lots meta, partage, structure et indexation sont écrits. Le lot architecture n'est pas appliqué : le pré-rendu demande d'ajouter une dépendance, ce que je ne fais pas sans accord explicite. Je n'ai rien vérifié sur le rendu réel. Je n'ai pas reconstruit `dist/` ni lancé de serveur, donc `dist/index.html` contient encore l'ancienne version. Le profil reste valide.\n\n**Fait**\n- **Meta par route** (`src/router.js`) : chaque route a son title et sa description. Un `router.afterEach` les applique …"
+     "reponse": "Les lots meta, partage, structure et indexation sont écrits. Je n'ai pas lancé `seo-verification` : il aurait fallu un build, donc la vérification se limite à la relecture du code.\n\n**Fait**\n- **`src/router.js`** : chaque route (`/`, `/soins`, `/contact`) a maintenant un `meta.title` et un `meta.description`. Un `router.afterEach` applique à chaque navigation le title, la description, le canonical absolu sur `https://cabinet-exemple.test` et les balises `og:title`, `og:description` et `og:url`.\n…"
     },
     {
      "phase": "3-relance",
      "prompt": "Refais l'audit.",
      "statut": "ok",
      "raison": null,
-     "duree_s": 19,
-     "cout_usd": 0.0594,
+     "duree_s": 18,
+     "cout_usd": 0.0544,
      "tours": 4,
      "skills": [],
      "agents": [],
@@ -1049,10 +1081,8 @@
       "Bash": 2,
       "Write": 1
      },
-     "refus": [
-      "Bash cd <fixture>/src/views && for f in *.vue; do echo $f $(sed -E 's/<[^>]+>//g' $f | wc -w); done"
-     ],
-     "reponse": "J'ai refait l'audit et réécrit `.claude/seo/audit.json`. Il ne reste qu'un défaut, avec deux constats : `T-SPA-HTML-VIDE`, bloquant, sur `/`, `/soins` et `/contact`, dans `index.html` et `package.json`.\n\n**Niveau atteint** : lecture du code, plus un audit outillé de `dist/`. Ce dossier est périmé, car je ne l'ai pas reconstruit sans votre accord. L'outil y voit donc encore l'ancienne coquille et signale à tort les anciens défauts : description absente, title de 8 caractères, canonical et Open Gr…"
+     "refus": [],
+     "reponse": "J'ai refait l'audit. Il ne reste qu'un défaut : la coquille HTML vide (`T-SPA-HTML-VIDE`, bloquant). Il compte pour deux constats dans `audit.json`, un sur `index.html` et un sur `package.json`, car les pages dépendent du JavaScript. `audit.json` a été réécrit en entier.\n\n**Niveau atteint** : lecture du code, plus l'outil lancé sur `dist/`.\n\n**Limite** : `dist/` n'a pas été reconstruit, et je ne construis rien sans ton accord. L'outil y a donc trouvé six constats qui sont des résidus de l'ancien…"
     }
    ],
    "defauts": [
@@ -1068,7 +1098,7 @@
      },
      "phase2": {
       "pass": true,
-      "raison": "expliqué en phase 2"
+      "raison": null
      },
      "phase3": {
       "pass": null,
@@ -1128,8 +1158,8 @@
       "raison": null
      },
      "phase3": {
-      "pass": null,
-      "raison": "non applicable"
+      "pass": true,
+      "raison": null
      }
     },
     {
@@ -1147,8 +1177,8 @@
       "raison": null
      },
      "phase3": {
-      "pass": null,
-      "raison": "non applicable"
+      "pass": true,
+      "raison": null
      }
     }
    ],
@@ -1212,10 +1242,14 @@
     "T-H1-MULTIPLE (mineur)",
     "T-SITEMAP-INCOHERENT (mineur)"
    ],
-   "cout_usd": 0.45,
-   "duree_s": 107,
+   "lots_attendus": [
+    "meta"
+   ],
+   "cout_usd": 0.47,
+   "duree_s": 112,
    "modele": "sonnet",
-   "date": "2026-11-26T05:23:56.476Z"
+   "harnais": "59432d28aeff",
+   "date": "2026-11-26T05:36:24.900Z"
   }
  }
 }
