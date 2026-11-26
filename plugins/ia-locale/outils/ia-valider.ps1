@@ -145,7 +145,12 @@ try {
 } finally {
   foreach ($s in @($cfg.teardown)) { if ($s) { Invoke-Check 'teardown' $s 120 | Out-Null } }
 }
-foreach ($r in @($results.ToArray() | Where-Object status -ne 'pass')) { Add-Finding 'fail' "check:$($r.name)" "$($r.status), exit $($r.exit_code), log $($r.log)" }
+# A check may declare "severity": "human": its failure asks for a human look instead of failing the change
+# (static analysis on legacy code, where old findings in a touched file are not the author's fault).
+foreach ($r in @($results.ToArray() | Where-Object status -ne 'pass')) {
+  $sev = @($cfg.checks | Where-Object { $_.name -eq $r.name -and $_.severity -eq 'human' }).Count
+  Add-Finding $(if ($sev) { 'human' } else { 'fail' }) "check:$($r.name)" "$($r.status), exit $($r.exit_code), log $($r.log)"
+}
 
 # --- verdict ----------------------------------------------------------------------------
 $humanFrom = if ($cfg.human_from) { $cfg.human_from } else { 'high' }

@@ -1,5 +1,5 @@
 {
-  "note": "Copy to $AI_ROOT/config/projets/<project>/validation.json and adapt. Keep it outside the repository. Globs: ** = any folders, * = within one folder. Commands run from the repository root; {file} = one changed file per run, {files} = all matching changed files. A check with fail_pattern (regex matching one failing item per log line) is compared with the baseline recorded by -Baseline on the merge-base: only new failures fail.",
+  "note": "Copy to $AI_ROOT/config/projets/<project>/validation.json and adapt. Keep it outside the repository. Globs: ** = any folders, * = within one folder. Commands run from the repository root; {file} = one changed file per run, {files} = all matching changed files. A check with fail_pattern (regex matching one failing item per log line) is compared with the baseline recorded by -Baseline on the merge-base: only new failures fail. \"severity\": \"human\" on a check = its failure asks for a human look instead of failing the change.",
   "base": "origin/main",
   "human_from": "high",
   "low_risk": [
@@ -60,6 +60,15 @@
         "**"
       ],
       "cmd": "betterleaks dir {files} --no-banner --redact"
+    },
+    {
+      "name": "phpstan",
+      "when": [
+        "**/*.php"
+      ],
+      "severity": "human",
+      "cmd": "php phpstan.phar analyse -c phpstan.neon --no-progress --error-format=raw {files}",
+      "timeout": 600
     },
     {
       "name": "phpunit",
