@@ -1,7 +1,16 @@
 {
-  "note": "Copy to $AI_ROOT/config/moteur.json. type = ollama | llama-server (any OpenAI-compatible local server). base_url must be a loopback address. api_key_file is optional. models maps the routing ladder to the names your engine exposes.",
+  "note": "Copy to $AI_ROOT/config/moteur.json. type = ollama | llama-server (any OpenAI-compatible local server). base_url must be a loopback address. api_key_file is optional. models maps the routing ladder to the names your engine exposes. ram_gb = memory each model takes once loaded (measure it), keep_free_gb = memory that must stay free: ia-run refuses to start otherwise.",
   "type": "llama-server",
   "base_url": "http://127.0.0.1:8080",
   "api_key_file": null,
-  "models": { "small": "<small model>", "coding": "<coding model>", "strong": "<stronger model>" }
+  "models": {
+    "small": "<small model>",
+    "coding": "<coding model>",
+    "strong": "<stronger model>"
+  },
+  "ram_gb": {
+    "<coding model>": 30,
+    "<small model>": 15
+  },
+  "keep_free_gb": 8
 }

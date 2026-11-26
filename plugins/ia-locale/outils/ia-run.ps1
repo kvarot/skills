@@ -5,7 +5,9 @@
 # and runs the project's own tests: the agent's "it works" is not a proof.
 #
 #   ia-run.ps1 -Repo <path> (-Task "<text>" | -BriefFile <file>) [-TaskId PRJ-12] [-Model <provider/name>]
-#              [-Base <branch>] [-Branch <name>] [-Minutes 30] [-AllowShell] [-EvenInCall]
+#              [-Base <branch>] [-Branch <name>] [-Minutes 30] [-AllowShell] [-EvenInCall] [-SetupScript <file.ps1>]
+#   -SetupScript runs once in the fresh worktree (argument: -Worktree <path>) before the baseline and the
+#   agent, e.g. to commit acceptance tests the agent must make pass. A non-zero exit cancels the run.
 #   ia-run.ps1 -Status [-Id <run id>]      state of the running or last run, as JSON
 #   ia-run.ps1 -List                       worktrees still on disk, with size and age
 #   ia-run.ps1 -Clean [-Id <run id>] [-Force]   remove the worktree and branch of finished runs
@@ -37,6 +39,7 @@ param(
   [Parameter(ParameterSetName = 'run')][switch]$AllowShell,
   [Parameter(ParameterSetName = 'run')][switch]$EvenInCall,
   [Parameter(ParameterSetName = 'run')][switch]$NoValidation,
+  [Parameter(ParameterSetName = 'run')][string]$SetupScript = '',
   [Parameter(ParameterSetName = 'run')][string]$Launcher = '',
   [Parameter(ParameterSetName = 'status', Mandatory = $true)][switch]$Status,
   [Parameter(ParameterSetName = 'status')][Parameter(ParameterSetName = 'clean')][string]$Id = '',
@@ -127,6 +130,19 @@ if ($BriefFile) { $Task = [IO.File]::ReadAllText((Resolve-Path $BriefFile).Path)
 if (-not $EvenInCall -and (Test-CallInProgress)) { throw 'Refused: a call is in progress (microphone in use). Start again after the call, or pass -EvenInCall.' }
 $live = Get-LiveRun
 if ($live) { throw "Local worker busy: run $($live.id) (task '$($live.task_id)') is still running. One local session at a time." }
+# Memory: moteur.json may give "ram_gb": {"<model>": N} (what the model takes once loaded) and
+# "keep_free_gb" (what must stay free for the person using the machine, default 8).
+$ef = Join-Path $root 'config\moteur.json'
+if (Test-Path $ef) {
+  $eng = Get-Content $ef -Raw -Encoding utf8 | ConvertFrom-Json
+  $short = ($Model -split '/')[-1]
+  if ($eng.PSObject.Properties['ram_gb'] -and $short -and $eng.ram_gb.PSObject.Properties[$short]) {
+    $free = (Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory / 1MB
+    $keep = if ($eng.PSObject.Properties['keep_free_gb']) { [double]$eng.keep_free_gb } else { 8 }
+    $need = [double]$eng.ram_gb.$short
+    if (($free - $need) -lt $keep -and -not $EvenInCall) { throw ("Refused: model '{0}' takes about {1} GB, {2:N0} GB are free, {3} GB must stay free. Close applications, use a smaller model, or run when the machine is not in use." -f $short, $need, $free, $keep) }
+  }
+}
 $waiting = Get-RunStates
 if ($waiting.Count -ge 3) { throw ("Refused: $($waiting.Count) local worktrees already wait on disk (" + (($waiting | ForEach-Object id) -join ', ') + "). Commit or reject them, then: ia-run.ps1 -Clean") }
 $drive = Get-PSDrive -Name ([IO.Path]::GetPathRoot($root).Substring(0, 1))
@@ -141,6 +157,16 @@ $ws = Join-Path $root "workspaces\run-$runId"
 $wtArgs = @('-C', $repoPath, 'worktree', 'add', '-q', '-b', $Branch, $ws); if ($Base) { $wtArgs += $Base }
 & git @wtArgs | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "git worktree add failed (exit $LASTEXITCODE)." }
+if ($SetupScript) {
+  # Whatever the script does or prints, a failure must leave no worktree and no branch behind.
+  $setupOk = $false; $setupOut = ''
+  try { $ErrorActionPreference = 'Continue'; $setupOut = (& powershell -NoProfile -ExecutionPolicy Bypass -File $SetupScript -Worktree $ws 2>&1 | Out-String); $setupOk = ($LASTEXITCODE -eq 0) }
+  catch { $setupOut = "$_" } finally { $ErrorActionPreference = 'Stop' }
+  if (-not $setupOk) {
+    & git -C $repoPath worktree remove --force $ws 2>$null | Out-Null; & git -C $repoPath worktree prune 2>$null | Out-Null; & git -C $repoPath branch -D $Branch 2>$null | Out-Null
+    throw "Setup script failed: run cancelled, worktree and branch removed. Output: $($setupOut.Trim())"
+  }
+}
 $baseSha = (& git -C $ws rev-parse --short HEAD)
 
 $state = [ordered]@{

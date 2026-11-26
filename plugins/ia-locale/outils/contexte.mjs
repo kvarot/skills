@@ -86,7 +86,7 @@ if (fs.existsSync(cacheFile) && !arg('no-cache')) { const c = fs.readFileSync(ca
 const STOP = new Set('les des une que qui dans pour par sur avec sans est son ses aux pas plus tout tous cette cet ces mais donc car lors quand elle ils nous vous leur leurs être avoir faire fait doit doivent peut afin entre the and for with from that this when then into not all are was has have its does should must can add fix bug make use new get set ajouter ajoute corriger corrige créer crée modifier modifie mettre fonction fichier file function code'.split(' '));
 const explicitPaths = [...String(tache).matchAll(/[\w./-]+\.(?:php|vue|js|ts|twig|scss|sql)\b/g)].map((m) => m[0].replace(/\\/g, '/'));
 const rawTerms = [...new Set(String(tache).split(/[^\p{L}\p{N}_$]+/u).filter((w) => w.length >= 3 && !STOP.has(w.toLowerCase())))];
-const sing = (w) => (w.length > 4 && /[sx]$/i.test(w) ? w.slice(0, -1) : w);
+const sing = (w) => (w.length > 4 && /[^s]s$/i.test(w) ? w.slice(0, -1) : w);
 const parts = (w) => [sing(w), ...w.split(/_|(?<=[a-z0-9])(?=[A-Z])/).filter((x) => x.length >= 4).map(sing)];
 const singles = [...new Set(rawTerms.flatMap(parts).map((t) => t.toLowerCase()))].slice(0, 20);
 const lower = rawTerms.map((t) => sing(t.toLowerCase())); const compounds = new Set();
