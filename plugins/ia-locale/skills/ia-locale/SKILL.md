@@ -24,6 +24,13 @@ Delegation only saves money if **you** stay cheap. The local model reads the fil
 - `$env:AI_ROOT\scripts\opencode-local.ps1`: launcher that keeps the agent's config, data, cache and state under `$env:AI_ROOT` and allows the local provider only (see `outils\opencode-local.exemple.ps1`, `outils\opencode.exemple.json`). Check that the agent lists **no cloud model**.
 - Check before use: the engine answers on its loopback address. If not, say so and stop — never fall back to a cloud model silently.
 
+## Who does the task: ask the router, do not guess
+
+```powershell
+node "$env:CLAUDE_PLUGIN_ROOT\outils\router.mjs" --projet <name> --tache "<task>" [--urgent] [--json]
+```
+One decision by rules, no model call: level, tool, model, **when**, the reasons, the command. It reads the files concerned and their risk (context map), their size and tests, the machine (free memory, model already loaded, hours declared free), and the measured success rates once there are enough samples (`$env:AI_ROOT\benchmarks\matrice.json`). Follow it; if you override it, say why. Policy: `$env:AI_ROOT\config\routage.json` (copy `outils\routage.exemple.json`), versioned — change one parameter at a time. Decisions are logged in `$env:AI_ROOT\logs\routage.jsonl`. The ladder below is what the router applies.
+
 ## Routing ladder (in this order)
 
 1. **No AI**: ripgrep, AST tools, formatters, linters, the project's own tests and scripts.

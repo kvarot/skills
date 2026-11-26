@@ -1,0 +1,14 @@
+{
+  "note": "Copy to $AI_ROOT/config/routage.json. Routing policy of this machine, read by router.mjs. Change one parameter at a time and increase version: every logged decision carries it, so a change can be measured and undone. free_hours = when the machine is not in use (the large model may run). keywords can be overridden too (human, paid, ask, none).",
+  "version": 1,
+  "free_hours": [
+    "12:00-13:30",
+    "19:00-08:30"
+  ],
+  "day_model": "small",
+  "agent_model": "coding",
+  "direct_max_files": 2,
+  "direct_max_chars": 50000,
+  "min_samples": 5,
+  "min_success": 0.5
+}
