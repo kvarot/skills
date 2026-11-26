@@ -7,6 +7,10 @@ description: Use when a development task could run on a LOCAL AI instead of a pa
 
 Goal: spend paid tokens only where they add measurable value. Every task first asks « can a deterministic tool do it? », then « can the cheapest local model do it? », and only then « does it need a paid model? ». Reports to the owner in the owner's language, short, plain words.
 
+## Without any local model
+
+The tools that call no model work alone and serve the paid session directly: `contexte.mjs` (which files matter for a task, their symbols, tests, tables, risk and rules, within a token budget), `carte.mjs` (the map behind it), `ia-valider.ps1` (objective check of a change) and `router.mjs`. They need only Node, git and universal-ctags, an `$env:AI_ROOT` folder for the configuration and the index, and `"local_models": false` in `routage.json`. On such a machine: before exploring a repository for a task, ask `contexte.mjs` and read only the files it names; after a change, run `ia-valider.ps1` and trust its verdict for low and moderate risk. Ignore `ia-ask`, `ia-patch`, `ia-run` and `/ia-usage`: they need a local engine.
+
 ## Cost rule for the paid session (read this first)
 
 Delegation only saves money if **you** stay cheap. The local model reads the files; you do not.

@@ -1,5 +1,5 @@
 {
-  "note": "Copy to $AI_ROOT/config/routage.json. Routing policy of this machine, read by router.mjs. Change one parameter at a time and increase version: every logged decision carries it, so a change can be measured and undone. free_hours = when the machine is not in use (the large model may run). keywords can be overridden too (human, paid, ask, none).",
+  "note": "Copy to $AI_ROOT/config/routage.json. Routing policy of this machine, read by router.mjs. Change one parameter at a time and increase version: every logged decision carries it, so a change can be measured and undone. free_hours = when the machine is not in use (the large model may run). keywords can be overridden too (human, paid, ask, none). local_models = false on a machine without any local model: the router then only chooses between a deterministic tool, the paid session (with a context pack) and the owner.",
   "version": 1,
   "free_hours": [
     "12:00-13:30",
@@ -10,5 +10,6 @@
   "direct_max_files": 2,
   "direct_max_chars": 50000,
   "min_samples": 5,
-  "min_success": 0.5
+  "min_success": 0.5,
+  "local_models": true
 }

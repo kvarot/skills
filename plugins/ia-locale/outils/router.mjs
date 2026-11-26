@@ -11,6 +11,7 @@
 // Levels: 0 no model | 1 local one-shot question | 2 local direct change | 3 local agent session
 //         | 4 paid model (Claude, Codex) | H human decision first
 // Policy file (optional, versioned by you): $AI_ROOT/config/routage.json — see routage.exemple.json.
+// "local_models": false in the policy = a machine with no local model: only levels 0, 4 and H are used.
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -73,6 +74,13 @@ const q = JSON.stringify(tache); let k;
 if (worst === 'FORBIDDEN') { reasons.push('a file that must never be edited is among the targets'); decide('H', 'human', null, 'now', null); }
 else if ((k = has(policy.keywords.human))) { reasons.push(`the task mentions "${k.trim()}": a decision that belongs to the owner`); decide('H', 'human', null, 'now', null); }
 else if ((k = has(policy.keywords.none))) { reasons.push(`"${k.trim()}": a lookup, no model needed`); decide(0, 'contexte.mjs', null, 'now', `node contexte.mjs --projet ${projet} --tache ${q}`); }
+else if (policy.local_models === false) {
+  // No local model on this machine: the deterministic tools serve the paid session directly.
+  reasons.push('local models are disabled on this machine (routage.json: local_models = false)');
+  if (worst === 'critical' || worst === 'high') reasons.push(`a target file is rated ${worst}: a human must approve the change`);
+  reasons.push('give the paid session the context pack instead of letting it explore, then check its change with ia-valider.ps1');
+  decide(4, 'paid', null, 'now', `node contexte.mjs --projet ${projet} --tache ${q} --budget 6000`);
+}
 else if ((k = has(policy.keywords.ask))) {
   const m = modelName('small'); reasons.push(`"${k.trim()}": reading and summarising, the small local model is enough`);
   if (fits(m)) decide(1, 'ia-ask.ps1', m, 'now', `ia-ask.ps1 -Task ${q} -Files <files> -Model ${m} -Quiet`); else { reasons.push('but ' + whyNot(m)); decide(arg('urgent') ? 4 : 1, arg('urgent') ? 'paid' : 'ia-ask.ps1', arg('urgent') ? null : m, arg('urgent') ? 'now' : 'when the local engine is free', null); }
