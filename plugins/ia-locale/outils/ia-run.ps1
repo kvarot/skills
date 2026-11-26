@@ -140,9 +140,12 @@ if (Test-Path $ef) {
   $short = ($Model -split '/')[-1]
   if ($eng.PSObject.Properties['ram_gb'] -and $short -and $eng.ram_gb.PSObject.Properties[$short]) {
     $free = (Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory / 1MB
+    $already = $false
+    try { $hh = @{}; if ($eng.api_key_file -and (Test-Path $eng.api_key_file)) { $hh.Authorization = 'Bearer ' + (Get-Content $eng.api_key_file -Raw).Trim() }
+      $already = [bool](@((Invoke-RestMethod "$($eng.base_url)/v1/models" -Headers $hh -TimeoutSec 3).data | Where-Object { $_.id -eq $short -and $_.status.value -eq 'loaded' }).Count) } catch { }
     $keep = if ($eng.PSObject.Properties['keep_free_gb']) { [double]$eng.keep_free_gb } else { 8 }
     $need = [double]$eng.ram_gb.$short
-    if (($free - $need) -lt $keep -and -not $EvenInCall) { throw ("Refused: model '{0}' takes about {1} GB, {2:N0} GB are free, {3} GB must stay free. Close applications, use a smaller model, or run when the machine is not in use." -f $short, $need, $free, $keep) }
+    if (-not $already -and ($free - $need) -lt $keep -and -not $EvenInCall) { throw ("Refused: model '{0}' takes about {1} GB, {2:N0} GB are free, {3} GB must stay free. Close applications, use a smaller model, or run when the machine is not in use." -f $short, $need, $free, $keep) }
   }
 }
 $waiting = Get-RunStates
