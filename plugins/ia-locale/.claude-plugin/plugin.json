@@ -1,0 +1,7 @@
+{
+  "name": "ia-locale",
+  "version": "0.1.0",
+  "description": "Déléguer des tâches de développement à une IA locale (Ollama + agent OpenCode) avant toute IA payante, et mesurer l'usage local et l'économie de tokens et d'argent.",
+  "author": { "name": "kvarot" },
+  "license": "LicenseRef-AllRightsReserved"
+}

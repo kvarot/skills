@@ -1,0 +1,10 @@
+{
+  "note": "Copy to $AI_ROOT/config/prix.json and fill from the provider's official pricing page (date it). Unknown = null: the report then shows tokens only, never a guessed amount.",
+  "reference_cloud_model": "the paid model the local runs replace",
+  "source_url": null,
+  "read_on": null,
+  "usd_per_million_input_tokens": null,
+  "usd_per_million_output_tokens": null,
+  "usd_per_million_cached_input_tokens": null,
+  "eur_per_usd": null
+}

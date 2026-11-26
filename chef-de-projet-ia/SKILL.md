@@ -57,6 +57,10 @@ One writer per area. `claim` records the task's `area` (path prefixes separated 
 
 On "arrête toute nouvelle attribution" (or any stop order): run `taches.ps1 stop -Note "<why>"` for every project, assign nothing, start no session, merge nothing; let running workers finish their current step and report, then hold. Tell the owner what is still running. Resume only on his explicit word (`start`).
 
+## Local AI first (paid tokens only where they pay off)
+
+Before giving a task to a paid session (Claude, Codex), apply the routing ladder of the `ia-locale` plugin: deterministic tool → small local model → local coding agent (`ia-run.ps1`, isolated worktree, time limit, never commits) → stronger local model → paid model. Paid models get architecture, critical security, risky cross-cutting refactors, two failed local attempts and independent reviews of sensitive changes; send them the needed files and the diff only. A local run reaches `tests_green` on the same proofs as any worker (suites run by you, exit codes read). Record the worker as `local:<model>` in the register and the board (`machine` = the PC that runs the local engine). Report local usage and savings with `/ia-usage`.
+
 ## Assigning ready tasks
 
 1. `taches.ps1 ready`; drop tasks whose area overlaps a live reservation; respect WIP.

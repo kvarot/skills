@@ -1,11 +1,18 @@
 {
   "name": "kvarot-skills",
-  "owner": { "name": "kvarot" },
+  "owner": {
+    "name": "kvarot"
+  },
   "plugins": [
     {
       "name": "seo",
       "source": "./plugins/seo",
       "description": "Audit SEO d'un site web puis corrections écrites dans le code du projet, lot par lot, après validation du développeur ; outils déterministes en Node."
+    },
+    {
+      "name": "ia-locale",
+      "source": "./plugins/ia-locale",
+      "description": "Déléguer les tâches de développement à une IA locale (Ollama + OpenCode) avant toute IA payante ; commande /ia-usage pour l'usage local et l'économie de tokens et d'argent."
     }
   ]
 }
