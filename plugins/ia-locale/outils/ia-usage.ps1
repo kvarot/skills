@@ -105,4 +105,11 @@ if ($p -and $p.usd_per_million_input_tokens -and $p.usd_per_million_output_token
 } else {
   Write-Output "Montant inconnu : remplis $pf (modèle de référence, prix officiels datés)."
 }
+# `opencode stats` starts a shared background service that would keep querying the local engine:
+# stop it unless a local run is alive (its lock file says so).
+if (-not (Test-Path (Join-Path $root 'logs\run.lock'))) {
+  Get-CimInstance Win32_Process -Filter "Name like 'opencode%'" -ErrorAction SilentlyContinue |
+    Where-Object { $_.CommandLine -match 'serve' -and $_.ExecutablePath -and $_.ExecutablePath.StartsWith($root, [StringComparison]::OrdinalIgnoreCase) } |
+    ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+}
 exit 0

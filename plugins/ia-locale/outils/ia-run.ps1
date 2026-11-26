@@ -85,6 +85,7 @@ function Remove-Run($st, [bool]$forced) {
   $dirty = @(& git -C $st.worktree status --porcelain).Count
   if ($dirty -and -not $forced) { return "kept $($st.id): $dirty uncommitted file(s) — commit them, or -Force (patch: logs\run-$($st.id).patch)" }
   $head = (& git -C $st.worktree rev-parse --short HEAD)
+  $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'   # git writes warnings on stderr: not an error
   & git -C $repo worktree remove --force $st.worktree 2>$null | Out-Null
   if (Test-Path $st.worktree) { Remove-Item $st.worktree -Recurse -Force -ErrorAction SilentlyContinue }
   & git -C $repo worktree prune 2>$null | Out-Null
@@ -94,6 +95,7 @@ function Remove-Run($st, [bool]$forced) {
     & git -C $repo branch -d $st.branch 2>$null | Out-Null
     $msg += $(if ($LASTEXITCODE -eq 0) { ', branch deleted (merged)' } else { ", branch $($st.branch) kept (commits not merged)" })
   }
+  $ErrorActionPreference = $eap
   return $msg
 }
 
@@ -215,6 +217,12 @@ try {
     if (Test-Path $pidFile) { & taskkill /PID (Get-Content $pidFile) /T /F 2>$null | Out-Null }
     Stop-Job $job -ErrorAction SilentlyContinue
   }
+  # Any opencode command (run, stats) starts a shared `opencode serve --service` that outlives it,
+  # outside the job's process tree, and keeps the one-at-a-time local engine busy. One local run at
+  # a time per machine: stop the service of the agent installed under $AI_ROOT (no other tool's).
+  Get-CimInstance Win32_Process -Filter "Name like 'opencode%'" -ErrorAction SilentlyContinue |
+    Where-Object { $_.CommandLine -match 'serve' -and $_.ExecutablePath -and $_.ExecutablePath.StartsWith($root, [StringComparison]::OrdinalIgnoreCase) } |
+    ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
   $out = Receive-Job $job -ErrorAction SilentlyContinue | Out-String
   [IO.File]::WriteAllText($state.output, $out, $utf8)
   & git -C $ws add -A -N 2>$null | Out-Null
