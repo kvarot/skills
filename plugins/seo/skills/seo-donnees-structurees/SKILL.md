@@ -7,7 +7,7 @@ description: Use when schema.org structured data (JSON-LD) of a web project must
 
 Ajoute ou corrige le **JSON-LD** schema.org du projet, à la source, avec des propriétés tirées du projet. Tout JSON-LD passe par ce skill. Les balises meta et Open Graph sont à `seo-technique` ; les textes (FAQ comprise) à `seo-contenu`.
 
-Outils : `node <base du skill>/../../outils/seo.mjs <commande>` (`<base du skill>` = dossier de base affiché au chargement de ce skill). **Une commande `node` seule par appel**, chemin complet, sans `cd` ni enchaînement (`&&`, `;`, `|`, `2>&1`) : une session peut n'autoriser que `node`. Les références (`references/…`) sont dans `<base du skill>/../../references/`, à lire avec l'outil de lecture. Si Node manque, travailler en lisant le code et **le dire** dans le résumé.
+Outils : `node <base du skill>/../../outils/seo.mjs <commande>` (`<base du skill>` = dossier de base affiché au chargement de ce skill). **Une commande `node` seule par appel**, chemin complet, sans `cd` ni enchaînement (`&&`, `;`, `|`, `2>&1`) : une session peut n'autoriser que `node`. Les fichiers du projet s'écrivent **avec les outils d'édition et d'écriture de fichiers**, jamais par une commande shell (`python`, `sed`, redirection) ; un refus d'écriture se signale, sans contournement. Les références (`references/…`) sont dans `<base du skill>/../../references/`, à lire avec l'outil de lecture. Si Node manque, travailler en lisant le code et **le dire** dans le résumé.
 
 ## Règles qui ne plient pas
 
