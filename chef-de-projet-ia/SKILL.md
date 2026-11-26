@@ -66,7 +66,7 @@ Running a local session:
 1. Write the brief to a file (template below, short sentences, exact files, checks). `claim -Id <ID> -Par local:<model> -Machine <PC that runs the engine> -Zone "<area>"`.
 2. Start it in the background: `ia-run.ps1 -Repo <repo> -BriefFile <brief> -TaskId <ID> -Base <base branch>`. Card to `doing` with worker `local:<model>`, machine, branch.
 3. Follow it with `ia-run.ps1 -Status` (JSON: `running`, `done`, `no_change`, `timeout`). Do not read its transcript unless it failed.
-4. On `done`: the agent has **not** committed and has **not** run the suites. In its worktree, run the project's suites, read each exit code, then commit on its branch yourself. Only then `set implemented` (sha), `tests_run`, `tests_green` — same proofs as any worker.
+4. On `done`: the agent has **not** committed. Read `validation` in the state: `ia-valider.ps1` already recorded the baseline, ran the project's checks and guarded the tests (deleted or skipped tests, forbidden paths, secrets, new failures only). `pass` → commit on its branch yourself, then `set implemented` (sha), `tests_run` and `tests_green` with the report path as proof. `human_required` → same, but the owner approves before the gate. `fail` → step 5. No validation config for the project: run its suites yourself in the worktree and read each exit code.
 5. On `timeout`, `no_change` or red suites: one more local attempt with a sharper brief or the stronger model; after 2 failed attempts `release` and give the task to a paid session with the brief, the diff and the failing output only.
 6. Review and merge gate are unchanged. A local model may give first-pass review notes (`ia-ask.ps1` on the diff); it never counts as the independent review.
 

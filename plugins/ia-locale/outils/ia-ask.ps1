@@ -38,6 +38,10 @@ $parts = New-Object System.Collections.Generic.List[string]
 foreach ($f in $Files) {
   if ($f -match $secret) { throw "Refused: '$f' looks like a secret file." }
   if (-not (Test-Path $f -PathType Leaf)) { throw "File not found: $f" }
+  # A file git ignores is local-only material (exports, dumps, personal data): never in a prompt.
+  $full = (Resolve-Path $f).Path
+  & git -C (Split-Path $full -Parent) check-ignore -q -- $full 2>$null
+  if ($LASTEXITCODE -eq 0) { throw "Refused: '$f' is ignored by git (local-only data). Pass it by another means if it is really safe." }
   $parts.Add("=== FILE: $f ===`n" + [IO.File]::ReadAllText((Resolve-Path $f).Path))
 }
 if ($Stdin) { $piped = @($input) -join "`n"; if ($piped) { $parts.Add("=== INPUT ===`n$piped") } }

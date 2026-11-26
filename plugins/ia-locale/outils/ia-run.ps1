@@ -8,6 +8,10 @@
 #              [-Base <branch>] [-Branch <name>] [-Minutes 30] [-AllowShell] [-EvenInCall]
 #   ia-run.ps1 -Status [-Id <run id>]      state of the running or last run, as JSON
 #
+# When $AI_ROOT\config\projets\<repo folder name>\validation.json exists, ia-valider.ps1 records the
+# baseline before the agent starts and validates its change when it stops: the state then carries
+# an objective verdict (pass | fail | human_required) and the report path. -NoValidation skips it.
+#
 # The machine stays usable: a start is refused while the microphone is in use (a call is on),
 # unless -EvenInCall. One local worker at a time per machine (one model fits in memory): a second start is refused
 # while a run is alive. Needs $env:AI_ROOT and the launcher $AI_ROOT\scripts\opencode-local.ps1.
@@ -24,6 +28,7 @@ param(
   [Parameter(ParameterSetName = 'run')][int]$Minutes = 30,
   [Parameter(ParameterSetName = 'run')][switch]$AllowShell,
   [Parameter(ParameterSetName = 'run')][switch]$EvenInCall,
+  [Parameter(ParameterSetName = 'run')][switch]$NoValidation,
   [Parameter(ParameterSetName = 'run')][string]$Launcher = '',
   [Parameter(ParameterSetName = 'status', Mandatory = $true)][switch]$Status,
   [Parameter(ParameterSetName = 'status')][string]$Id = ''
@@ -88,10 +93,16 @@ $state = [ordered]@{
   machine = $env:COMPUTERNAME; branch = $Branch; base = $baseSha; worktree = $ws; minutes_limit = $Minutes
   shell_allowed = [bool]$AllowShell; seconds = 0; files_changed = 0; diffstat = ''; output = (Join-Path $logs "run-$runId.txt")
 }
+$projet = Split-Path (& git -C $repoPath rev-parse --path-format=absolute --git-common-dir | Split-Path -Parent) -Leaf
+$valider = Join-Path $PSScriptRoot 'ia-valider.ps1'
+$validate = (-not $NoValidation) -and (Test-Path (Join-Path $root "config\projets\$projet\validation.json"))
+$state.validation = $(if ($validate) { 'pending' } else { 'none' }); $state.validation_report = ''
 $stateFile = Join-Path $logs "run-$runId.json"
 function Save-State { [IO.File]::WriteAllText($stateFile, ($state | ConvertTo-Json), $utf8) }
 Save-State
 [IO.File]::WriteAllText($lock, (@{ id = $runId; task_id = $TaskId; pid = $PID } | ConvertTo-Json -Compress), $utf8)
+
+if ($validate) { $state.status = 'baseline'; Save-State; & powershell -NoProfile -File $valider -Repo $ws -Projet $projet -Baseline | Out-Null; $state.status = 'running'; Save-State }
 
 $rules = @"
 
@@ -122,6 +133,14 @@ try {
   $state.files_changed = @(& git -C $ws status --porcelain).Count
   $state.diffstat = (& git -C $ws diff --stat | Select-Object -Last 1) -as [string]
   if ($state.status -eq 'done' -and $state.files_changed -eq 0) { $state.status = 'no_change' }
+  if ($validate -and $state.status -eq 'done') {
+    $state.status = 'validating'; Save-State
+    $v = @(& powershell -NoProfile -File $valider -Repo $ws -Projet $projet -Base $baseSha -TaskId $TaskId)
+    $state.validation = switch ($LASTEXITCODE) { 0 { 'pass' } 2 { 'human_required' } default { 'fail' } }
+    if ("$($v[0])" -match 'report (.+)$') { $state.validation_report = $Matches[1].Trim() }
+    $state.validation_summary = @($v | Select-Object -First 12)
+    $state.status = 'done'
+  }
 } finally {
   Remove-Job $job -Force -ErrorAction SilentlyContinue
   Remove-Item $pidFile, $lock -Force -ErrorAction SilentlyContinue
@@ -131,4 +150,5 @@ try {
   ($hist | ConvertTo-Json -Compress) | Add-Content -Path (Join-Path $logs 'runs.jsonl') -Encoding utf8
 }
 $state | ConvertTo-Json
-Write-Output "Nothing was committed. Next: git -C `"$ws`" diff ; run the project's own suites in that worktree and read each exit code."
+if ($validate) { Write-Output "Nothing was committed. Validation: $($state.validation) ($($state.validation_report)). Diff: git -C `"$ws`" diff" }
+else { Write-Output "Nothing was committed. No validation config for '$projet': run the project's own suites in `"$ws`" and read each exit code." }

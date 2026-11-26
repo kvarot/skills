@@ -49,10 +49,27 @@ Files are read by the script and sent to the local engine only. It refuses secre
 & "$env:CLAUDE_PLUGIN_ROOT\outils\ia-run.ps1" -Status
 ```
 - Own git worktree and branch under `$env:AI_ROOT\workspaces`, a time limit, state in `logs\run-<id>.json`. Start it in the background and poll `-Status`; do not wait on it idle.
-- It **never commits, pushes or merges**, and cannot run shell commands unless `-AllowShell`. So the caller runs the project's suites in that worktree and reads each exit code. A local agent's « it works » is not a state.
+- It **never commits, pushes or merges**, and cannot run shell commands unless `-AllowShell`. A local agent's « it works » is not a state.
+- When the project has a validation config (next section), the session records the baseline before the agent starts and validates when it stops: read `validation` in the state (`pass`, `fail`, `human_required`) and open the report only on `fail`. Without a config, run the project's suites yourself in that worktree and read each exit code.
 - **One local session at a time** per machine: a second start is refused while one is alive.
 - **The machine stays usable**: a start is refused while a call is in progress (microphone in use) unless `-EvenInCall`. Run the engine at low priority with threads left for the IDE.
 - Write the brief like any brief, but for a small model: one goal, the exact files, the acceptance checks, what not to touch, short sentences. Small context: point to files, do not paste them.
+
+## Objective validation (no model involved)
+
+```powershell
+& "$env:CLAUDE_PLUGIN_ROOT\outils\ia-valider.ps1" -Repo <worktree> [-Base <ref>] [-TaskId <ID>]     # exit 0 pass, 1 fail, 2 human approval needed
+& "$env:CLAUDE_PLUGIN_ROOT\outils\ia-valider.ps1" -Repo <clean worktree> -Baseline               # what already fails before the change
+```
+Config: `$env:AI_ROOT\config\projets\<repo folder name>\validation.json` (copy `outils\validation.exemple.json`). It lives **outside the repository**, so an agent cannot edit its own acceptance criteria. From the changed files it:
+
+- rates the **risk** from path rules (`low`, `moderate`, `high`, `critical`) and picks the checks to run (lint per file, secret scan, test suites from `moderate` up);
+- fails on a **forbidden path** (vendored code, generated files, secrets);
+- **guards the tests**: a deleted test file or an added skip marker fails; removed or rewritten assertions and changed test or CI configuration need a human;
+- compares suites **before and after**: failures already present on the base are reported as pre-existing, only new ones fail;
+- requires a **human approval** from `high` up (authentication, payments, data, migrations, security, tenant isolation), even when every check passes.
+
+Use it for any change, whoever made it (local agent, paid session, human). Its verdict replaces rereading the diff for low and moderate risk; it never replaces the independent review of the merge gate. Do not weaken the config to get a pass: a change of criteria is a decision for the owner.
 
 ## Usage and savings
 

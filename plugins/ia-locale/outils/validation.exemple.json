@@ -1,0 +1,87 @@
+{
+  "note": "Copy to $AI_ROOT/config/projets/<project>/validation.json and adapt. Keep it outside the repository. Globs: ** = any folders, * = within one folder. Commands run from the repository root; {file} = one changed file per run, {files} = all matching changed files. A check with fail_pattern (regex matching one failing item per log line) is compared with the baseline recorded by -Baseline on the merge-base: only new failures fail.",
+  "base": "origin/main",
+  "human_from": "high",
+  "low_risk": [
+    "docs/**",
+    "**/*.md"
+  ],
+  "risk": [
+    {
+      "level": "critical",
+      "paths": [
+        "src/Security/**",
+        "src/Tenant/**",
+        "config/security.*"
+      ]
+    },
+    {
+      "level": "high",
+      "paths": [
+        "src/Auth/**",
+        "src/Payment/**",
+        "migrations/**",
+        "**/*.sql"
+      ]
+    }
+  ],
+  "forbidden": [
+    "vendor/**",
+    "node_modules/**",
+    "public/build/**",
+    "**/.env",
+    "**/.env.*"
+  ],
+  "tests": [
+    "tests/**",
+    "**/*.test.js",
+    "**/*.spec.ts"
+  ],
+  "acceptance_files": [
+    "phpunit*.xml",
+    "vitest.config.*",
+    "eslint.config.*",
+    "phpstan*.neon",
+    ".github/workflows/**"
+  ],
+  "setup": [],
+  "teardown": [],
+  "checks": [
+    {
+      "name": "php-lint",
+      "when": [
+        "**/*.php"
+      ],
+      "cmd": "php -l {file}"
+    },
+    {
+      "name": "secrets",
+      "when": [
+        "**"
+      ],
+      "cmd": "betterleaks dir {files} --no-banner --redact"
+    },
+    {
+      "name": "phpunit",
+      "when": [
+        "**/*.php"
+      ],
+      "min_level": "moderate",
+      "cmd": "php vendor/bin/phpunit",
+      "timeout": 900,
+      "fail_pattern": "^\\d+\\) (\\S+::\\S+)"
+    },
+    {
+      "name": "vitest",
+      "when": [
+        "**/*.vue",
+        "**/*.js",
+        "**/*.ts"
+      ],
+      "min_level": "moderate",
+      "cmd": "npm run test --silent",
+      "timeout": 900,
+      "fail_pattern": "^\\s*(?:FAIL|×|✗)\\s+(.+?)\\s*$"
+    }
+  ]
+}
