@@ -208,6 +208,7 @@
       "editeur": "Apple",
       "role": "indexation",
       "respecte_robots": "oui",
+      "repli": "Googlebot",
       "verification": {
         "plages_ip_url": "https://search.developer.apple.com/applebot.json",
         "dns_inverse": [

@@ -10,7 +10,7 @@ Ne jamais recommander d'autoriser les robots d'entraînement. Le constat décrit
 
 | Rôle | Ce que fait le robot | Ce que change le blocage (selon les éditeurs) |
 |---|---|---|
-| `entrainement` | Collecte des contenus pour entraîner des modèles (ex. `GPTBot`, `ClaudeBot`, `MistralAI-Training`). | Le contenu n'est plus collecté pour l'entraînement par ce robot. Aucun effet annoncé sur la recherche. |
+| `entrainement` | Collecte des contenus pour entraîner des modèles (ex. `GPTBot`, `ClaudeBot`, `MistralAI-Training`). | Le contenu n'est plus collecté pour l'entraînement par ce robot. |
 | `indexation` | Construit un index de recherche (ex. `OAI-SearchBot`, `Claude-SearchBot`, `PerplexityBot`, `Googlebot`, `bingbot`). | Le site peut disparaître des réponses du moteur concerné. OpenAI indique que bloquer `OAI-SearchBot` rend le site absent des réponses de ChatGPT search. |
 | `consultation-utilisateur` | Récupère une page quand un utilisateur le demande dans un assistant (ex. `ChatGPT-User`, `Claude-User`, `Perplexity-User`). | Voir l'avertissement ci-dessous : plusieurs éditeurs indiquent que robots.txt peut ne pas s'appliquer. |
 | `controle` | Jeton qui ne visite rien : il porte seulement une règle (`Google-Extended`, `Applebot-Extended`). | Retire le contenu de l'usage visé (entraînement et ancrage Gemini / Vertex pour Google ; entraînement pour Apple). |
@@ -30,6 +30,7 @@ Le rôle `autre` regroupe les robots qui ne rentrent pas dans ces catégories (p
 - Le jeton du robot est comparé sans tenir compte de la casse ; plusieurs lignes `User-agent` successives forment un groupe ; les groupes qui nomment le même robot sont fusionnés.
 - Un groupe nommant le robot l'emporte sur le groupe `*` (le groupe `*` ne s'applique que si aucun groupe spécifique ne correspond).
 - Règle la plus longue gagne ; à égalité, `Allow` gagne. `*` et `$` sont pris en charge. `Disallow:` vide n'interdit rien. Les lignes avant le premier `User-agent` sont ignorées. Les lignes `Sitemap:` sont globales.
+- Repli : `Applebot` suit les règles de `Googlebot` quand aucun groupe ne le nomme (champ `repli` du registre, `groupe: 'repli'`), avant le groupe `*`.
 - Absence de robots.txt : tout est autorisé (`groupe: 'aucun'`).
 
 ## Sources

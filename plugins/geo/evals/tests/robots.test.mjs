@@ -120,3 +120,17 @@ test('registre : validité et jetons attendus', () => {
   for (const j of ['GrokBot', 'DeepSeekBot']) assert.equal(registre.robots.find((e) => e.jeton === j).documente, false)
   assert.equal(registre.robots.find((e) => e.jeton === 'Google-Extended').role, 'controle')
 })
+
+test('repli Applebot -> Googlebot avant *', () => {
+  const txt = 'User-agent: Googlebot\nDisallow: /x\n\nUser-agent: *\nDisallow: /\n'
+  const res = evaluerRobotsIa(txt, ['/', '/x'], registre)
+  const a = res.find((r) => r.jeton === 'Applebot')
+  assert.deepEqual(a.chemins_bloques, ['/x'])
+  assert.equal(a.groupe, 'repli')
+  assert.equal(res.find((r) => r.jeton === 'CCBot').groupe, 'etoile')
+  const exp = evaluerRobotsIa(txt + '\nUser-agent: Applebot\nAllow: /\n', ['/', '/x'], registre)
+  const b = exp.find((r) => r.jeton === 'Applebot')
+  assert.deepEqual(b.chemins_bloques, [])
+  assert.equal(b.groupe, 'specifique')
+  assert.equal(registre.robots.filter((e) => e.repli).length, 1)
+})

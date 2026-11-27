@@ -32,7 +32,10 @@ function normaliser(s) {
 }
 
 // Parse a robots.txt body. Never throws; null/undefined reads as an absent file.
-export function analyserRobots(txt) {
+// `options.repli` maps a lower-cased token to the token whose group it falls back on when no group
+// names it (e.g. { applebot: 'Googlebot' }); the fallback is tried before the `*` group.
+export function analyserRobots(txt, options = {}) {
+  const repli = options.repli ?? {}
   const groupes = []
   const sitemaps = []
   let contentSignal = null
@@ -66,6 +69,12 @@ export function analyserRobots(txt) {
     const j = String(jeton).toLowerCase()
     const specifiques = groupes.filter((g) => g.agents.includes(j))
     if (specifiques.length) return { type: 'specifique', liste: specifiques }
+    const autre = repli[j]
+    if (autre) {
+      const k = String(autre).toLowerCase()
+      const viaRepli = groupes.filter((g) => g.agents.includes(k))
+      if (viaRepli.length) return { type: 'repli', liste: viaRepli }
+    }
     const etoile = groupes.filter((g) => g.agents.includes('*'))
     if (etoile.length) return { type: 'etoile', liste: etoile }
     return { type: 'aucun', liste: [] }
@@ -100,8 +109,10 @@ export function analyserRobots(txt) {
 // Verdict per registry entry: which of the given paths each crawler is blocked from.
 // `registre` is the parsed donnees/robots.json or its `robots` array.
 export function evaluerRobotsIa(robotsTxt, chemins, registre) {
-  const analyse = analyserRobots(robotsTxt)
   const liste = Array.isArray(registre) ? registre : (registre?.robots ?? [])
+  const repli = {}
+  for (const e of liste) if (e.repli) repli[e.jeton.toLowerCase()] = e.repli
+  const analyse = analyserRobots(robotsTxt, { repli })
   return liste.map((e) => ({
     jeton: e.jeton,
     role: e.role,
