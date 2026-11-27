@@ -1,0 +1,705 @@
+{
+ "filtre": null,
+ "modele": "haiku",
+ "runs": 1,
+ "date": "2026-11-27T13:41:04.312Z",
+ "duree_s": 74,
+ "summary": {
+  "total": 30,
+  "cas": 26,
+  "reussis": 25,
+  "rappel": 0.938,
+  "precision": 1,
+  "faux_declenchements": 0,
+  "exclus": {
+   "erreur": 0,
+   "timeout": 0
+  },
+  "categories": {
+   "positifs": {
+    "cas": 16,
+    "reussis": 15,
+    "taux": 0.938,
+    "vers_un_skill_geo": 15
+   },
+   "negatifs": {
+    "cas": 10,
+    "declenches": 0
+   },
+   "deux_plugins": {
+    "cas": 4,
+    "reussis": 4
+   }
+  },
+  "jetons": {
+   "entree": 120,
+   "cache_ecrit": 1022522,
+   "cache_lu": 94740,
+   "sortie": 256
+  },
+  "par_skill": {
+   "geo": {
+    "cas": 9,
+    "rappel": 0.889,
+    "precision": 1
+   },
+   "geo-contenu": {
+    "cas": 2,
+    "rappel": 1,
+    "precision": 1
+   },
+   "geo-entites": {
+    "cas": 2,
+    "rappel": 1,
+    "precision": 1
+   },
+   "geo-scenarios": {
+    "cas": 2,
+    "rappel": 1,
+    "precision": 1
+   },
+   "geo-technique": {
+    "cas": 3,
+    "rappel": 1,
+    "precision": 1
+   },
+   "seo": {
+    "cas": 2,
+    "rappel": 1,
+    "precision": 1
+   }
+  }
+ },
+ "results": [
+  {
+   "query": "Pourquoi ChatGPT recommande mes concurrents et jamais mon entreprise ?",
+   "skill_attendu": "geo",
+   "deux_plugins": false,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill geo:geo",
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 34012,
+      "cache_lu": 3158,
+      "sortie": 16
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": "geo",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Fais un audit GEO de mon site https://atelier-lumivia.example",
+   "skill_attendu": "geo",
+   "deux_plugins": false,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill geo:geo",
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 33992,
+      "cache_lu": 3158,
+      "sortie": 4
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": "geo",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Est-ce que mon site a des chances d'apparaître dans les réponses de Perplexity et de Gemini ?",
+   "skill_attendu": "geo",
+   "deux_plugins": false,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill geo:geo",
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 34024,
+      "cache_lu": 3158,
+      "sortie": 4
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": "geo",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Optimise la visibilité de ma marque dans les moteurs de réponse IA (AEO, LLMO)",
+   "skill_attendu": "geo",
+   "deux_plugins": false,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill geo:geo",
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 34016,
+      "cache_lu": 3158,
+      "sortie": 4
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": "geo",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Run a GEO audit of my website and tell me what blocks AI assistants from citing it",
+   "skill_attendu": "geo",
+   "deux_plugins": false,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill geo:geo",
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 34002,
+      "cache_lu": 3158,
+      "sortie": 8
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": "geo",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "How visible is my brand in AI search engines like ChatGPT and Claude?",
+   "skill_attendu": "geo",
+   "deux_plugins": false,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill geo:geo",
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 33996,
+      "cache_lu": 3158,
+      "sortie": 12
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": "geo",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Why do AI assistants recommend my competitors instead of my company?",
+   "skill_attendu": "geo",
+   "deux_plugins": false,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": null,
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 33988,
+      "cache_lu": 3158,
+      "sortie": 16
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": null,
+   "taux": 0,
+   "pass": false
+  },
+  {
+   "query": "Est-ce que mon robots.txt bloque GPTBot ou OAI-SearchBot ?",
+   "skill_attendu": "geo-technique",
+   "deux_plugins": false,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill geo:geo-technique",
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 34018,
+      "cache_lu": 3158,
+      "sortie": 12
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": "geo-technique",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Cloudflare bloque-t-il les robots des IA sur mon site ? Vérifie l'accès de PerplexityBot et ClaudeBot",
+   "skill_attendu": "geo-technique",
+   "deux_plugins": false,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill geo:geo-technique",
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 34048,
+      "cache_lu": 3158,
+      "sortie": 4
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": "geo-technique",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Can AI crawlers like OAI-SearchBot and Claude-SearchBot actually read my site, or is it empty without JavaScript for them?",
+   "skill_attendu": "geo-technique",
+   "deux_plugins": false,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill geo:geo-technique",
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 34042,
+      "cache_lu": 3158,
+      "sortie": 12
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": "geo-technique",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Mes pages sont-elles citables par les IA ? Dis-moi quels passages ChatGPT pourrait reprendre",
+   "skill_attendu": "geo-contenu",
+   "deux_plugins": false,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill geo:geo-contenu",
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 34030,
+      "cache_lu": 3158,
+      "sortie": 12
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": "geo-contenu",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Is my content quotable by AI answer engines? Check which passages are easy for them to extract",
+   "skill_attendu": "geo-contenu",
+   "deux_plugins": false,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill geo:geo-contenu",
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 33998,
+      "cache_lu": 3158,
+      "sortie": 16
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": "geo-contenu",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Les assistants IA confondent ma marque avec une autre société du même nom, vérifie l'identité de mon entreprise sur le site et Wikidata",
+   "skill_attendu": "geo-entites",
+   "deux_plugins": false,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill geo:geo-entites",
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 34046,
+      "cache_lu": 3158,
+      "sortie": 8
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": "geo-entites",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Does my site describe my brand consistently enough for AI assistants to identify it (Organization schema, sameAs, Wikidata)?",
+   "skill_attendu": "geo-entites",
+   "deux_plugins": false,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill geo:geo-entites",
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 34032,
+      "cache_lu": 3158,
+      "sortie": 12
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": "geo-entites",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Génère les questions que mes clients poseraient à ChatGPT pour trouver un service comme le mien, sans citer ma marque",
+   "skill_attendu": "geo-scenarios",
+   "deux_plugins": false,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill geo:geo-scenarios",
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 34028,
+      "cache_lu": 3158,
+      "sortie": 8
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": "geo-scenarios",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Build a frozen prompt set to measure my brand's visibility in AI assistants later",
+   "skill_attendu": "geo-scenarios",
+   "deux_plugins": false,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill geo:geo-scenarios",
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 34004,
+      "cache_lu": 3158,
+      "sortie": 8
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": "geo-scenarios",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Fais un audit SEO de mon site et dis-moi ce qu'il faut corriger en priorité pour Google",
+   "skill_attendu": null,
+   "deux_plugins": false,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Bash",
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 34022,
+      "cache_lu": 3158,
+      "sortie": 4
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": null,
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Lance une campagne Google Ads pour ma boutique avec un budget de 300 € par mois",
+   "skill_attendu": null,
+   "deux_plugins": false,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": null,
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 34010,
+      "cache_lu": 3158,
+      "sortie": 4
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": null,
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Trouve-moi des sites où acheter des backlinks pour faire du netlinking",
+   "skill_attendu": null,
+   "deux_plugins": false,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": null,
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 33994,
+      "cache_lu": 3158,
+      "sortie": 4
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": null,
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Fais une refonte graphique de la page d'accueil, plus moderne, avec une nouvelle palette",
+   "skill_attendu": null,
+   "deux_plugins": false,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill frontend-design:frontend-design",
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 34012,
+      "cache_lu": 3158,
+      "sortie": 10
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": null,
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Rewrite the meta descriptions of my pages so they rank better on Google",
+   "skill_attendu": null,
+   "deux_plugins": false,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Bash",
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 33990,
+      "cache_lu": 3158,
+      "sortie": 16
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": null,
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Set up a Facebook ads campaign for my bakery",
+   "skill_attendu": null,
+   "deux_plugins": false,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Write",
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 33982,
+      "cache_lu": 3158,
+      "sortie": 16
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": null,
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Écris un test unitaire pour la fonction de calcul de TVA",
+   "skill_attendu": null,
+   "deux_plugins": false,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Bash",
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 33988,
+      "cache_lu": 3158,
+      "sortie": 6
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": null,
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Intègre l'API OpenAI dans mon application pour générer des résumés de commandes",
+   "skill_attendu": null,
+   "deux_plugins": false,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Grep",
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 34004,
+      "cache_lu": 3158,
+      "sortie": 4
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": null,
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Write a LinkedIn post announcing our new product launch",
+   "skill_attendu": null,
+   "deux_plugins": false,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": null,
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 33982,
+      "cache_lu": 3158,
+      "sortie": 16
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": null,
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "My Lighthouse performance score is 42, make the page load faster",
+   "skill_attendu": null,
+   "deux_plugins": false,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Bash",
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 33986,
+      "cache_lu": 3158,
+      "sortie": 4
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": null,
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Optimise le site du cabinet pour les moteurs de réponse IA (GEO) : est-il bien repris par ChatGPT et Perplexity ?",
+   "skill_attendu": "geo",
+   "deux_plugins": true,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill geo:geo",
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 34600,
+      "cache_lu": 3158,
+      "sortie": 4
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": "geo",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Is my site visible in AI answer engines like Perplexity, and why do they cite my competitors?",
+   "skill_attendu": "geo",
+   "deux_plugins": true,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill geo:geo",
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 34562,
+      "cache_lu": 3158,
+      "sortie": 4
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": "geo",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Mon site n'apparaît pas sur Google, regarde dans le code pourquoi",
+   "skill_attendu": "seo",
+   "deux_plugins": true,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo",
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 34562,
+      "cache_lu": 3158,
+      "sortie": 4
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo",
+   "taux": 1,
+   "pass": true
+  },
+  {
+   "query": "Run an SEO audit on this repo and fix the issues directly in the templates",
+   "skill_attendu": "seo",
+   "deux_plugins": true,
+   "essais": [
+    {
+     "statut": "ok",
+     "appel": "Skill seo:seo",
+     "jetons": {
+      "entree": 4,
+      "cache_ecrit": 34552,
+      "cache_lu": 3158,
+      "sortie": 4
+     }
+    }
+   ],
+   "statut": "ok",
+   "observe": "seo",
+   "taux": 1,
+   "pass": true
+  }
+ ]
+}

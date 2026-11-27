@@ -3,7 +3,7 @@
   {"query": "Mon site n'apparaît pas sur Google, tu peux regarder dans le code pourquoi ?", "skill_attendu": "seo"},
   {"query": "Améliore le référencement naturel de ce projet PHP", "skill_attendu": "seo"},
   {"query": "Prépare le site pour le référencement avant la mise en ligne de lundi", "skill_attendu": "seo"},
-  {"query": "Optimise le site du cabinet pour Google et pour les moteurs de réponse IA (GEO)", "skill_attendu": "seo"},
+  {"query": "Optimise le site du cabinet pour qu'il remonte mieux dans les résultats de Google", "skill_attendu": "seo"},
   {"query": "Run an SEO audit on this repo and fix the issues directly in the templates", "skill_attendu": "seo"},
   {"query": "Is my Vue app indexable by search engines? Check it and propose fixes", "skill_attendu": "seo"},
 

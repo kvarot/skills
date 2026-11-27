@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync, existsSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs'
+import { readFileSync, existsSync, writeFileSync, mkdtempSync, rmSync, readdirSync } from 'node:fs'
 import { spawnSync, execFileSync } from 'node:child_process'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { tmpdir } from 'node:os'
@@ -91,4 +91,41 @@ test('confidentialité : aucun nom interdit dans les fichiers suivis', { skip: e
     const texte = readFileSync(path.join(RACINE, f), 'utf8').toLowerCase()
     for (const m of mots) assert.ok(!texte.includes(m), `${f} contient un nom interdit`)
   }
+})
+
+// Front matter of a Markdown file: the `key: value` lines between the leading `---` fences.
+function frontMatter(texte) {
+  const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/.exec(texte)
+  if (!m) return null
+  const champs = {}
+  for (const l of m[1].split(/\r?\n/)) {
+    const k = /^([a-z-]+):\s*(.*)$/.exec(l)
+    if (k) champs[k[1]] = k[2].trim()
+  }
+  return champs
+}
+
+test('skills : front matter name = dossier, description présente, 120 lignes au plus', () => {
+  const dir = path.join(RACINE, 'plugins/geo/skills')
+  const noms = readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort()
+  assert.deepEqual(noms, ['geo', 'geo-contenu', 'geo-entites', 'geo-scenarios', 'geo-technique'])
+  for (const n of noms) {
+    const texte = readFileSync(path.join(dir, n, 'SKILL.md'), 'utf8')
+    const fm = frontMatter(texte)
+    assert.ok(fm, `${n} : front matter absent`)
+    assert.equal(fm.name, n)
+    assert.ok(fm.description && fm.description.length >= 40 && fm.description.length <= 1024, `${n} : description absente ou hors limites`)
+    const lignes = texte.split(/\r?\n/).length
+    assert.ok(lignes <= 120, `${n} : ${lignes} lignes`)
+    if (n !== 'geo') assert.ok(lignes < 80, `${n} : ${lignes} lignes (spécialisé < 80)`)
+  }
+})
+
+test('agent lecteur-contenu : outil de lecture seul ; commande /geo : argument-hint', () => {
+  const agent = frontMatter(readFileSync(path.join(RACINE, 'plugins/geo/agents/lecteur-contenu.md'), 'utf8'))
+  assert.equal(agent.name, 'lecteur-contenu')
+  assert.equal(agent.tools, 'Read')
+  const cmd = frontMatter(readFileSync(path.join(RACINE, 'plugins/geo/commands/geo.md'), 'utf8'))
+  assert.ok(cmd.description)
+  assert.match(cmd['argument-hint'], /audit\|quick\|deep\|technical\|content/)
 })

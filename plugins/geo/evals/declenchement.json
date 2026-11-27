@@ -1,0 +1,38 @@
+[
+  {"query": "Pourquoi ChatGPT recommande mes concurrents et jamais mon entreprise ?", "skill_attendu": "geo"},
+  {"query": "Fais un audit GEO de mon site https://atelier-lumivia.example", "skill_attendu": "geo"},
+  {"query": "Est-ce que mon site a des chances d'apparaître dans les réponses de Perplexity et de Gemini ?", "skill_attendu": "geo"},
+  {"query": "Optimise la visibilité de ma marque dans les moteurs de réponse IA (AEO, LLMO)", "skill_attendu": "geo"},
+  {"query": "Run a GEO audit of my website and tell me what blocks AI assistants from citing it", "skill_attendu": "geo"},
+  {"query": "How visible is my brand in AI search engines like ChatGPT and Claude?", "skill_attendu": "geo"},
+  {"query": "Why do AI assistants recommend my competitors instead of my company?", "skill_attendu": "geo"},
+
+  {"query": "Est-ce que mon robots.txt bloque GPTBot ou OAI-SearchBot ?", "skill_attendu": "geo-technique"},
+  {"query": "Cloudflare bloque-t-il les robots des IA sur mon site ? Vérifie l'accès de PerplexityBot et ClaudeBot", "skill_attendu": "geo-technique"},
+  {"query": "Can AI crawlers like OAI-SearchBot and Claude-SearchBot actually read my site, or is it empty without JavaScript for them?", "skill_attendu": "geo-technique"},
+
+  {"query": "Mes pages sont-elles citables par les IA ? Dis-moi quels passages ChatGPT pourrait reprendre", "skill_attendu": "geo-contenu"},
+  {"query": "Is my content quotable by AI answer engines? Check which passages are easy for them to extract", "skill_attendu": "geo-contenu"},
+
+  {"query": "Les assistants IA confondent ma marque avec une autre société du même nom, vérifie l'identité de mon entreprise sur le site et Wikidata", "skill_attendu": "geo-entites"},
+  {"query": "Does my site describe my brand consistently enough for AI assistants to identify it (Organization schema, sameAs, Wikidata)?", "skill_attendu": "geo-entites"},
+
+  {"query": "Génère les questions que mes clients poseraient à ChatGPT pour trouver un service comme le mien, sans citer ma marque", "skill_attendu": "geo-scenarios"},
+  {"query": "Build a frozen prompt set to measure my brand's visibility in AI assistants later", "skill_attendu": "geo-scenarios"},
+
+  {"query": "Fais un audit SEO de mon site et dis-moi ce qu'il faut corriger en priorité pour Google", "skill_attendu": null},
+  {"query": "Lance une campagne Google Ads pour ma boutique avec un budget de 300 € par mois", "skill_attendu": null},
+  {"query": "Trouve-moi des sites où acheter des backlinks pour faire du netlinking", "skill_attendu": null},
+  {"query": "Fais une refonte graphique de la page d'accueil, plus moderne, avec une nouvelle palette", "skill_attendu": null},
+  {"query": "Rewrite the meta descriptions of my pages so they rank better on Google", "skill_attendu": null},
+  {"query": "Set up a Facebook ads campaign for my bakery", "skill_attendu": null},
+  {"query": "Écris un test unitaire pour la fonction de calcul de TVA", "skill_attendu": null},
+  {"query": "Intègre l'API OpenAI dans mon application pour générer des résumés de commandes", "skill_attendu": null},
+  {"query": "Write a LinkedIn post announcing our new product launch", "skill_attendu": null},
+  {"query": "My Lighthouse performance score is 42, make the page load faster", "skill_attendu": null},
+
+  {"query": "Optimise le site du cabinet pour les moteurs de réponse IA (GEO) : est-il bien repris par ChatGPT et Perplexity ?", "skill_attendu": "geo", "deux_plugins": true},
+  {"query": "Is my site visible in AI answer engines like Perplexity, and why do they cite my competitors?", "skill_attendu": "geo", "deux_plugins": true},
+  {"query": "Mon site n'apparaît pas sur Google, regarde dans le code pourquoi", "skill_attendu": "seo", "deux_plugins": true},
+  {"query": "Run an SEO audit on this repo and fix the issues directly in the templates", "skill_attendu": "seo", "deux_plugins": true}
+]
