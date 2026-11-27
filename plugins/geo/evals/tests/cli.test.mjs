@@ -372,12 +372,12 @@ const POSITIFS = {
 // One correct refutation per entry, FR and EN: never flagged.
 const REFUTATIONS = {
   'llms-txt-visibilite': ['llms.txt n’améliore pas la visibilité.', "llms.txt n'est lu par aucun robot documenté.", 'llms.txt does not improve visibility.'],
-  'geo-plus-40-pourcent': ['Le GEO n’augmente pas la visibilité de 40 %.', 'GEO does not increase visibility by 40%.'],
+  'geo-plus-40-pourcent': ['Le GEO n’augmente pas la visibilité de 40 %.', 'Le GEO n’augmente pas, selon cette étude, la visibilité de 40 %.', 'GEO does not, according to the study, increase visibility by 40%.', 'GEO does not increase visibility by 40%.'],
   'schema-fait-citer': ['Le balisage schema ne fait pas citer un site.', "Structured data doesn't get you cited."],
   'longueur-ideale': ["Il n'y a pas de longueur idéale.", 'There is no ideal length.', 'Aucune longueur idéale n’est documentée.'],
   'google-extended-ai-overviews': ['Bloquer Google-Extended ne retire pas d’AI Overviews.', 'Blocking Google-Extended does not remove you from AI Overviews.'],
   'robots-txt-bloque-tout': ['robots.txt ne bloque pas tous les robots IA.', 'robots.txt does not block all AI bots.'],
-  'rang-chatgpt': ['Ne dites jamais que votre marque est n° 3 dans ChatGPT.', 'Never say your brand is ranked 2 in ChatGPT.'],
+  'rang-chatgpt': ['Ne dites jamais : votre marque est n° 3 dans ChatGPT.', 'Never say your brand is ranked 2 in ChatGPT.', 'Never say: your brand is ranked 2 in ChatGPT.'],
   'api-egale-interface': ['Les réponses API ne sont pas celles que voient les utilisateurs.', 'API responses are not the same as what users see.'],
   'robots-non-documentes': ['GrokBot n’est pas un robot documenté.', 'GrokBot is not a documented crawler.'],
   'mentions-web-citations': ['Les mentions sur le web ne provoquent pas de citations.', 'Web mentions do not cause AI citations.'],
