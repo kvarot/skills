@@ -1,45 +1,46 @@
 {
   "decouverte": [
-    "{profil_formulation} {categorie} for {besoin}: where to start?",
-    "how do people usually handle {besoin}?",
-    "what should I look for in {categorie} for {besoin}?",
-    "{categorie}: what to check before choosing",
-    "{profil_formulation} what are my options for {besoin}?",
+    { "clause": "{profil_formulation} what are my options for {besoin}?" },
+    { "clause": "{profil_formulation} where should I start with {besoin}?" },
+    { "clause": "{profil_formulation} how do people usually handle {besoin}?" },
+    "{categorie} for {besoin}: where to start?",
+    "{categorie}: what to look for before choosing",
+    "{categorie} for {besoin}: which criteria matter most?",
     "which {categorie} fits {besoin}?",
-    "which criteria matter most when picking {categorie}?",
-    "{profil_formulation} getting started with {besoin} using {categorie}"
+    "{categorie}: how to choose"
   ],
   "comparaison": [
     "{categorie} comparison for {besoin}",
     "{concurrent} versus the other options for {besoin}",
     "{categorie}: key differences between the main solutions",
     "is {concurrent} the best choice for {besoin}?",
-    "{profil_formulation} compare {concurrent} with its competitors for {besoin}",
+    { "clause": "{profil_formulation} how does {concurrent} compare with its competitors for {besoin}?" },
     "{categorie} comparison table: strengths and limits",
     "{concurrent} or something else for {besoin}?",
     "side by side comparison of the leading options for {besoin}"
   ],
   "recommandation": [
-    "{profil_formulation} what do you recommend as {categorie} for {besoin}?",
-    "reviews and advice: {categorie} for {besoin}",
+    { "clause": "{profil_formulation} what do you recommend for {besoin}?" },
+    { "clause": "{profil_formulation} what would you suggest for {besoin}?" },
+    "{categorie} reviews and advice for {besoin}",
     "{categorie}: what professionals recommend for {besoin}",
     "what is the best option for {besoin}?",
-    "{profil_formulation} what would you suggest for {besoin}?",
-    "user experiences with {categorie} for {besoin}",
+    "{categorie} user reviews and experiences",
+    "best {categorie} for {besoin}",
     "top rated solutions for {besoin} according to users"
   ],
   "achat": [
-    "{profil_formulation} where can I get {categorie} for {besoin}?",
-    "{categorie} with free trial or demo for {besoin}",
-    "how to subscribe to {categorie} for {besoin}",
-    "{profil_formulation} I want to get started with {besoin}, which solution should I buy?",
-    "buy {categorie} online for {besoin}",
-    "what to check before buying {categorie}",
+    { "clause": "{profil_formulation} where can I find a solution for {besoin}?" },
+    "{categorie}: free trial or demo for {besoin}",
+    "{categorie}: how to subscribe",
+    { "clause": "{profil_formulation} I want to get started with {besoin}, which solution should I buy?" },
+    "{categorie} online: where to buy for {besoin}",
+    "{categorie}: what to check before buying",
     "{categorie} signup steps for {besoin}"
   ],
   "alternative": [
     "alternative to {concurrent} for {besoin}",
-    "{profil_formulation} I'm looking for something other than {concurrent} for {besoin}",
+    { "clause": "{profil_formulation} I'm looking for something other than {concurrent} for {besoin}" },
     "{concurrent} is too expensive, what are the alternatives?",
     "replace {concurrent} for {besoin}",
     "{concurrent}: cheaper or free alternatives",
@@ -49,57 +50,57 @@
     "another option than the best known tools for {besoin}"
   ],
   "probleme": [
-    "{profil_formulation} I struggle with {besoin}, what can I do?",
+    { "clause": "{profil_formulation} I struggle with {besoin}, what can I do?" },
     "{besoin} takes too long, how can I simplify it?",
     "common mistakes when it comes to {besoin}",
     "why is {besoin} so complicated?",
-    "{profil_formulation} how to avoid forgetting things when it comes to {besoin}?",
+    { "clause": "{profil_formulation} how can I avoid forgetting things when it comes to {besoin}?" },
     "{categorie}: common problems and how to avoid them",
-    "{profil_formulation} my current tool does not help with {besoin}, what now?"
+    { "clause": "{profil_formulation} my current tool does not help with {besoin}, what now?" }
   ],
   "local": [
     "{categorie} near {zone}",
-    "{profil_formulation} {categorie} around {zone} for {besoin}",
+    "{categorie} for {besoin} in {zone}",
     "who can help with {besoin} in the {zone} area?",
     "{categorie} {zone} reviews",
     "local solution for {besoin} near {zone}",
-    "{profil_formulation} support for {besoin} near {zone}",
-    "training and support for {categorie} in the {zone} area"
+    { "clause": "{profil_formulation} I need support for {besoin} near {zone}" },
+    "{categorie} training and support in the {zone} area"
   ],
   "tarif": [
     "{categorie} pricing for {besoin}",
-    "how much does {categorie} cost for {besoin}?",
-    "{profil_formulation} affordable {categorie} for {besoin}",
+    "{categorie}: how much does it cost for {besoin}?",
+    "affordable {categorie} for {besoin}",
     "{categorie} plans and subscription prices",
     "what is the price gap between free and paid solutions for {besoin}?",
     "budget needed for {besoin}",
-    "{profil_formulation} compare prices of solutions for {besoin}"
+    { "clause": "{profil_formulation} how can I compare prices of solutions for {besoin}?" }
   ],
   "fonctionnalite": [
-    "{categorie} with a feature for {besoin}",
+    "{categorie}: features for {besoin}",
     "which features are essential for {besoin}?",
-    "{profil_formulation} is there a tool that can handle {besoin} automatically?",
+    { "clause": "{profil_formulation} is there a tool that can handle {besoin} automatically?" },
     "{categorie}: feature checklist to compare",
-    "{profil_formulation} can I handle {besoin} with data import and export?",
+    { "clause": "{profil_formulation} can I handle {besoin} with data import and export?" },
     "{categorie} with automatic reminders for {besoin}",
     "useful features for {besoin} day to day"
   ],
   "reglementaire": [
-    "{categorie} with {contrainte} for {besoin}",
-    "{profil_formulation} {besoin} with {contrainte}, which solution?",
+    "{categorie} and {contrainte} for {besoin}",
+    "{besoin} and {contrainte}: which solution?",
     "{contrainte}: what are the obligations for {besoin}?",
     "{categorie} and compliance: points to watch",
     "which rules apply to {besoin}?",
-    "{profil_formulation} how to stay compliant when it comes to {besoin}?",
+    { "clause": "{profil_formulation} how do I stay compliant when it comes to {besoin}?" },
     "legal obligations for {besoin}: where to start?"
   ],
   "technique": [
     "{categorie} with an API for {besoin}",
-    "{profil_formulation} integrations and connectors for {besoin}",
+    { "clause": "{profil_formulation} which integrations and connectors exist for {besoin}?" },
     "{categorie}: hosting, security and backups",
-    "exporting and migrating data from {categorie}",
-    "{profil_formulation} how to connect my tools for {besoin}?",
-    "integration with existing tools: {categorie}",
-    "automating {besoin} with an API or webhooks"
+    "{categorie}: exporting and migrating data",
+    { "clause": "{profil_formulation} how can I connect my tools for {besoin}?" },
+    "{categorie}: integration with existing tools",
+    "API or webhooks for {besoin}"
   ]
 }

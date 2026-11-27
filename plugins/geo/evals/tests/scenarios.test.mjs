@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { genererScenarios, marquerMarque, mulberry32, normaliser, jaccard, figerJeu } from '../../outils/lib/scenarios.mjs'
+import { genererScenarios, marquerMarque, mulberry32, normaliser, jaccard, figerJeu, eliderFr, PROFIL_NEUTRE } from '../../outils/lib/scenarios.mjs'
 import { ouvrirBase } from '../../outils/lib/base.mjs'
 
 const lireJson = (p) => JSON.parse(fs.readFileSync(new URL(`../../donnees/${p}`, import.meta.url), 'utf8'))
@@ -55,10 +55,9 @@ test('tailles 25 / 100 / 500 sur un profil riche (FR et EN)', () => {
 
 test('exhaustif : 1000 atteignable avec un profil riche, sinon manques le dit', () => {
   const r = genererScenarios(riche(), { niveau: 'exhaustif', graine: 3 })
-  assert.ok(r.scenarios.length <= 1000)
-  if (r.scenarios.length < 1000) assert.ok(r.manques.length > 0)
-  else assert.equal(r.scenarios.length, 1000)
-  assert.ok(r.scenarios.length >= 900, `obtenu ${r.scenarios.length}`)
+  assert.equal(r.scenarios.length, 1000)
+  assert.deepEqual(r.manques, [])
+  assert.equal(genererScenarios(richeEn(), { niveau: 'exhaustif', graine: 3 }).scenarios.length, 1000)
 })
 
 test('la marque et ses alias n apparaissent jamais ; avec_marque faux', () => {
@@ -152,7 +151,7 @@ test('sortie : profil connu, poids positifs de somme 1, ordre deterministe', () 
   const r = genererScenarios(riche(), { niveau: 'standard', graine: 4 })
   const profils = Object.keys(lireJson('profils.json'))
   for (const s of r.scenarios) {
-    assert.ok(profils.includes(s.profil))
+    assert.ok(profils.includes(s.profil) || s.profil === PROFIL_NEUTRE)
     assert.ok(s.poids > 0)
   }
   const somme = r.scenarios.reduce((a, s) => a + s.poids, 0)
@@ -162,6 +161,22 @@ test('sortie : profil connu, poids positifs de somme 1, ordre deterministe', () 
   const ordre = Object.keys(lireJson('intentions.json'))
   const idx = r.scenarios.map((s) => ordre.indexOf(s.intention))
   assert.deepEqual(idx, [...idx].sort((a, b) => a - b))
+})
+
+test('profil neutre sans trace de persona ; fragment de persona seulement sur les gabarits clause', () => {
+  const profils = lireJson('profils.json')
+  for (const langue of ['fr', 'en']) {
+    const r = genererScenarios(langue === 'fr' ? riche() : richeEn(), { niveau: 'approfondi', graine: 17 })
+    const gabarits = lireJson(`gabarits/${langue}.json`)
+    const clauses = Object.values(gabarits).flat().filter((t) => typeof t !== 'string')
+    assert.ok(clauses.every((t) => t.clause.startsWith('{profil_formulation} ')))
+    let neutres = 0, persona = 0
+    for (const s of r.scenarios) {
+      const frag = Object.entries(profils).find(([, p]) => p.formulations[langue].some((f) => s.texte.startsWith(f + ' ')))
+      if (s.profil === PROFIL_NEUTRE) { neutres++; assert.ok(!frag, s.texte) } else { persona++; assert.equal(frag?.[0], s.profil, s.texte) }
+    }
+    assert.ok(neutres > 0 && persona > 0)
+  }
 })
 
 test('performance : exhaustif en moins de 2 s', () => {
@@ -200,6 +215,14 @@ test('marquerMarque : mot entier, insensible casse et accents, alias', () => {
   assert.equal(sc[0].avec_marque, false) // input not mutated
 })
 
+test('donnees : slot persona seulement dans les gabarits clause', () => {
+  for (const l of ['fr', 'en']) {
+    for (const [nom, liste] of Object.entries(lireJson(`gabarits/${l}.json`))) {
+      for (const t of liste) if (typeof t === 'string') assert.ok(!t.includes('{profil_formulation}'), `${l}/${nom}: ${t}`)
+    }
+  }
+})
+
 test('donnees : 11 profils, 11 intentions, >= 6 gabarits, {concurrent} reserve', () => {
   const profils = lireJson('profils.json'), intentions = lireJson('intentions.json')
   assert.equal(Object.keys(profils).length, 11)
@@ -208,13 +231,35 @@ test('donnees : 11 profils, 11 intentions, >= 6 gabarits, {concurrent} reserve',
     const g = lireJson(`gabarits/${l}.json`)
     for (const [nom, i] of Object.entries(intentions)) {
       assert.ok(g[nom].length >= 6, `${l}/${nom}`)
+      const tt = g[nom].map((t) => (typeof t === 'string' ? t : t.clause))
       assert.ok(i.poids > 0)
-      if (!i.avec_marque_autorise) for (const t of g[nom]) assert.ok(!t.includes('{concurrent}'), `${l}/${nom}: ${t}`)
+      if (!i.avec_marque_autorise) for (const t of tt) assert.ok(!t.includes('{concurrent}'), `${l}/${nom}: ${t}`)
     }
     for (const p of Object.values(profils)) assert.ok(p.formulations[l].length >= 2 && p.poids > 0)
   }
   const permis = Object.entries(intentions).filter(([, i]) => i.avec_marque_autorise).map(([n]) => n).sort()
   assert.deepEqual(permis, ['alternative', 'comparaison'])
+})
+
+test('francais : pas d elision manquante ni de contraction manquante', () => {
+  for (const graine of [1, 2, 3]) {
+    const r = genererScenarios(riche(), { niveau: 'standard', graine })
+    for (const s of r.scenarios) {
+      assert.ok(!/(de|que|je|ne|le|la) [aeiouyéèêàâîôûh]/i.test(s.texte.replace(/(de|le|la) h(aut|ors|all)/gi, '')) || /(de|que|je|ne|le|la) y/i.test(s.texte), s.texte)
+      assert.ok(!/(à|de) les? /i.test(s.texte), s.texte)
+    }
+  }
+})
+
+test('eliderFr : elisions, contractions, h aspire, casse', () => {
+  assert.equal(eliderFr('comment faire de organiser les équipes'), "comment faire d'organiser les équipes")
+  assert.equal(eliderFr('que il faut, je aime, ne ose pas'), "qu'il faut, j'aime, n'ose pas")
+  assert.equal(eliderFr('le outil et la application'), "l'outil et l'application")
+  assert.equal(eliderFr('Le hébergement'), "L'hébergement")
+  assert.equal(eliderFr('le haut de la hausse'), 'le haut de la hausse')
+  assert.equal(eliderFr('à le bureau, à les clients, de le site, de les prix'), 'au bureau, aux clients, du site, des prix')
+  assert.equal(eliderFr('de le outil', 'en'), 'de le outil')
+  assert.equal(eliderFr('de Marc, le chat, la table'), 'de Marc, le chat, la table')
 })
 
 test('le module n utilise pas Math.random', () => {

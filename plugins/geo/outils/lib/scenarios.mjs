@@ -11,6 +11,7 @@ const TAILLES = { rapide: 25, standard: 100, approfondi: 500, exhaustif: 1000 }
 const SEUIL_JACCARD = 0.8
 const ECHECS_MAX = 400 // consecutive rejected draws before an intention is declared exhausted
 const LANGUES = ['fr', 'en']
+export const PROFIL_NEUTRE = 'neutre' // scenario without persona phrasing: no profile claim
 
 const donnee = (chemin) => JSON.parse(readFileSync(new URL(`../../donnees/${chemin}`, import.meta.url), 'utf8'))
 
@@ -29,6 +30,22 @@ export function mulberry32(graine) {
 export function normaliser(texte) {
   return String(texte).normalize('NFD').replace(/\p{M}+/gu, '').toLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
+}
+
+// French contractions and elision on filled text: "de le" -> "du", "à les" -> "aux", "de envoyer" -> "d'envoyer".
+// Words with an aspirated h are left alone ("le haut", "de hors").
+const H_ASPIRE = /^h(aut|aus|ors|[ée]ros|all|angar|asard|onte|uit|andicap|ibou|omard|ousse)/i
+const ELISIONS = { de: "d'", que: "qu'", je: "j'", ne: "n'", le: "l'", la: "l'", me: "m'", te: "t'", se: "s'" }
+const CONTRACTIONS = { 'à le': 'au', 'à les': 'aux', 'de le': 'du', 'de les': 'des' }
+export function eliderFr(texte, langue = 'fr') {
+  if (langue !== 'fr') return texte
+  const casse = (modele, mot) => (modele[0] !== modele[0].toLowerCase() ? mot[0].toUpperCase() + mot.slice(1) : mot)
+  return texte
+    .replace(/(^|[^\p{L}])(à|de) (les?)(?![\p{L}])/giu, (m, av, p, d) => av + casse(p, CONTRACTIONS[`${p.toLowerCase()} ${d.toLowerCase()}`]))
+    .replace(/(^|[^\p{L}])(de|que|je|ne|le|la|me|te|se) (?=[aeiouéèêëàâîïôûùœh])(\p{L}+)/giu, (m, av, mot, suivant) => {
+      if (/^h/i.test(suivant) && H_ASPIRE.test(suivant)) return m
+      return av + casse(mot, ELISIONS[mot.toLowerCase()]) + suivant
+    })
 }
 
 export function jaccard(a, b) {
@@ -116,11 +133,14 @@ export function genererScenarios(profilSite, { niveau, graine } = {}) {
   const ecartes = {}
   const actives = []
   for (const [nom, def] of Object.entries(intentions)) {
-    const tous = (gabarits[nom] ?? []).filter((t) => def.avec_marque_autorise || !t.includes('{concurrent}'))
+    // A template is a string (plain query) or { clause: string } (full clause that may take a persona prefix).
+    const tous = (gabarits[nom] ?? [])
+      .map((t) => (typeof t === 'string' ? { texte: t, clause: false } : { texte: t.clause, clause: true }))
+      .filter((t) => (def.avec_marque_autorise || !t.texte.includes('{concurrent}')) && (t.clause || !t.texte.includes('{profil_formulation}')))
     const ok = []
     const manquants = new Set()
     for (const t of tous) {
-      const absents = [...t.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).filter((s) => s in SLOTS_POOL && pools[s].length === 0)
+      const absents = [...t.texte.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).filter((s) => s in SLOTS_POOL && pools[s].length === 0)
       if (absents.length === 0) ok.push(t)
       else for (const s of absents) { manquants.add(s); (ecartes[s] ??= { n: 0, intentions: new Set() }).n++; ecartes[s].intentions.add(nom) }
     }
@@ -146,14 +166,14 @@ export function genererScenarios(profilSite, { niveau, graine } = {}) {
     let echecs = 0
     while (etat.retenus.length < cible && echecs < ECHECS_MAX) {
       const modele = choisir(rng, etat.gabarits)
-      const profil = choisirPondere(rng, formulations)
-      const fragment = choisir(rng, profil.fragments)
+      const profil = modele.clause ? choisirPondere(rng, formulations) : null
+      const fragment = profil ? choisir(rng, profil.fragments) : ''
       // Persona phrasing alone never makes a scenario distinct: dedup works on the text without it.
       const valeurs = {}
-      const coeur = modele.replace(/\{(\w+)\}/g, (_, s) => (s === 'profil_formulation' ? '' : (valeurs[s] ??= choisir(rng, pools[s]))))
+      const coeur = modele.texte.replace(/\{(\w+)\}/g, (_, s) => (s === 'profil_formulation' ? '' : (valeurs[s] ??= choisir(rng, pools[s]))))
         .replace(/\s+/g, ' ').trim()
-      const texte = modele.replace(/\{(\w+)\}/g, (_, s) => (s === 'profil_formulation' ? fragment : valeurs[s]))
-        .replace(/\s+/g, ' ').trim()
+      const texte = eliderFr(modele.texte.replace(/\{(\w+)\}/g, (_, s) => (s === 'profil_formulation' ? fragment : valeurs[s]))
+        .replace(/\s+/g, ' ').trim(), langue)
       const norme = normaliser(coeur)
       let rejet = vus.has(norme)
       if (!rejet && contientMarque(texte, termes)) { rejet = true; rejetsMarque++ }
@@ -169,7 +189,7 @@ export function genererScenarios(profilSite, { niveau, graine } = {}) {
       echecs = 0
       vus.add(norme)
       accepts.push({ mots, plein })
-      etat.retenus.push({ texte, profil: profil.nom })
+      etat.retenus.push({ texte, profil: profil ? profil.nom : PROFIL_NEUTRE })
     }
     if (etat.retenus.length < cible) etat.epuise = true
   }

@@ -1,12 +1,13 @@
 {
   "decouverte": [
-    "{profil_formulation} {categorie} pour {besoin} : par où commencer ?",
+    { "clause": "{profil_formulation} quelles sont les options pour {besoin} ?" },
+    { "clause": "{profil_formulation} que choisir pour {besoin} ?" },
+    { "clause": "{profil_formulation} par où commencer pour {besoin} ?" },
+    "{categorie} pour {besoin} : par où commencer ?",
     "comment {besoin} avec un outil en ligne ?",
-    "{profil_formulation} que choisir comme {categorie} pour {besoin} ?",
-    "{categorie} : à quoi faut-il faire attention avant de choisir ?",
+    "{categorie} : à quoi faire attention avant de choisir ?",
     "comment {besoin} sans y passer des heures ?",
-    "{profil_formulation} quelles sont les options pour {besoin} ?",
-    "quels critères comparer pour {categorie} ?",
+    "{categorie} : quels critères comparer ?",
     "{categorie} pour {besoin}, comment s'y retrouver ?"
   ],
   "comparaison": [
@@ -14,32 +15,33 @@
     "{concurrent} face aux autres solutions pour {besoin}",
     "{categorie} : quelles différences entre les principales solutions ?",
     "{concurrent} est-il le meilleur choix pour {besoin} ?",
-    "{profil_formulation} comparer {concurrent} et ses concurrents pour {besoin}",
+    { "clause": "{profil_formulation} comment comparer {concurrent} et ses concurrents pour {besoin} ?" },
     "tableau comparatif {categorie} : points forts et limites",
     "{concurrent} ou une autre solution pour {besoin} ?",
     "comparaison des offres du marché pour {besoin}"
   ],
   "recommandation": [
-    "{profil_formulation} que recommandez-vous comme {categorie} pour {besoin} ?",
+    { "clause": "{profil_formulation} que me recommandez-vous pour {besoin} ?" },
+    { "clause": "{profil_formulation} que me conseillez-vous pour {besoin} ?" },
     "avis et conseils : {categorie} pour {besoin}",
     "{categorie} : ce que recommandent les professionnels pour {besoin}",
     "quelle est la meilleure option pour {besoin} ?",
-    "{profil_formulation} que me conseillez-vous pour {besoin} ?",
-    "retours d'expérience sur {categorie} pour {besoin}",
+    "{categorie} : avis d'utilisateurs et retours d'expérience",
+    "top {categorie} pour {besoin}",
     "top des solutions pour {besoin} selon les utilisateurs"
   ],
   "achat": [
-    "{profil_formulation} où trouver {categorie} pour {besoin} ?",
+    { "clause": "{profil_formulation} où trouver une solution pour {besoin} ?" },
     "{categorie} : essai gratuit ou démo pour {besoin}",
-    "souscrire à {categorie} pour {besoin}, quelles étapes ?",
-    "{profil_formulation} je veux {besoin}, quelle solution acheter ?",
-    "acheter {categorie} en ligne pour {besoin}",
-    "comment s'abonner à {categorie} pour {besoin} ?",
-    "avant d'acheter {categorie}, que vérifier ?"
+    "{categorie} : comment souscrire pour {besoin} ?",
+    { "clause": "{profil_formulation} je veux {besoin}, quelle solution acheter ?" },
+    "{categorie} en ligne : où acheter pour {besoin} ?",
+    "{categorie} : comment s'abonner ?",
+    "{categorie} : que vérifier avant d'acheter ?"
   ],
   "alternative": [
     "alternative à {concurrent} pour {besoin}",
-    "{profil_formulation} je cherche une autre solution que {concurrent} pour {besoin}",
+    { "clause": "{profil_formulation} je cherche une autre solution que {concurrent} pour {besoin}" },
     "{concurrent} trop cher, quelles alternatives ?",
     "remplacer {concurrent} pour {besoin}",
     "{concurrent} : alternatives gratuites ou moins chères",
@@ -49,57 +51,57 @@
     "autre option que les solutions les plus connues pour {besoin}"
   ],
   "probleme": [
-    "{profil_formulation} je n'arrive pas à {besoin}, que faire ?",
+    { "clause": "{profil_formulation} je n'arrive pas à {besoin}, que faire ?" },
     "{besoin} prend trop de temps, comment simplifier ?",
     "erreurs fréquentes quand on veut {besoin}",
     "pourquoi est-ce si compliqué de {besoin} ?",
-    "{profil_formulation} comment éviter les oublis quand on veut {besoin} ?",
+    { "clause": "{profil_formulation} comment éviter les oublis quand on veut {besoin} ?" },
     "{categorie} : problèmes courants et comment les éviter",
-    "{profil_formulation} mon outil actuel ne permet pas de {besoin}, que faire ?"
+    { "clause": "{profil_formulation} mon outil actuel ne permet pas de {besoin}, que faire ?" }
   ],
   "local": [
     "{categorie} {zone}",
-    "{profil_formulation} {categorie} pour {besoin} secteur {zone}",
+    "{categorie} pour {besoin} secteur {zone}",
     "qui peut m'aider à {besoin} secteur {zone} ?",
-    "{categorie} {zone} avis et retours",
+    "{categorie} {zone} : avis et retours",
     "solution locale pour {besoin} {zone}",
-    "{profil_formulation} accompagnement pour {besoin} {zone}",
+    { "clause": "{profil_formulation} je cherche un accompagnement pour {besoin} secteur {zone}" },
     "formation et assistance {categorie} {zone}"
   ],
   "tarif": [
-    "{categorie} prix pour {besoin}",
-    "combien coûte {categorie} pour {besoin} ?",
-    "{profil_formulation} {categorie} pas cher pour {besoin}",
+    "prix {categorie} pour {besoin}",
+    "{categorie} : combien ça coûte pour {besoin} ?",
+    "{categorie} pas cher pour {besoin}",
     "tarifs et formules d'abonnement {categorie}",
     "quelle différence de prix entre solutions gratuites et payantes pour {besoin} ?",
     "budget à prévoir pour {besoin}",
-    "{profil_formulation} comparer les prix des solutions pour {besoin}"
+    { "clause": "{profil_formulation} comment comparer les prix des solutions pour {besoin} ?" }
   ],
   "fonctionnalite": [
-    "{categorie} avec fonctionnalité pour {besoin}",
+    "{categorie} : fonctionnalités pour {besoin}",
     "quelles fonctionnalités indispensables pour {besoin} ?",
-    "{profil_formulation} existe-t-il un outil qui permet de {besoin} automatiquement ?",
+    { "clause": "{profil_formulation} existe-t-il un outil qui permet de {besoin} automatiquement ?" },
     "{categorie} : liste des fonctionnalités à comparer",
-    "{profil_formulation} peut-on {besoin} avec import et export de données ?",
-    "{categorie} avec rappels automatiques pour {besoin}",
+    { "clause": "{profil_formulation} peut-on {besoin} avec import et export de données ?" },
+    "{categorie} : rappels automatiques pour {besoin}",
     "fonctionnalités utiles pour {besoin} au quotidien"
   ],
   "reglementaire": [
-    "{categorie} avec {contrainte} pour {besoin}",
-    "{profil_formulation} {besoin} avec {contrainte}, quelle solution ?",
+    "{categorie} et {contrainte} pour {besoin}",
+    "{besoin} et {contrainte} : quelle solution ?",
     "{contrainte} : quelles obligations pour {besoin} ?",
     "{categorie} et conformité : points de vigilance",
     "quelles règles respecter pour {besoin} ?",
-    "{profil_formulation} comment {besoin} en respectant la réglementation ?",
+    { "clause": "{profil_formulation} quelle solution choisir pour {besoin} ?" },
     "obligations légales pour {besoin} : par quoi commencer ?"
   ],
   "technique": [
     "{categorie} avec API pour {besoin}",
-    "{profil_formulation} intégration et connecteurs pour {besoin}",
+    { "clause": "{profil_formulation} quelles intégrations et quels connecteurs existent pour {besoin} ?" },
     "{categorie} : hébergement, sécurité et sauvegardes",
     "{categorie} : exporter et migrer ses données",
-    "{profil_formulation} comment relier ses outils pour {besoin} ?",
-    "compatibilité avec les outils existants : {categorie}",
-    "automatiser {besoin} avec une API ou des webhooks"
+    { "clause": "{profil_formulation} comment relier mes outils pour {besoin} ?" },
+    "{categorie} : compatibilité avec les outils existants",
+    "API ou webhooks pour {besoin}"
   ]
 }
