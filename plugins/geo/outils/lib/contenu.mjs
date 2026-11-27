@@ -119,7 +119,7 @@ function constat(id, url, detail) {
   return { id, severite: def.severite, categorie: def.categorie, classe: def.classe, pages: [url], preuve: { type: 'html', url, detail }, detail, rang: def.rang }
 }
 
-// analyserContenu(page) -> { langue, prise_en_charge, passages, constats }.
+// analyserContenu(page) -> { url, sans_texte, langue, prise_en_charge, passages, constats }.
 // A passage is a heading and the blocks that follow it up to the next heading; blocks before the first
 // heading form a passage with titre null. Passages without body (consecutive headings) are dropped, and so are
 // blocks flagged nosnippet (they cannot be quoted). Unsupported language: no passage, no content finding.
@@ -128,7 +128,9 @@ export function analyserContenu(page) {
   const blocs = Array.isArray(p.blocs) ? p.blocs.filter((b) => b && typeof b.texte === 'string') : []
   const url = typeof p.url === 'string' ? p.url : ''
   const langue = detecterLangue(blocs.map((b) => b.texte).join('\n'), p.lang)
-  if (langue === 'autre') return { langue, prise_en_charge: false, passages: [], constats: [] }
+  // sans_texte: the page has no visible words at all (not a language problem); url lets callers map results to pages.
+  const sans_texte = !/[\p{L}\p{N}]/u.test(blocs.map((b) => b.texte).join(' '))
+  if (langue === 'autre') return { url, sans_texte, langue, prise_en_charge: false, passages: [], constats: [] }
 
   const bruts = []
   let courant = { titre: null, corps: [] }
@@ -166,5 +168,5 @@ export function analyserContenu(page) {
     if (dependants / n > 0.5) constats.push(constat('GEO-CONTENU-PASSAGES-DEPENDANTS', url, `${dependants} passage(s) sur ${n} commencent par un pronom ou un connecteur qui renvoie au texte précédent.`))
   }
   constats.sort((a, b) => a.rang - b.rang)
-  return { langue, prise_en_charge: true, passages, constats }
+  return { url, sans_texte, langue, prise_en_charge: true, passages, constats }
 }

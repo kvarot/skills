@@ -11,8 +11,10 @@ const constat = (id, pagesTouchees = []) => {
   return { id, severite: def.severite, categorie: def.categorie, classe: def.classe, pages: pagesTouchees }
 }
 const passage = (extra = {}) => ({ id: 'x#1', titre: null, mots: 40, criteres: { definition: false, chiffre: false, source: false, autonome: true, question_titre: false, structure: false }, note: 1, ...extra })
-const contenuFr = (passages = [passage()], constats = []) => ({ langue: 'fr', prise_en_charge: true, passages, constats })
-const contenuAutre = { langue: 'autre', prise_en_charge: false, passages: [], constats: [] }
+const contenuFr = (passages = [passage()], constats = [], url = null) => ({ url, sans_texte: false, langue: 'fr', prise_en_charge: true, passages, constats })
+const contenuAutre = { url: null, sans_texte: false, langue: 'autre', prise_en_charge: false, passages: [], constats: [] }
+const sansTexte = (url) => ({ url, sans_texte: true, langue: 'autre', prise_en_charge: false, passages: [], constats: [] })
+const sansPassage = (url) => ({ url, sans_texte: false, langue: 'fr', prise_en_charge: true, passages: [], constats: [] })
 const entiteOk = { noms: [], types: ['Organization'], sameAs: ['https://x.example/a'], coordonnees: {}, wikidata: { statut: 'non_verifie' }, constats: [] }
 const calcul = (entrees, poids) => calculerScores({ constats: [], contenu: [], entite: null, pages: pages(4), ...entrees }, poids)
 const score = (liste, id) => liste.find((s) => s.id === id)
@@ -62,7 +64,7 @@ test('langue non prise en charge : qualité sémantique non calculée, couvertur
 })
 
 test('contenu supporté : les pages en langue autre ne comptent pas', () => {
-  const avecSource = contenuFr([passage()], [constat('GEO-CONTENU-SANS-SOURCE', [`${O}/p1`])])
+  const avecSource = contenuFr([passage()], [constat('GEO-CONTENU-SANS-SOURCE', [`${O}/p1`])], `${O}/p1`)
   const s = score(calcul({ contenu: [avecSource, contenuAutre] }), 'qualite-semantique')
   assert.equal(critere(s, 'sources-citees').acquis, 0)
   assert.match(critere(s, 'sources-citees').preuve, /1 page\(s\) sur 1/)
@@ -255,10 +257,85 @@ test('site multilingue : 1 page FR + 49 DE, couverture de la qualité sémantiqu
 
 test('auteur : seules les pages d’article comptent, non calculé sans page d’article', () => {
   const sansArticle = [`${O}/`, `${O}/contact`, `${O}/mentions-legales`].map((url) => ({ url, title: 't', hn: [] }))
-  const s = score(calcul({ pages: sansArticle, contenu: [contenuFr(), contenuFr(), contenuFr()], constats: [constat('GEO-CONTENU-AUTEUR-ABSENT', sansArticle.map((p) => p.url))] }), 'potentiel-citation')
+  const s = score(calcul({ pages: sansArticle, contenu: sansArticle.map((p) => contenuFr([passage()], [], p.url)), constats: [constat('GEO-CONTENU-AUTEUR-ABSENT', sansArticle.map((p) => p.url))] }), 'potentiel-citation')
   assert.equal(critere(s, 'auteur-declare').acquis, null)
   assert.match(critere(s, 'auteur-declare').preuve, /aucune page d’article/)
   const avec = [...sansArticle, { url: `${O}/blog/un-article`, title: 't', hn: [] }]
-  const s2 = score(calcul({ pages: avec, contenu: avec.map(() => contenuFr()), constats: [constat('GEO-CONTENU-AUTEUR-ABSENT', avec.map((p) => p.url))] }), 'potentiel-citation')
+  const s2 = score(calcul({ pages: avec, contenu: avec.map((p) => contenuFr([passage()], [], p.url)), constats: [constat('GEO-CONTENU-AUTEUR-ABSENT', avec.map((p) => p.url))] }), 'potentiel-citation')
   assert.equal(critere(s2, 'auteur-declare').acquis, 0)
+})
+
+// --- fix round 2 ---
+const art = `${O}/blog/un-article`
+const pagesArt = [{ url: `${O}/`, title: 't', hn: [] }, { url: `${O}/contact`, title: 't', hn: [] }, { url: art, title: 't', hn: [] }]
+const contenuPages = (liste) => liste.map((p) => contenuFr([passage()], [], p.url))
+
+test('auteur : un constat sur /contact (non article) ne touche aucun article, critère à 1', () => {
+  const s = score(calcul({ pages: pagesArt, contenu: contenuPages(pagesArt), constats: [constat('GEO-CONTENU-AUTEUR-ABSENT', [`${O}/contact`])] }), 'potentiel-citation')
+  assert.equal(critere(s, 'auteur-declare').acquis, 1)
+  assert.doesNotMatch(critere(s, 'auteur-declare').preuve, /hors pages collectées/)
+})
+
+test('constat sur une URL réellement non collectée : compte pour une page', () => {
+  const s = score(calcul({ constats: [constat('GEO-NOINDEX', [`${O}/jamais-collectee`])] }), 'seo-technique')
+  assert.equal(critere(s, 'indexable').acquis, 0.75)
+})
+
+test('articles en langue non prise en charge : ni acquis ni touchés', () => {
+  const de = { ...contenuAutre, url: art }
+  const s = score(calcul({ pages: pagesArt, contenu: [contenuFr([passage()], [], `${O}/`), contenuFr([passage()], [], `${O}/contact`), de], constats: [constat('GEO-CONTENU-AUTEUR-ABSENT', [art])] }), 'potentiel-citation')
+  assert.equal(critere(s, 'auteur-declare').acquis, null)
+  assert.match(critere(s, 'auteur-declare').preuve, /aucune page d’article/)
+})
+
+test('contenu : constats rapportés à l’URL de la page, pas à un compte brut', () => {
+  const ps = pages(4)
+  const contenu = ps.map((p, i) => contenuFr([passage()], i === 0 ? [constat('GEO-CONTENU-SANS-SOURCE', [p.url])] : [], p.url))
+  const c = critere(score(calcul({ pages: ps, contenu }), 'qualite-semantique'), 'sources-citees')
+  assert.equal(c.acquis, 0.75)
+  // A constat on a URL that is not a collected page cannot dilute the denominator.
+  const c2 = critere(score(calcul({ pages: ps, contenu, constats: [constat('GEO-CONTENU-SANS-SOURCE', [`${O}/p1`, `${O}/x1`, `${O}/x2`, `${O}/x3`, `${O}/x4`])] }), 'qualite-semantique'), 'sources-citees')
+  assert.equal(c2.acquis, 0.75)
+})
+
+test('site monolingue : contact et mentions sans passage ne baissent ni la part ni les scores', () => {
+  const ps = pages(2)
+  const base = [contenuFr([passage()], [], ps[0].url), contenuFr([passage()], [], ps[1].url)]
+  const avecVides = [...ps, { url: `${O}/contact`, title: 'c', hn: [] }, { url: `${O}/mentions`, title: 'm', hn: [] }]
+  const contenuAvec = [...base, sansPassage(`${O}/contact`), sansTexte(`${O}/mentions`)]
+  const a = calcul({ pages: ps, contenu: base })
+  const b = calcul({ pages: avecVides, contenu: contenuAvec })
+  for (const id of ['qualite-semantique', 'potentiel-citation']) {
+    assert.equal(score(b, id).valeur, score(a, id).valeur)
+    assert.equal(score(b, id).couverture, score(a, id).couverture)
+  }
+  assert.equal(critere(score(b, 'qualite-semantique'), 'sources-citees').part, 1)
+  assert.doesNotMatch(critere(score(b, 'qualite-semantique'), 'sources-citees').preuve, /non prise en charge sur/)
+})
+
+test('preuve : mention des pages non calculées seulement s’il y en a', () => {
+  const ps = pages(2)
+  const sans = critere(score(calcul({ pages: ps, contenu: ps.map((p) => contenuFr([passage()], [], p.url)) }), 'qualite-semantique'), 'sources-citees')
+  assert.doesNotMatch(sans.preuve, /non prise en charge sur/)
+  const avec = critere(score(calcul({ pages: ps, contenu: [contenuFr([passage()], [], ps[0].url), { ...contenuAutre, url: ps[1].url }] }), 'qualite-semantique'), 'sources-citees')
+  assert.match(avec.preuve, /1 page\(s\) en langue non prise en charge sur 2/)
+})
+
+test('collecterDossier réel : les URL du sitemap entrent dans les URL connues', async () => {
+  const { collecterDossier } = await import('../../outils/lib/collecter.mjs')
+  const { mkdtempSync, writeFileSync, rmSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const d = mkdtempSync(join(tmpdir(), 'geo-scores-'))
+  try {
+    const lorem = 'Un texte visible assez long pour être analysé par le collecteur de pages statiques. '.repeat(3)
+    writeFileSync(join(d, 'index.html'), `<title>Accueil</title><p>${lorem}</p>`)
+    writeFileSync(join(d, 'a.html'), `<title>A</title><p>${lorem}</p>`)
+    writeFileSync(join(d, 'sitemap.xml'), '<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://dossier.example/x</loc></url><url><loc>https://dossier.example/y</loc></url></urlset>')
+    const collecte = collecterDossier(d)
+    const s = score(calculerScores({ constats: [constat('GEO-SITEMAP-INCOHERENT', ['https://dossier.example/x'])], contenu: [], entite: null, pages: collecte.pages, collecte }), 'seo-technique')
+    const c = critere(s, 'sitemap-coherent')
+    assert.match(c.preuve, /1 URL sur 4 URL connues/)
+    assert.equal(c.acquis, 0.75)
+  } finally { rmSync(d, { recursive: true, force: true }) }
 })

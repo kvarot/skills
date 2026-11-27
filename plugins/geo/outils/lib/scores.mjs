@@ -143,14 +143,16 @@ function evaluerConstats(def, ctx) {
 
   let total, touchees
   if (def.articles) {
-    const arts = ctx.pages.filter((p) => estPageArticle(p))
-    if (arts.length === 0) return nul(`${noms} : non calculé, aucune page d’article ou de documentation`)
+    // Content criteria (author) only see article pages analysed in a supported language with a passage;
+    // other article pages are neither acquired nor touched. Date criteria see every article page.
+    const arts = ctx.pages.filter((p) => estPageArticle(p) && (def.base !== 'contenu' || ctx.cleContenuAnalysable.has(cle(p.url, ctx.base))))
+    if (arts.length === 0) return nul(`${noms} : non calculé, aucune page d’article ou de documentation${def.base === 'contenu' ? ' analysée en langue prise en charge' : ''}`)
     const dansArts = new Set(arts.map((p) => cle(p.url, ctx.base)))
     total = arts.length
     touchees = new Set(trouves.flatMap(cles).filter((k) => dansArts.has(k)))
   } else if (def.base === 'contenu') {
-    total = ctx.passagesParPage.length
-    touchees = new Set(trouves.flatMap((c) => c.pages))
+    total = ctx.cleContenuAnalysable.size
+    touchees = new Set(trouves.flatMap(cles).filter((k) => ctx.cleContenuAnalysable.has(k)))
   } else {
     total = ctx.pages.length
     touchees = new Set(trouves.flatMap(cles).filter((k) => ctx.pagesCles.has(k)))
@@ -163,7 +165,9 @@ function evaluerConstats(def, ctx) {
   let n = Math.min(touchees.size, total)
   let note = ''
   // A present cause must never read as fully acquired: URLs outside the collected pages count for one page.
-  if (trouves.length && n === 0) { n = 1; note = ' (constat sur des URL hors pages collectées, compté pour une page)' }
+  // Only when some touched URL is genuinely not a collected page: URLs excluded by a filter (article, language) just do not count.
+  const horsCollecte = trouves.flatMap(cles).some((k) => !ctx.pagesCles.has(k))
+  if (trouves.length && n === 0 && horsCollecte) { n = 1; note = ' (constat sur des URL hors pages collectées, compté pour une page)' }
   return { acquis: ARRONDI(1 - n / total), preuve: `${noms} : ${sur(n, total)}${note}` }
 }
 
@@ -229,7 +233,8 @@ export function calculerScores(entrees, poids = chargerPoids()) {
   const e = entrees && typeof entrees === 'object' ? entrees : {}
   const pages = Array.isArray(e.pages) ? e.pages.filter((p) => p && typeof p === 'object') : []
   const contenu = Array.isArray(e.contenu) ? e.contenu.filter((c) => c && typeof c === 'object') : []
-  const base = pages[0]?.url ?? e.collecte?.origine ?? 'https://invalid.example/'
+  const absolue = pages.map((p) => p.url).find((u) => typeof u === 'string' && u.startsWith('http'))
+  const base = absolue ?? e.collecte?.site?.racine ?? 'https://invalid.example/'
   const collecte = e.collecte && typeof e.collecte === 'object' ? e.collecte : {}
   // URLs known to the audit besides the collected pages: errors and sitemap entries (optional `collecte` input).
   const urlsConnues = new Set()
@@ -246,10 +251,16 @@ export function calculerScores(entrees, poids = chargerPoids()) {
     scenarios: e.scenarios,
     // Content criteria only count pages analysed in a supported language and with at least one passage.
     passagesParPage: contenu.filter((c) => c.prise_en_charge === true && Array.isArray(c.passages) && c.passages.length > 0).map((c) => c.passages),
+    // Normalised URLs of collected pages whose content was analysed with at least one passage.
+    cleContenuAnalysable: new Set(),
   }
-  // Content criteria only see supported-language pages: their weight counts in coverage in proportion.
-  const nbPages = Math.max(pages.length, contenu.length)
-  const nbSupportees = ctx.passagesParPage.length
+  for (const c of contenu) {
+    if (c.prise_en_charge === true && Array.isArray(c.passages) && c.passages.length > 0 && typeof c.url === 'string' && ctx.pagesCles.has(cle(c.url, base))) ctx.cleContenuAnalysable.add(cle(c.url, base))
+  }
+  // part = pages whose language is supported / pages analysed; pages with no visible text are in neither count.
+  const analysees = contenu.filter((c) => !c.sans_texte)
+  const nbPages = analysees.length
+  const nbSupportees = analysees.filter((c) => c.prise_en_charge === true).length
 
   const sortie = []
   for (const [id, { criteres: liste }] of Object.entries(poids.scores)) {
@@ -263,7 +274,7 @@ export function calculerScores(entrees, poids = chargerPoids()) {
       let preuve = r.preuve
       if (estContenu(def)) {
         if (r.acquis !== null) part = nbPages === 0 ? 0 : ARRONDI(nbSupportees / nbPages)
-        preuve += ` ; ${nbPages - nbSupportees} page(s) non calculée(s) sur ${nbPages} (langue non prise en charge ou sans passage)`
+        if (nbPages > nbSupportees) preuve += ` ; ${nbPages - nbSupportees} page(s) en langue non prise en charge sur ${nbPages} page(s) analysée(s)`
       }
       return { id: c.id, classe: c.classe, poids: c.poids, part, acquis: r.acquis, preuve }
     })

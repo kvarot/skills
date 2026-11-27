@@ -245,3 +245,13 @@ test('définition : « est un bon… » reste une définition, « est un peu… 
   assert.equal(def('Le kayak est un bon exemple de bateau pour les gens de la ville.'), true)
   assert.equal(def('Le kayak est un peu lourd pour les gens de la ville.'), false)
 })
+
+test('résultat : url de la page et sans_texte (page sans aucun mot visible, distinct d’une langue non prise en charge)', () => {
+  const r = analyserContenu(page([h('A'), p('Un texte pour les gens de la ville et la maison.')]))
+  assert.equal(r.url, URL_P)
+  assert.equal(r.sans_texte, false)
+  assert.equal(analyserContenu(page([])).sans_texte, true)
+  const de = analyserContenu(page([p('Dies ist ein langer deutscher Text über die Stadt und das Haus der Leute.')], { lang: 'de' }))
+  assert.equal(de.prise_en_charge, false)
+  assert.equal(de.sans_texte, false)
+})
