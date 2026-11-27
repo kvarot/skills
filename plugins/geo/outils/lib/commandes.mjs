@@ -93,6 +93,20 @@ function sousDonnees(...parts) {
 
 const tab = (a) => (Array.isArray(a) ? a : [])
 
+// What the collector saw for robots.txt, as a closed vocabulary: present | absent | inaccessible | dossier-present | dossier-absent.
+// RFC 9309: 4xx = no restriction; 5xx or network failure = everything is treated as disallowed.
+function etatRobots(site) {
+  const s = site ?? {}
+  if (s.racine === null || s.racine === undefined) return { etat: typeof s.robotsTxt === 'string' ? 'dossier-present' : 'dossier-absent', statut: null }
+  const statut = Number.isInteger(s.robotsStatut) ? s.robotsStatut : null
+  if (statut === 0 || (statut !== null && statut >= 500)) return { etat: 'inaccessible', statut }
+  if (typeof s.robotsTxt === 'string') return { etat: 'present', statut }
+  return { etat: 'absent', statut }
+}
+
+// Files the data directory holds for the tool itself: never overwritten by --sortie.
+const RESERVES = /^(session\.json|geo\.sqlite(-wal|-shm|-journal)?|cache|tmp)$/
+
 function lireProfil(fichier) {
   if (!fichier) throw new ErreurGeo(`L'option --profil est obligatoire.\n${USAGE}`)
   let brut
@@ -116,7 +130,7 @@ function exigerAudit(base, id) {
 function reconstituer(a) {
   const r = a.resume ?? {}
   return {
-    audit_id: a.id, origine: a.origine, constats: a.constats, scores: r.scores ?? [], robots_ia: r.robots_ia ?? [],
+    audit_id: a.id, origine: a.origine, constats: a.constats, scores: r.scores ?? [], robots_ia: r.robots_ia ?? [], robots_txt: r.robots_txt ?? {},
     contenu_resume: r.contenu_resume ?? { pages: [], passages: 0, constats: [] }, entite: r.entite ?? {},
     erreurs: r.erreurs ?? [], exploration: r.exploration ?? {},
   }
@@ -193,21 +207,23 @@ async function cmdAuditer(args) {
     .sort((a, b) => (RANG[a.severite] ?? 9) - (RANG[b.severite] ?? 9))
 
   const chemins = [...new Set(tab(collecte.pages).map((p) => { try { const u = new URL(p.url, 'http://x'); return u.pathname + u.search } catch { return null } }).filter(Boolean))].slice(0, 50)
-  const robotsIa = evaluerRobotsIa(collecte.site?.robotsTxt ?? '', ['/', ...chemins.filter((c) => c !== '/')], reg)
-    .map((r) => ({ jeton: r.jeton, editeur: reg.robots.find((x) => x.jeton === r.jeton)?.editeur ?? null, role: r.role, documente: r.documente, chemins_bloques: r.chemins_bloques }))
+  const robotsTxt = etatRobots(collecte.site)
+  const tousChemins = ['/', ...chemins.filter((c) => c !== '/')]
+  const robotsIa = evaluerRobotsIa(collecte.site?.robotsTxt ?? '', tousChemins, reg)
+    .map((r) => ({ jeton: r.jeton, editeur: reg.robots.find((x) => x.jeton === r.jeton)?.editeur ?? null, role: r.role, documente: r.documente, chemins_bloques: robotsTxt.etat === 'inaccessible' ? tousChemins : r.chemins_bloques }))
 
   const contenuResume = {
     pages: contenus.map((c) => ({ url: c.url, langue: c.langue, prise_en_charge: c.prise_en_charge, sans_texte: c.sans_texte, passages: c.passages.length })),
     passages: contenus.reduce((n, c) => n + c.passages.length, 0),
     constats: fusionnerConstatsContenu(contenus).map((c) => ({ id: c.id, severite: c.severite, pages: tab(c.pages).length })),
   }
-  const erreurs = tab(collecte.erreurs).map((e) => ({ url: String(e.url ?? ''), raison: extrait(e.raison, 300).extrait }))
+  const erreurs = tab(collecte.erreurs).map((e) => ({ url: extrait(e.url, 300).extrait, raison: extrait(e.raison, 300).extrait }))
   const exploration = { ...collecte.exploration, waf: !!collecte.site?.waf }
   const entite = resumerEntite(entiteBrute)
 
   const id = await avecBase((base) => base.enregistrerAudit({
     origine, version_moteur: VERSION, version_poids: poids.version, constats,
-    collecte_resume: { scores, robots_ia: robotsIa, contenu_resume: contenuResume, entite, erreurs, exploration },
+    collecte_resume: { scores, robots_ia: robotsIa, robots_txt: robotsTxt, contenu_resume: contenuResume, entite, erreurs, exploration },
   }))
 
   // Full passages for the read-only content agent: untrusted page text, purged by exporter-contenu --purger.
@@ -216,7 +232,7 @@ async function cmdAuditer(args) {
   fs.mkdirSync(dirTmp, { recursive: true })
   fs.writeFileSync(path.join(dirTmp, 'passages.json'), JSON.stringify(passages, null, 2))
 
-  ecrireJson({ audit_id: id, origine, constats, scores, robots_ia: robotsIa, contenu_resume: contenuResume, entite, erreurs, exploration })
+  ecrireJson({ audit_id: id, origine, constats, scores, robots_ia: robotsIa, robots_txt: robotsTxt, contenu_resume: contenuResume, entite, erreurs, exploration })
 
   if (seuil) {
     const bloquants = constats.filter((c) => c.severite === 'bloquant').length
@@ -238,14 +254,15 @@ async function cmdRobots(args) {
   const ok = rep.statut >= 200 && rep.statut < 300 && typeof rep.corps === 'string'
   const reg = registre()
   const lignes = evaluerRobotsIa(ok ? rep.corps : '', ['/'], reg)
-  const tout = !ok && (rep.statut === 0 || rep.statut >= 500)
+  const etat = etatRobots({ racine: u.origin, robotsStatut: rep.statut, robotsTxt: ok ? rep.corps : null })
+  const tout = etat.etat === 'inaccessible'
   ecrireJson({
     origine: u.origin,
-    robots_txt: { statut: rep.statut, present: ok, ...(rep.raison ? { raison: extrait(rep.raison, 200).extrait } : {}) },
+    robots_txt: { etat: etat.etat, statut: rep.statut, present: ok, ...(rep.raison ? { raison: extrait(rep.raison, 200).extrait } : {}) },
     robots: lignes.map((r) => ({
       jeton: r.jeton, editeur: reg.robots.find((x) => x.jeton === r.jeton)?.editeur ?? null, role: r.role, documente: r.documente,
       politique: tout ? 'inaccessible (exploration interdite par précaution)' : r.chemins_bloques.length ? 'bloqué' : 'autorisé',
-      groupe: r.groupe,
+      groupe: ['specifique', 'repli', 'etoile', 'aucun'].includes(r.groupe) ? r.groupe : 'aucun',
     })),
   })
 }
@@ -283,6 +300,8 @@ async function cmdRapport(args) {
   const texte = format === 'md' ? rapportMarkdown(audit) : rapportJson(audit)
   if (o.sortie) {
     const f = sousDonnees(o.sortie)
+    const rel = path.relative(path.resolve(dossierDonnees()), f).split(path.sep)
+    if (RESERVES.test(rel[0] ?? '')) throw new ErreurGeo(`--sortie ne peut pas écrire dans ${rel[0]} (fichier de l'outil).`)
     fs.mkdirSync(path.dirname(f), { recursive: true })
     fs.writeFileSync(f, texte)
     ecrireJson({ fichier: f, format })

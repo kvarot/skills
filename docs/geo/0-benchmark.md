@@ -166,7 +166,7 @@ Lecture retenue (choix du concepteur, pas une règle publiée) : publier un **ta
 ### 2.5 Consignes officielles Google et Bing
 
 - **OFFICIEL** Google (https://developers.google.com/search/docs/appearance/ai-features) : aucune exigence ni optimisation spéciale pour AI Overviews / AI Mode ; être indexé et éligible à un extrait suffit. Données structurées non requises pour la recherche générative, mais doivent correspondre au contenu visible. Pas de découpage en petits morceaux, pas de longueur idéale. « Optimiser pour la recherche générative, c'est encore du SEO. » Chercher des mentions inauthentiques n'aide pas. Contrôles : règles Googlebot, `nosnippet`, `data-nosnippet`, `max-snippet`, `noindex`.
-- **OFFICIEL** Bing (blog Webmaster, 2026-02-10) : IndexNow garde l'information fraîche dans la recherche et les expériences IA ; titres clairs, tableaux et FAQ aident à faire ressortir l'information. Aucune mention de schema.
+- **OFFICIEL** Bing (blog Webmaster, 2026-02-10, https://blogs.bing.com/webmaster/February-2026/Introducing-AI-Performance-in-Bing-Webmaster-Tools-Public-Preview) : IndexNow garde l'information fraîche dans la recherche et les expériences IA ; titres clairs, tableaux et FAQ aident à faire ressortir l'information. Aucune mention de schema.
 - **MARKETING** Microsoft Advertising (2025-10-08) : le schema aide à comprendre le contenu ; éviter les murs de texte, les réponses cachées dans des onglets, l'information clé seulement en PDF ou image ; « pas de stratégie secrète ». Aucun effet chiffré.
 
 ### 2.6 Affirmations à ne jamais reprendre

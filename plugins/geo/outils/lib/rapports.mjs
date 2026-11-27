@@ -37,6 +37,9 @@ const ORDRE_ROLES = ['indexation', 'consultation-utilisateur', 'entrainement', '
 // One table cell / list item: single line, no pipe.
 const cellule = (v) => String(v ?? '').replace(/[\r\n\t]+/g, ' ').replace(/\|/g, '\\|').trim()
 const code = (v) => '`' + String(v ?? '').replace(/[\r\n\t`]+/g, ' ').trim() + '`'
+// Full Markdown escape for untrusted text (page values, third-party answers): no live link, image, emphasis, heading or table break.
+const md = (v) => String(typeof v === 'object' && v !== null ? v.extrait ?? '' : v ?? '')
+  .replace(/[\r\n\t]+/g, ' ').trim().replace(/[\\`*_{}[\]()#+!<>~&|]/g, '\\$&')
 const tab = (a) => (Array.isArray(a) ? a : [])
 const obj = (o) => (o && typeof o === 'object' && !Array.isArray(o) ? o : {})
 
@@ -51,16 +54,16 @@ function tableau(entetes, lignes) {
 function ligneConstat(c) {
   const p = obj(c.preuve)
   const nb = tab(c.pages).length
-  const morceaux = [`- **${cellule(c.id)}** (${cellule(c.severite)}) : ${cellule(c.detail)}`]
+  const morceaux = [`- **${cellule(c.id)}** (${cellule(c.severite)}) : ${md(c.detail)}`]
   if (nb) morceaux[0] += ` (${nb} page${nb > 1 ? 's' : ''})`
-  if (p.detail || p.url) morceaux.push(`  - Preuve (${cellule(p.type)}) : ${code(p.url)} ${cellule(p.detail)}`.trimEnd())
+  if (p.detail || p.url) morceaux.push(`  - Preuve (${cellule(p.type)}) : ${code(p.url)} ${md(p.detail)}`.trimEnd())
   const ex = obj(c.extrait)
-  if (typeof ex.extrait === 'string' && ex.extrait) morceaux.push(`  - Extrait non fiable : « ${cellule(ex.extrait)} »`)
+  if (typeof ex.extrait === 'string' && ex.extrait) morceaux.push(`  - Extrait non fiable : « ${md(ex.extrait)} »`)
   return morceaux.join('\n')
 }
 
-// Scores that need a measurement have no criterion: they belong to "not measured", not to the potential scores.
-const estMesure = (s) => tab(s.criteres).length === 0
+export const SCORES_MESURES = ['autorite-thematique', 'reputation-externe', 'positionnement-concurrentiel', 'visibilite-mesuree']
+const estMesure = (s) => SCORES_MESURES.includes(s?.id)
 
 function sectionResume(a, constats) {
   const compte = (sev) => constats.filter((c) => c.severite === sev).length
@@ -87,11 +90,20 @@ function sectionCorriger(constats) {
   return parts.join('\n\n')
 }
 
-function sectionRobots(robots) {
+const BANDEAU_ROBOTS = {
+  present: (r) => `robots.txt observé (statut ${cellule(r.statut)}).`,
+  inaccessible: () => 'robots.txt inaccessible : tout est considéré interdit (RFC 9309).',
+  absent: () => 'Aucun robots.txt observé : rien n\'est interdit.',
+  'dossier-present': () => 'robots.txt présent dans le dossier.',
+  'dossier-absent': () => 'Aucun robots.txt dans le dossier.',
+}
+
+function sectionRobots(robots, robotsTxt) {
   const liste = tab(robots)
-  if (!liste.length) return 'Accès des robots IA non évalué.'
-  const parts = []
-  const roles = [...new Set([...ORDRE_ROLES, ...liste.map((r) => r.role)])].filter((r) => liste.some((x) => x.role === r))
+  const bandeau = BANDEAU_ROBOTS[obj(robotsTxt).etat]?.(obj(robotsTxt))
+  if (!liste.length) return bandeau ?? 'Accès des robots IA non évalué.'
+  const parts = bandeau ? [bandeau] : []
+  const roles =[...new Set([...ORDRE_ROLES, ...liste.map((r) => r.role)])].filter((r) => liste.some((x) => x.role === r))
   for (const role of roles) {
     const lignes = liste.filter((r) => r.role === role).map((r) => [
       r.jeton,
@@ -123,12 +135,12 @@ function sectionEntite(entite) {
   if (!Object.keys(e).length) return 'Entité non analysée.'
   const noms = tab(e.noms)
   const lignes = [
-    `- Noms déclarés : ${noms.length ? noms.map((n) => '« ' + cellule(obj(n).extrait ?? n) + ' »').join(', ') : 'aucun'}.`,
-    `- Types : ${tab(e.types).map(cellule).join(', ') || 'aucun'}.`,
+    `- Noms déclarés : ${noms.length ? noms.map((n) => '« ' + md(n) + ' »').join(', ') : 'aucun'}.`,
+    `- Types : ${tab(e.types).map(md).join(', ') || 'aucun'}.`,
     `- Profils sameAs : ${tab(e.sameAs).length}.`,
   ]
   const w = obj(e.wikidata)
-  if (w.statut) lignes.push(`- Wikidata : ${cellule(w.statut)}${w.raison ? ' (' + cellule(w.raison) + ')' : ''}.`)
+  if (w.statut) lignes.push(`- Wikidata : ${md(w.statut)}${w.raison ? ' (' + md(w.raison) + ')' : ''}.`)
   if (tab(e.constats).length) lignes.push('- Constats d\'entité : ' + tab(e.constats).map((c) => cellule(c.id)).join(', ') + '.')
   return lignes.join('\n')
 }
@@ -158,7 +170,7 @@ function sectionCouverture(a) {
   for (const s of sansCritere) lignes.push(`- Score ${cellule(s.id)} : couverture ${Math.round((s.couverture ?? 0) * 100)} %.`)
   if (erreurs.length) {
     lignes.push(`- Erreurs et pages non collectées : ${erreurs.length}.`)
-    for (const e of erreurs.slice(0, 20)) lignes.push(`  - ${code(obj(e).url)} : ${cellule(obj(e).raison)}`)
+    for (const e of erreurs.slice(0, 20)) lignes.push(`  - ${code(obj(e).url)} : ${md(obj(e).raison)}`)
     if (erreurs.length > 20) lignes.push(`  - … et ${erreurs.length - 20} autre(s).`)
   } else {
     lignes.push('- Aucune erreur de collecte.')
@@ -167,11 +179,11 @@ function sectionCouverture(a) {
 }
 
 function sectionNonMesure(scores) {
-  const mesures = tab(scores).filter(estMesure)
-  const lignes = ['Cet audit est déterministe : il ne mesure aucune réponse d\'assistant. Non mesuré :', '']
-  lignes.push('Scores :')
-  if (mesures.length) for (const s of mesures) lignes.push(`- ${cellule(s.id)} : non mesuré${s.raison ? ' (' + cellule(s.raison) + ')' : ''}`)
-  else lignes.push('- autorite-thematique, reputation-externe, positionnement-concurrentiel, visibilite-mesuree : non mesuré')
+  const lignes = ['Cet audit est déterministe : il ne mesure aucune réponse d\'assistant. Non mesuré :', '', 'Scores :']
+  for (const id of SCORES_MESURES) {
+    const raison = tab(scores).find((s) => s?.id === id)?.raison
+    lignes.push(`- ${id} : non mesuré${raison ? ' (' + cellule(raison) + ')' : ''}`)
+  }
   lignes.push('', 'Plateformes :')
   for (const p of PLATEFORMES) lignes.push(`- ${p} : non mesuré`)
   return lignes.join('\n')
@@ -193,7 +205,7 @@ export function rapportMarkdown(audit) {
   const corps = [
     sectionResume(a, constats),
     sectionCorriger(constats),
-    sectionRobots(a.robots_ia),
+    sectionRobots(a.robots_ia, a.robots_txt),
     sectionScores(a.scores),
     sectionEntite(a.entite),
     sectionContenu(a.contenu_resume),
@@ -208,7 +220,7 @@ export function rapportMarkdown(audit) {
 // rapportJson(audit) -> string. Keys in a fixed order so two renderings of one audit are identical.
 export function rapportJson(audit) {
   const a = obj(audit)
-  const ordre = ['audit_id', 'origine', 'constats', 'scores', 'robots_ia', 'contenu_resume', 'entite', 'erreurs', 'exploration']
+  const ordre = ['audit_id', 'origine', 'constats', 'scores', 'robots_ia', 'robots_txt', 'contenu_resume', 'entite', 'erreurs', 'exploration']
   const sortie = {}
   for (const k of ordre) if (k in a) sortie[k] = a[k]
   for (const k of Object.keys(a).sort()) if (!(k in sortie)) sortie[k] = a[k]
@@ -245,16 +257,23 @@ export function passagesComplets(page, contenu) {
 // Summary of the entity analysis kept in the audit row: names are capped excerpts, nothing else from the pages.
 export function resumerEntite(entite) {
   const e = obj(entite)
+  const w = obj(e.wikidata)
+  const sur = (v, max = 280) => extrait(typeof v === 'string' ? v : v?.type ?? v?.valeur ?? '', max)
   return {
     noms: tab(e.noms).map((n) => ({ ...extrait(n?.valeur ?? ''), sources: tab(n?.sources).length })),
-    types: tab(e.types).map((t) => String(t?.type ?? t).slice(0, 80)),
-    sameAs: tab(e.sameAs).map((u) => String(u).slice(0, 300)),
+    types: tab(e.types).map((t) => sur(t, 80)),
+    sameAs: tab(e.sameAs).map((u) => sur(u)),
     coordonnees: {
       telephones: tab(obj(e.coordonnees).telephones).length,
       adresses: tab(obj(e.coordonnees).adresses).length,
       emails: tab(obj(e.coordonnees).emails).length,
     },
-    wikidata: obj(e.wikidata),
-    constats: tab(e.constats),
+    // Third-party answer: only the status word and well-formed ids stay raw; the reason is an excerpt.
+    wikidata: {
+      statut: ['non_verifie', 'absent', 'trouve', 'ambigu'].includes(w.statut) ? w.statut : 'non_verifie',
+      ids: tab(w.ids).filter((i) => /^Q\d{1,12}$/.test(String(i))).map(String),
+      ...(w.raison ? { raison: extrait(w.raison) } : {}),
+    },
+    constats: tab(e.constats).map((c) => ({ ...c, detail: extrait(c.detail ?? '', 400).extrait })),
   }
 }

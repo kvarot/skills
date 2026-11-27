@@ -87,7 +87,7 @@ test('auditer après autoriser : code 0, JSON valide, clés attendues dans l’o
   assert.equal(r.code, 0, r.stderr)
   const s = json(r)
   assert.equal(r.stderr, '')
-  assert.deepEqual(Object.keys(s), ['audit_id', 'origine', 'constats', 'scores', 'robots_ia', 'contenu_resume', 'entite', 'erreurs', 'exploration'])
+  assert.deepEqual(Object.keys(s), ['audit_id', 'origine', 'constats', 'scores', 'robots_ia', 'robots_txt', 'contenu_resume', 'entite', 'erreurs', 'exploration'])
   assert.equal(s.origine, base)
   assert.ok(Number.isInteger(s.audit_id))
   assert.ok(s.scores.length >= 4)
@@ -115,10 +115,26 @@ test('auditer --echec-si important : seuil plus bas que bloquant ; valeur inconn
   const mauvais = await geo(['auditer', '--url', base, '--autoriser-local', '--echec-si', 'mineur'], home)
   assert.equal(mauvais.code, 1)
   assert.equal(mauvais.stdout, '')
-  const r = await geo(['auditer', '--url', base, '--autoriser-local', '--echec-si', 'important'], home)
-  const s = json(r)
-  const attendu = s.constats.some((c) => c.severite === 'bloquant' || c.severite === 'important') ? 2 : 0
-  assert.equal(r.code, attendu)
+  // Folder fixture known to give important findings (no sitemap, no Organization) and no bloquant one.
+  const site = path.join(home, 'site-important')
+  fs.mkdirSync(site)
+  fs.writeFileSync(path.join(site, 'index.html'), `<!doctype html><html lang="fr"><head><title>Lumivia</title><meta name="description" content="x"><meta name="viewport" content="width=device-width"><meta name="author" content="A"></head><body><h1>Lumivia</h1><h2>Qu'est-ce que Lumivia ?</h2><p>${PARAGRAPHES[0]}</p><p>${PARAGRAPHES[1]}</p></body></html>`)
+  const sans = await geo(['auditer', '--dossier', site], home)
+  const severites = json(sans).constats.map((c) => c.severite)
+  assert.ok(severites.includes('important') && !severites.includes('bloquant'))
+  assert.equal(sans.code, 0)
+  assert.equal((await geo(['auditer', '--dossier', site, '--echec-si', 'bloquant'], home)).code, 0)
+  const r = await geo(['auditer', '--dossier', site, '--echec-si', 'important'], home)
+  assert.equal(r.code, 2)
+  assert.ok(json(r).audit_id)
+})
+
+test('auditer --wikidata sans hôte wikidata autorisé : code 3, stdout vide', async () => {
+  const home = await homeAutorise()
+  const r = await geo(['auditer', '--url', base, '--autoriser-local', '--wikidata'], home)
+  assert.equal(r.code, 3)
+  assert.equal(r.stdout, '')
+  assert.match(r.stderr, /www\.wikidata\.org/)
 })
 
 test('option inconnue : code 1, usage sur stderr, stdout vide', async () => {
@@ -328,8 +344,9 @@ test('idees-fausses : 12 entrées complètes avec motifs valides', () => {
   assert.equal(registre.length, 12)
   assert.equal(new Set(registre.map((i) => i.id)).size, 12)
   for (const i of registre) {
-    for (const k of ['id', 'affirmation', 'pourquoi', 'source', 'verifie_le']) assert.ok(typeof i[k] === 'string' && i[k], `${i.id}.${k}`)
-    assert.match(i.source, /^https:\/\//)
+    for (const k of ['id', 'affirmation', 'pourquoi', 'verifie_le']) assert.ok(typeof i[k] === 'string' && i[k], `${i.id}.${k}`)
+    assert.ok([].concat(i.source).length >= 1)
+    for (const u of [].concat(i.source)) assert.match(u, /^https:\/\//)
     assert.equal(i.verifie_le, '2026-11-27')
     assert.ok(Array.isArray(i.motifs) && i.motifs.length >= 1)
     for (const m of i.motifs) new RegExp(m, 'iu')
@@ -338,10 +355,10 @@ test('idees-fausses : 12 entrées complètes avec motifs valides', () => {
 
 const POSITIFS = {
   'llms-txt-visibilite': ['Le fichier llms.txt améliore la visibilité du site.', 'llms.txt is read by AI crawlers.'],
-  'geo-plus-40-pourcent': ['Le GEO augmente la visibilité de 40 %.', 'GEO increases your visibility by 40%.'],
+  'geo-plus-40-pourcent': ['Le GEO augmente la visibilité de 40 %.', 'GEO increases your visibility by 40%.', 'Gagnez 40 % de visibilité grâce au GEO.', 'Gain 40% more visibility with GEO.'],
   'schema-fait-citer': ['Le balisage schema fait citer votre site.', 'Structured data gets you cited by ChatGPT.'],
   'longueur-ideale': ['La longueur idéale est de 300 mots.', 'The ideal length for AI answers is short.'],
-  'google-extended-ai-overviews': ['Bloquer Google-Extended retire votre site d’AI Overviews.', 'Blocking Google-Extended removes you from AI Overviews.'],
+  'google-extended-ai-overviews': ['Bloquer Google-Extended retire votre site d’AI Overviews.', 'Bloquer Google-Extended retire d’AI Overviews.', 'Blocking Google-Extended removes you from AI Overviews.'],
   'robots-txt-bloque-tout': ['Le fichier robots.txt bloque tous les robots IA.', 'robots.txt blocks all AI bots.'],
   'rang-chatgpt': ['Votre marque est n° 3 dans ChatGPT.', 'Your brand is ranked 2 in ChatGPT.'],
   'api-egale-interface': ['Les réponses API sont celles que voient les utilisateurs.', 'API responses are the same as what users see.'],
@@ -350,12 +367,22 @@ const POSITIFS = {
   'api-officielle-ai-overviews': ['Cet outil mesure AI Overviews via une API officielle.', 'This tool measures Copilot through the official API.'],
   'indexnow-copilot': ['IndexNow garantit une place dans Copilot.', 'IndexNow guarantees Copilot visibility.'],
 }
-const NEGATIFS = [
-  'llms.txt n’améliore pas la visibilité et n\'est lu par aucun robot documenté.',
-  'Un fichier robots.txt n’empêche pas tous les accès IA.',
-  'Aucune longueur idéale n’est documentée.',
-  'GrokBot n’est pas un robot documenté.',
-]
+// One correct refutation per entry, FR and EN: never flagged.
+const REFUTATIONS = {
+  'llms-txt-visibilite': ['llms.txt n’améliore pas la visibilité.', "llms.txt n'est lu par aucun robot documenté.", 'llms.txt does not improve visibility.'],
+  'geo-plus-40-pourcent': ['Le GEO n’augmente pas la visibilité de 40 %.', 'GEO does not increase visibility by 40%.'],
+  'schema-fait-citer': ['Le balisage schema ne fait pas citer un site.', "Structured data doesn't get you cited."],
+  'longueur-ideale': ["Il n'y a pas de longueur idéale.", 'There is no ideal length.', 'Aucune longueur idéale n’est documentée.'],
+  'google-extended-ai-overviews': ['Bloquer Google-Extended ne retire pas d’AI Overviews.', 'Blocking Google-Extended does not remove you from AI Overviews.'],
+  'robots-txt-bloque-tout': ['robots.txt ne bloque pas tous les robots IA.', 'robots.txt does not block all AI bots.'],
+  'rang-chatgpt': ['Ne dites jamais : votre marque est n° 3 dans ChatGPT.', 'Never say your brand is ranked 2 in ChatGPT.'],
+  'api-egale-interface': ['Les réponses API ne sont pas celles que voient les utilisateurs.', 'API responses are not the same as what users see.'],
+  'robots-non-documentes': ['GrokBot n’est pas un robot documenté.', 'GrokBot is not a documented crawler.'],
+  'mentions-web-citations': ['Les mentions sur le web ne provoquent pas de citations.', 'Web mentions do not cause AI citations.'],
+  'api-officielle-ai-overviews': ['Aucun outil ne mesure AI Overviews via une API officielle.', 'No tool measures AI Overviews through an official API.'],
+  'indexnow-copilot': ['IndexNow ne garantit pas de place dans Copilot.', 'IndexNow does not guarantee Copilot visibility.'],
+}
+const NEGATIFS = Object.values(REFUTATIONS).flat()
 
 test('idees-fausses : chaque motif détecte l’affirmation énoncée comme un fait, FR et EN', () => {
   for (const i of registre) {
@@ -365,7 +392,8 @@ test('idees-fausses : chaque motif détecte l’affirmation énoncée comme un f
   }
 })
 
-test('idees-fausses : les formulations négatives ne sont pas détectées', () => {
+test('idees-fausses : une réfutation par entrée, FR et EN, jamais détectée', () => {
+  assert.deepEqual(Object.keys(REFUTATIONS).sort(), registre.map((i) => i.id).sort())
   for (const ph of NEGATIFS) for (const i of registre) for (const m of i.motifs) assert.ok(!new RegExp(m, 'iu').test(ph), `${i.id} détecte à tort : ${ph}`)
 })
 
@@ -398,4 +426,134 @@ test('idees-fausses : le modèle de rapport et les .md des skills et référence
 test('idees-fausses : le marqueur « > Idée fausse : » autorise la citation réfutée, pas le reste', () => {
   assert.deepEqual(trouvaillesIdees('> Idée fausse : « llms.txt améliore la visibilité ».'), [])
   assert.equal(trouvaillesIdees('llms.txt améliore la visibilité.').length, 1)
+})
+
+// --- untrusted output: stdout and Markdown ------------------------------------------
+
+const LONG = 'x'.repeat(600)
+const NOM_PIEGE = '[Cliquez](javascript:alert(1)) ![](https://tracker.example/p.gif)'
+const jsonLdPiege = JSON.stringify({
+  '@context': 'https://schema.org', '@type': ['Organization', '<img src=x onerror=alert(1)>' + LONG], name: NOM_PIEGE,
+  sameAs: ['https://evil.example/<img src=x onerror=alert(1)>' + LONG, 'https://ok.example/profil'],
+})
+
+test('entité : JSON-LD hostile (types, sameAs, nom) : stdout ne porte que des extraits bornés ; Markdown sans lien ni image actifs', async () => {
+  sites['/piege/'] = pageBonne().replace('</head>', `<script type="application/ld+json">${jsonLdPiege}</script></head>`)
+  try {
+    const home = await homeAutorise()
+    const r = await geo(['auditer', '--url', base + '/piege/', '--autoriser-local'], home)
+    assert.equal(r.code, 0, r.stderr)
+    assert.ok(!r.stdout.includes('<img'))
+    const s = json(r)
+    for (const o of [...s.entite.types, ...s.entite.sameAs, ...s.entite.noms]) {
+      assert.equal(o.non_fiable, true)
+      assert.ok(o.extrait.length <= 280)
+    }
+    assert.ok(s.entite.sameAs.length >= 1)
+    assert.equal(typeof s.entite.wikidata.statut, 'string')
+    const md = (await geo(['rapport', '--audit', String(s.audit_id), '--format', 'md'], home)).stdout
+    assert.ok(!md.includes('<img'))
+    assert.doesNotMatch(md, /\]\(/)
+    assert.doesNotMatch(md, /!\[/)
+  } finally { delete sites['/piege/'] }
+})
+
+test('rapportMarkdown : extrait, nom, type, détail et erreur hostiles : aucun lien ni image actifs', () => {
+  const md = rapportMarkdown({
+    origine: 'https://x.example',
+    constats: [{ id: 'GEO-X', severite: 'bloquant', pages: [], preuve: { type: 'html', url: 'u', detail: NOM_PIEGE }, detail: NOM_PIEGE, extrait: { extrait: NOM_PIEGE, non_fiable: true } }],
+    entite: { noms: [{ extrait: NOM_PIEGE, non_fiable: true }], types: [{ extrait: NOM_PIEGE, non_fiable: true }], sameAs: [], wikidata: { statut: 'non_verifie', raison: { extrait: NOM_PIEGE, non_fiable: true } }, constats: [] },
+    erreurs: [{ url: 'https://x.example/', raison: NOM_PIEGE }],
+  })
+  assert.doesNotMatch(md, /\]\(/)
+  assert.doesNotMatch(md, /!\[/)
+  assert.ok(md.includes('Cliquez'))
+})
+
+test('« Ce qui n’a pas été mesuré » repose sur les quatre identifiants, pas sur l’absence de critères', () => {
+  const md = rapportMarkdown({ origine: 'https://x.example', scores: [{ id: 'seo-technique', valeur: null, couverture: 0, criteres: [], raison: 'rien' }] })
+  const part = md.split("## Ce qui n'a pas été mesuré")[1].split('## Limites')[0]
+  for (const id of ['autorite-thematique', 'reputation-externe', 'positionnement-concurrentiel', 'visibilite-mesuree']) assert.match(part, new RegExp(id + ' : non mesuré'))
+  assert.ok(!part.includes('seo-technique'))
+  assert.ok(md.split('## Scores de potentiel')[1].split('## Entité')[0].includes('seo-technique'))
+})
+
+// --- robots.txt status ---------------------------------------------------------------
+
+async function avecServeur(robots, fn) {
+  const srv = http.createServer((req, res) => {
+    if (req.url === '/robots.txt') {
+      res.writeHead(robots.statut, { 'content-type': 'text/plain' })
+      return res.end(robots.corps ?? 'non')
+    }
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
+    res.end(pageBonne())
+  })
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r))
+  try { await fn(`http://127.0.0.1:${srv.address().port}`) } finally { srv.close() }
+}
+
+test('statut de robots.txt : 5xx inaccessible, 404 absent, 200 présent, dossier sans robots.txt', async () => {
+  const home = await homeAutorise()
+  await avecServeur({ statut: 503 }, async (b) => {
+    const s = json(await geo(['auditer', '--url', b, '--autoriser-local'], home))
+    assert.equal(s.robots_txt.etat, 'inaccessible')
+    assert.ok(s.robots_ia.every((r) => r.chemins_bloques.length > 0))
+    const md = (await geo(['rapport', '--audit', String(s.audit_id), '--format', 'md'], home)).stdout
+    assert.match(md, /robots\.txt inaccessible : tout est considéré interdit \(RFC 9309\)/)
+    const rb = json(await geo(['robots', '--url', b, '--autoriser-local'], home))
+    assert.equal(rb.robots_txt.etat, 'inaccessible')
+    assert.ok(rb.robots.every((r) => r.politique.startsWith('inaccessible')))
+  })
+  await avecServeur({ statut: 404 }, async (b) => {
+    const s = json(await geo(['auditer', '--url', b, '--autoriser-local'], home))
+    assert.equal(s.robots_txt.etat, 'absent')
+    assert.ok(s.robots_ia.every((r) => r.chemins_bloques.length === 0))
+    const md = (await geo(['rapport', '--audit', String(s.audit_id), '--format', 'md'], home)).stdout
+    assert.match(md, /Aucun robots\.txt observé : rien n'est interdit/)
+  })
+  await avecServeur({ statut: 200, corps: 'User-agent: *\nAllow: /\n' }, async (b) => {
+    const s = json(await geo(['auditer', '--url', b, '--autoriser-local'], home))
+    assert.equal(s.robots_txt.etat, 'present')
+    const md = (await geo(['rapport', '--audit', String(s.audit_id), '--format', 'md'], home)).stdout
+    assert.match(md, /robots\.txt observé \(statut 200\)/)
+  })
+  const site = path.join(home, 'dossier-sans-robots')
+  fs.mkdirSync(site)
+  fs.writeFileSync(path.join(site, 'index.html'), pageBonne())
+  const d = json(await geo(['auditer', '--dossier', site], home))
+  assert.equal(d.robots_txt.etat, 'dossier-absent')
+  const md = (await geo(['rapport', '--audit', String(d.audit_id), '--format', 'md'], home)).stdout
+  assert.match(md, /Aucun robots\.txt dans le dossier/)
+  fs.writeFileSync(path.join(site, 'robots.txt'), 'User-agent: *\nAllow: /\n')
+  assert.equal(json(await geo(['auditer', '--dossier', site], home)).robots_txt.etat, 'dossier-present')
+})
+
+test('erreurs : url et raison passent par extrait (échappées, bornées)', async () => {
+  const home = await homeAutorise()
+  await avecServeur({ statut: 503 }, async (b) => {
+    const s = json(await geo(['auditer', '--url', b, '--autoriser-local'], home))
+    assert.ok(s.erreurs.length >= 1)
+    for (const e of s.erreurs) { assert.ok(e.raison.length <= 280); assert.ok(!/[<>]/.test(e.raison + e.url)) }
+  })
+})
+
+test('rapport --sortie refuse les fichiers de l’outil (session.json, geo.sqlite, cache, tmp)', async () => {
+  const home = await homeAutorise()
+  const id = json(await geo(['auditer', '--url', base, '--autoriser-local'], home)).audit_id
+  const avant = fs.readFileSync(path.join(home, 'session.json'), 'utf8')
+  for (const cible of ['session.json', 'geo.sqlite', 'geo.sqlite-wal', './session.json', 'tmp/x.md', 'cache/x.md']) {
+    const r = await geo(['rapport', '--audit', String(id), '--format', 'md', '--sortie', cible], home)
+    assert.equal(r.code, 1, cible)
+  }
+  assert.equal(fs.readFileSync(path.join(home, 'session.json'), 'utf8'), avant)
+})
+
+test('idees-fausses : sources alignées sur les affirmations réfutées', () => {
+  const src = (id) => [].concat(registre.find((i) => i.id === id).source)
+  assert.deepEqual(src('indexnow-copilot'), ['https://blogs.bing.com/webmaster/February-2026/Introducing-AI-Performance-in-Bing-Webmaster-Tools-Public-Preview'])
+  assert.ok(src('rang-chatgpt')[0].startsWith('https://sparktoro.com/blog/'))
+  assert.ok(src('llms-txt-visibilite').includes('https://ahrefs.com/blog/llmstxt-study/'))
+  assert.ok(src('robots-non-documentes').length >= 3)
+  assert.ok(!src('robots-non-documentes').some((u) => u.includes('google.com')))
 })
