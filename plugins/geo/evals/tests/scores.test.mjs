@@ -43,7 +43,8 @@ test('une même cause pèse une fois : robots.txt bloque tout + robot de recherc
   const un = score(calcul({ constats: [constat('GEO-ROBOTS-RECHERCHE-BLOQUE')] }), 'acces-ia')
   const deux = score(calcul({ constats: [constat('GEO-ROBOTS-RECHERCHE-BLOQUE'), constat('GEO-ROBOTSTXT-BLOQUE-TOUT')] }), 'acces-ia')
   assert.equal(critere(deux, 'recherche-non-bloquee').acquis, 0)
-  assert.equal(deux.valeur, un.valeur)
+  assert.equal(critere(deux, 'recherche-non-bloquee').acquis, critere(un, 'recherche-non-bloquee').acquis)
+  assert.equal(critere(deux, 'recherche-non-bloquee').poids, 30)
   assert.match(critere(deux, 'recherche-non-bloquee').preuve, /GEO-ROBOTSTXT-BLOQUE-TOUT/)
   assert.match(critere(deux, 'recherche-non-bloquee').preuve, /GEO-ROBOTS-RECHERCHE-BLOQUE/)
 })
@@ -123,11 +124,13 @@ test('identité numérique : organisation et sameAs valides, Wikidata non vérif
   assert.equal(critere(s, 'wikidata').acquis, null)
 })
 
-test('Wikidata : trouvé = acquis, ambigu = non calculé, absent = 0', () => {
+test('Wikidata : trouvé = acquis, ambigu et absent = non calculés (absence normale, non pénalisée)', () => {
   const wd = (statut) => critere(score(calcul({ entite: { ...entiteOk, wikidata: { statut } } }), 'identite-numerique'), 'wikidata').acquis
   assert.equal(wd('trouve'), 1)
   assert.equal(wd('ambigu'), null)
-  assert.equal(wd('absent'), 0)
+  assert.equal(wd('absent'), null)
+  const c = critere(score(calcul({ entite: { ...entiteOk, wikidata: { statut: 'absent' } } }), 'identite-numerique'), 'wikidata')
+  assert.match(c.preuve, /absence normale pour une petite structure, non pénalisée/)
 })
 
 test('sameAs non évalué quand aucune organisation n’est déclarée (pas de double pénalité)', () => {
@@ -197,4 +200,65 @@ test('SCORING.md documente chaque critère et la phrase fixe', () => {
   const poids = chargerPoids()
   for (const def of Object.values(poids.scores)) for (const c of def.criteres) assert.ok(doc.includes(`\`${c.id}\``), c.id)
   assert.ok(doc.includes('un score de potentiel élevé ne garantit aucune citation'))
+})
+
+// --- fix round 1 ---
+test('zéro page + robots.txt bloque tout : critère à 0, acces-ia calculé', () => {
+  const liste = calcul({ pages: [], constats: [constat('GEO-ROBOTSTXT-BLOQUE-TOUT'), constat('GEO-ROBOTS-RECHERCHE-BLOQUE'), constat('GEO-ROBOTS-CONSULTATION-BLOQUE')] })
+  assert.equal(critere(score(liste, 'seo-technique'), 'robots-txt-ouvert').acquis, 0)
+  const a = score(liste, 'acces-ia')
+  assert.equal(critere(a, 'recherche-non-bloquee').acquis, 0)
+  assert.notEqual(a.valeur, null)
+})
+
+test('zéro page + défi WAF : pas-de-defi-waf à 0, preuve explicite', () => {
+  const c = critere(score(calcul({ pages: [], constats: [constat('GEO-WAF-DEFI', [`${O}/`])] }), 'acces-ia'), 'pas-de-defi-waf')
+  assert.equal(c.acquis, 0)
+  assert.match(c.preuve, /défi WAF : aucune page analysable/)
+})
+
+test('même cause : robots.txt bloque tout rend la consultation non calculée', () => {
+  const avec = score(calcul({ constats: [constat('GEO-ROBOTSTXT-BLOQUE-TOUT'), constat('GEO-ROBOTS-CONSULTATION-BLOQUE')] }), 'acces-ia')
+  const c = critere(avec, 'consultation-non-bloquee')
+  assert.equal(c.acquis, null)
+  assert.match(c.preuve, /même cause que recherche-non-bloquee \(robots\.txt bloque tout\)/)
+  const seul = score(calcul({ constats: [constat('GEO-ROBOTS-CONSULTATION-BLOQUE')] }), 'acces-ia')
+  assert.equal(critere(seul, 'consultation-non-bloquee').acquis, 0)
+})
+
+test('URL en erreur : dénominateur = URL connues (pages, erreurs, sitemap), preuve fidèle', () => {
+  const erreurs = [1, 2, 3, 4].map((i) => `${O}/casse${i}`)
+  const s = score(calcul({ constats: [constat('GEO-HTTP-ERREUR', erreurs)] }), 'seo-technique')
+  const c = critere(s, 'reponses-http')
+  assert.equal(c.acquis, 0.5)
+  assert.match(c.preuve, /4 URL sur 8 URL connues/)
+})
+
+test('URL du sitemap comptées dans les URL connues via la collecte', () => {
+  const collecte = { erreurs: [], site: { sitemaps: [{ urls: [`${O}/a`, `${O}/b`, `${O}/c`, `${O}/d`] }] } }
+  const c = critere(score(calcul({ collecte, constats: [constat('GEO-SITEMAP-INCOHERENT', [`${O}/a`])] }), 'seo-technique'), 'sitemap-coherent')
+  assert.equal(c.acquis, 0.875)
+})
+
+test('critère par page : les URL non collectées ne comptent pas', () => {
+  const c = critere(score(calcul({ constats: [constat('GEO-NOINDEX', [`${O}/p1`, `${O}/ailleurs`])] }), 'seo-technique'), 'indexable')
+  assert.equal(c.acquis, 0.75)
+})
+
+test('site multilingue : 1 page FR + 49 DE, couverture de la qualité sémantique basse, valeur null', () => {
+  const contenu = [contenuFr(), ...Array.from({ length: 49 }, () => contenuAutre)]
+  const q = score(calcul({ pages: pages(50), contenu }), 'qualite-semantique')
+  assert.ok(q.couverture <= 0.5)
+  assert.equal(q.valeur, null)
+  assert.match(critere(q, 'sources-citees').preuve, /49 page\(s\)/)
+})
+
+test('auteur : seules les pages d’article comptent, non calculé sans page d’article', () => {
+  const sansArticle = [`${O}/`, `${O}/contact`, `${O}/mentions-legales`].map((url) => ({ url, title: 't', hn: [] }))
+  const s = score(calcul({ pages: sansArticle, contenu: [contenuFr(), contenuFr(), contenuFr()], constats: [constat('GEO-CONTENU-AUTEUR-ABSENT', sansArticle.map((p) => p.url))] }), 'potentiel-citation')
+  assert.equal(critere(s, 'auteur-declare').acquis, null)
+  assert.match(critere(s, 'auteur-declare').preuve, /aucune page d’article/)
+  const avec = [...sansArticle, { url: `${O}/blog/un-article`, title: 't', hn: [] }]
+  const s2 = score(calcul({ pages: avec, contenu: avec.map(() => contenuFr()), constats: [constat('GEO-CONTENU-AUTEUR-ABSENT', avec.map((p) => p.url))] }), 'potentiel-citation')
+  assert.equal(critere(s2, 'auteur-declare').acquis, 0)
 })

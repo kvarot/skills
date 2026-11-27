@@ -454,13 +454,19 @@ function controlesDonnees(c) {
 
 const CHEMIN_ARTICLE = /\/(blog|articles?|actualites?|news|docs?|documentation|guides?|aide|support|ressources?)\/[^/?#]+/i
 
+// Article or documentation page: Article/BlogPosting JSON-LD, or a blog/docs/guide-style path.
+// Exported so scores.mjs applies the very same rule (no duplication).
+export function estPageArticle(p) {
+  const typeArticle = noeuds(p.jsonld).some((n) => types(n).some((t) => /Article|BlogPosting/.test(t)))
+  let chemin = ''
+  try { chemin = new URL(p.url, BASE).pathname } catch { /* keep empty */ }
+  return typeArticle || CHEMIN_ARTICLE.test(chemin)
+}
+
 function controlesFraicheur(c) {
   const sansDate = c.pages.filter((p) => {
     if (p.dates?.publiee || p.dates?.modifiee) return false
-    const typeArticle = noeuds(p.jsonld).some((n) => types(n).some((t) => /Article|BlogPosting/.test(t)))
-    let chemin = ''
-    try { chemin = new URL(p.url, BASE).pathname } catch { /* keep empty */ }
-    return typeArticle || CHEMIN_ARTICLE.test(chemin)
+    return estPageArticle(p)
   })
   if (!sansDate.length) return []
   const l = tri(sansDate.map((p) => p.url))

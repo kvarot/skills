@@ -4,6 +4,8 @@
 // computed is `acquis: null` and is left out of the denominator (it lowers coverage, never the value).
 import { readFileSync } from 'node:fs'
 import { normaliser } from './scenarios.mjs'
+import { normaliser as normaliserUrl, lireSitemap } from './collecter.mjs'
+import { estPageArticle } from './controles.mjs'
 
 const URL_POIDS = new URL('../../donnees/poids.json', import.meta.url)
 export const SEUIL_COUVERTURE = 0.5
@@ -24,7 +26,7 @@ const DEFINITIONS = {
   'seo-technique': {
     'indexable': cst('pages', ['GEO-NOINDEX']),
     'robots-txt-ouvert': cst('pages', ['GEO-ROBOTSTXT-BLOQUE-TOUT']),
-    'reponses-http': cst('pages', ['GEO-HTTP-ERREUR']),
+    'reponses-http': cst('pages', ['GEO-HTTP-ERREUR'], { urls: true }),
     'titre-present': cst('pages', ['GEO-TITLE-ABSENT']),
     'canonical-meme-hote': cst('pages', ['GEO-CANONICAL-AUTRE-HOTE']),
     'contenu-unique': cst('pages', ['GEO-CONTENU-DUPLIQUE']),
@@ -40,17 +42,17 @@ const DEFINITIONS = {
     'viewport-present': cst('pages', ['GEO-VIEWPORT-ABSENT']),
     'redirections-courtes': cst('pages', ['GEO-REDIRECTION-CHAINE']),
     'profondeur-faible': cst('pages', ['GEO-PROFONDEUR']),
-    'pages-non-orphelines': cst('pages', ['GEO-PAGE-ORPHELINE']),
-    'sitemap-coherent': cst('pages', ['GEO-SITEMAP-INCOHERENT']),
+    'pages-non-orphelines': cst('pages', ['GEO-PAGE-ORPHELINE'], { urls: true }),
+    'sitemap-coherent': cst('pages', ['GEO-SITEMAP-INCOHERENT'], { urls: true }),
     'hn-sans-saut': cst('pages', ['GEO-HN-SAUT']),
     'hreflang-xdefault': cst('pages', ['GEO-HREFLANG-XDEFAULT']),
   },
   'acces-ia': {
     // One cause: search crawlers cannot read the site (blanket Disallow, or a documented search robot blocked).
     'recherche-non-bloquee': cst('pages', ['GEO-ROBOTSTXT-BLOQUE-TOUT', 'GEO-ROBOTS-RECHERCHE-BLOQUE']),
-    'pas-de-defi-waf': cst('pages', ['GEO-WAF-DEFI']),
+    'pas-de-defi-waf': cst('pages', ['GEO-WAF-DEFI'], { urls: true }),
     'html-lisible': cst('pages', ['GEO-HTML-VIDE']),
-    'consultation-non-bloquee': cst('pages', ['GEO-ROBOTS-CONSULTATION-BLOQUE']),
+    'consultation-non-bloquee': cst('pages', ['GEO-ROBOTS-CONSULTATION-BLOQUE'], { sauf: 'GEO-ROBOTSTXT-BLOQUE-TOUT', sauf_preuve: 'même cause que recherche-non-bloquee (robots.txt bloque tout)' }),
   },
   'qualite-semantique': {
     'definition-presente': cst('contenu', ['GEO-CONTENU-AUCUNE-DEFINITION']),
@@ -62,8 +64,8 @@ const DEFINITIONS = {
   'potentiel-citation': {
     'extraits-autorises': cst('pages', ['GEO-NOSNIPPET']),
     'passages-citables': { type: 'passages-citables' },
-    'auteur-declare': cst('contenu', ['GEO-CONTENU-AUTEUR-ABSENT']),
-    'date-presente': cst('pages', ['GEO-DATE-ABSENTE']),
+    'auteur-declare': cst('contenu', ['GEO-CONTENU-AUTEUR-ABSENT'], { articles: true }),
+    'date-presente': cst('pages', ['GEO-DATE-ABSENTE'], { articles: true }),
     'avis-visibles': cst('pages', ['GEO-JSONLD-AVIS-NON-VISIBLES']),
   },
   'identite-numerique': {
@@ -106,30 +108,63 @@ function rassembler(entrees) {
 
 const nul = (preuve) => ({ acquis: null, preuve })
 const sur = (n, total) => `${n} page(s) sur ${total}`
+const estContenu = (def) => def.base === 'contenu' || def.type === 'page-a-passage' || def.type === 'passages-citables'
+
+// Normalised key of a URL (same normalisation as the collector), falling back to the raw string.
+const cle = (u, base) => (typeof u === 'string' ? (normaliserUrl(u, base) ?? u) : '')
 
 function evaluerConstats(def, ctx) {
   const noms = def.ids.join(' + ')
   const trouves = ctx.constats.filter((c) => def.ids.includes(c.id))
-  if (def.sauf && ctx.constats.some((c) => c.id === def.sauf)) return nul(`${noms} : non calculé, ${def.sauf} déjà compté`)
+  if (def.sauf && ctx.constats.some((c) => c.id === def.sauf)) return nul(`${noms} : non calculé, ${def.sauf_preuve ?? `${def.sauf} déjà compté`}`)
   if (def.base === 'entite') {
     if (!ctx.entite) return nul(`${noms} : non calculé, analyse d’entité absente`)
     if (def.portee !== 'pages') return { acquis: trouves.length ? 0 : 1, preuve: `${noms} : ${trouves.length ? 'présent' : 'absent'}` }
   }
-  const total = def.base === 'contenu' ? ctx.passagesParPage.length : ctx.pages.length
+  // A site-level constat (no page list) touches every page, whatever the number of collected pages (even none).
+  if (trouves.some((c) => !c.pages || c.pages.length === 0)) return { acquis: 0, preuve: `${noms} : constat de site, touche toutes les pages` }
+  const cles = (c) => c.pages.map((u) => cle(u, ctx.base))
+  // Nothing collected because robots.txt bans everything: no page is readable by a robot.
+  if (def.ids.includes('GEO-HTML-VIDE') && ctx.pages.length === 0 && ctx.constats.some((c) => c.id === 'GEO-ROBOTSTXT-BLOQUE-TOUT')) {
+    return { acquis: 0, preuve: `${noms} : aucune page lisible par un robot (robots.txt bloque tout, aucune page collectée)` }
+  }
+
+  if (def.urls) {
+    // URL-based cause: the denominator is every URL known to the audit (collected pages, errors, sitemap), not only pages.
+    const touchees = new Set(trouves.flatMap(cles))
+    const connues = new Set([...ctx.pagesCles, ...ctx.urlsConnues, ...touchees])
+    if (connues.size === 0) return nul(`${noms} : non calculé, aucune URL connue`)
+    const acquis = ARRONDI(1 - touchees.size / connues.size)
+    if (def.ids.includes('GEO-WAF-DEFI') && touchees.size > 0 && ctx.pages.length === 0) {
+      return { acquis, preuve: `${noms} : défi WAF : aucune page analysable (${touchees.size} URL défiée(s))` }
+    }
+    return { acquis, preuve: `${noms} : ${touchees.size} URL sur ${connues.size} URL connues (pages collectées, URL en erreur, URL du sitemap)` }
+  }
+
+  let total, touchees
+  if (def.articles) {
+    const arts = ctx.pages.filter((p) => estPageArticle(p))
+    if (arts.length === 0) return nul(`${noms} : non calculé, aucune page d’article ou de documentation`)
+    const dansArts = new Set(arts.map((p) => cle(p.url, ctx.base)))
+    total = arts.length
+    touchees = new Set(trouves.flatMap(cles).filter((k) => dansArts.has(k)))
+  } else if (def.base === 'contenu') {
+    total = ctx.passagesParPage.length
+    touchees = new Set(trouves.flatMap((c) => c.pages))
+  } else {
+    total = ctx.pages.length
+    touchees = new Set(trouves.flatMap(cles).filter((k) => ctx.pagesCles.has(k)))
+  }
   if (total === 0) {
     return nul(def.base === 'contenu'
       ? `${noms} : non calculé, aucune page de langue prise en charge (langue non prise en charge ou sans passage)`
       : `${noms} : non calculé, aucune page collectée`)
   }
-  // A constat without pages is site-wide and touches every page.
-  const touchees = new Set()
-  let toutes = false
-  for (const c of trouves) {
-    if (!c.pages || c.pages.length === 0) toutes = true
-    else for (const p of c.pages) touchees.add(p)
-  }
-  const n = toutes ? total : Math.min(touchees.size, total)
-  return { acquis: ARRONDI(1 - n / total), preuve: `${noms} : ${sur(n, total)}` }
+  let n = Math.min(touchees.size, total)
+  let note = ''
+  // A present cause must never read as fully acquired: URLs outside the collected pages count for one page.
+  if (trouves.length && n === 0) { n = 1; note = ' (constat sur des URL hors pages collectées, compté pour une page)' }
+  return { acquis: ARRONDI(1 - n / total), preuve: `${noms} : ${sur(n, total)}${note}` }
 }
 
 function evaluerPageAPassage(def, ctx) {
@@ -149,7 +184,7 @@ function evaluerPassagesCitables(ctx) {
 function evaluerWikidata(ctx) {
   const statut = ctx.entite?.wikidata?.statut
   if (statut === 'trouve') return { acquis: 1, preuve: 'wikidata.statut : trouve (une entrée)' }
-  if (statut === 'absent') return { acquis: 0, preuve: 'wikidata.statut : absent (aucune entrée de même libellé)' }
+  if (statut === 'absent') return nul('wikidata.statut : absent, non calculé (absence normale pour une petite structure, non pénalisée)')
   if (statut === 'ambigu') return nul('wikidata.statut : ambigu, non calculé (désambiguïsation à faire par le propriétaire)')
   return nul(`wikidata.statut : ${statut ?? 'inconnu'}, non calculé (vérification non faite)`)
 }
@@ -189,12 +224,22 @@ function evaluer(def, ctx) {
 }
 
 // calculerScores({ constats, contenu, entite, scenarios?, pages }, poids = chargerPoids()) -> Score[]
-// Score = { id, valeur: number|null, couverture: 0..1, criteres: [{ id, classe, poids, acquis, preuve }], version_poids, raison? }
+// Score = { id, valeur: number|null, couverture: 0..1, criteres: [{ id, classe, poids, part, acquis, preuve }], version_poids, raison? }
 export function calculerScores(entrees, poids = chargerPoids()) {
   const e = entrees && typeof entrees === 'object' ? entrees : {}
   const pages = Array.isArray(e.pages) ? e.pages.filter((p) => p && typeof p === 'object') : []
   const contenu = Array.isArray(e.contenu) ? e.contenu.filter((c) => c && typeof c === 'object') : []
+  const base = pages[0]?.url ?? e.collecte?.origine ?? 'https://invalid.example/'
+  const collecte = e.collecte && typeof e.collecte === 'object' ? e.collecte : {}
+  // URLs known to the audit besides the collected pages: errors and sitemap entries (optional `collecte` input).
+  const urlsConnues = new Set()
+  for (const x of Array.isArray(collecte.erreurs) ? collecte.erreurs : []) if (typeof x?.url === 'string') urlsConnues.add(cle(x.url, base))
+  for (const sm of Array.isArray(collecte.site?.sitemaps) ? collecte.site.sitemaps : []) for (const u of sm?.urls ?? []) urlsConnues.add(cle(u, base))
+  if (typeof collecte.site?.sitemapXml === 'string') for (const u of lireSitemap(collecte.site.sitemapXml).locs) urlsConnues.add(cle(u, base))
   const ctx = {
+    base,
+    pagesCles: new Set(pages.map((p) => cle(p.url, base))),
+    urlsConnues,
     pages,
     constats: rassembler(e),
     entite: e.entite && typeof e.entite === 'object' ? e.entite : null,
@@ -202,8 +247,9 @@ export function calculerScores(entrees, poids = chargerPoids()) {
     // Content criteria only count pages analysed in a supported language and with at least one passage.
     passagesParPage: contenu.filter((c) => c.prise_en_charge === true && Array.isArray(c.passages) && c.passages.length > 0).map((c) => c.passages),
   }
-  // Pages with an unsupported language: say so in the proof instead of a generic message.
-  const nonSupportees = contenu.filter((c) => c.prise_en_charge === false).length
+  // Content criteria only see supported-language pages: their weight counts in coverage in proportion.
+  const nbPages = Math.max(pages.length, contenu.length)
+  const nbSupportees = ctx.passagesParPage.length
 
   const sortie = []
   for (const [id, { criteres: liste }] of Object.entries(poids.scores)) {
@@ -212,17 +258,20 @@ export function calculerScores(entrees, poids = chargerPoids()) {
     const criteres = liste.map((c) => {
       const def = defs[c.id]
       if (!def) throw new Error(`critère inconnu dans poids.json : ${id}/${c.id}`)
-      let r = evaluer(def, ctx)
-      if (r.acquis === null && nonSupportees > 0 && (def.base === 'contenu' || def.type === 'page-a-passage' || def.type === 'passages-citables')) {
-        r = nul(`${r.preuve} — ${nonSupportees} page(s) en langue non prise en charge non calculée(s)`)
+      const r = evaluer(def, ctx)
+      let part = r.acquis === null ? 0 : 1
+      let preuve = r.preuve
+      if (estContenu(def)) {
+        if (r.acquis !== null) part = nbPages === 0 ? 0 : ARRONDI(nbSupportees / nbPages)
+        preuve += ` ; ${nbPages - nbSupportees} page(s) non calculée(s) sur ${nbPages} (langue non prise en charge ou sans passage)`
       }
-      return { id: c.id, classe: c.classe, poids: c.poids, acquis: r.acquis, preuve: r.preuve }
+      return { id: c.id, classe: c.classe, poids: c.poids, part, acquis: r.acquis, preuve }
     })
     const total = criteres.reduce((s, c) => s + c.poids, 0)
     const calcules = criteres.filter((c) => c.acquis !== null)
-    const poidsCalcules = calcules.reduce((s, c) => s + c.poids, 0)
+    const poidsCalcules = calcules.reduce((s, c) => s + c.poids * c.part, 0)
     const couverture = total > 0 ? ARRONDI(poidsCalcules / total) : 0
-    const acquis = calcules.reduce((s, c) => s + c.poids * c.acquis, 0)
+    const acquis = calcules.reduce((s, c) => s + c.poids * c.part * c.acquis, 0)
     const score = { id, valeur: null, couverture, criteres, version_poids: poids.version }
     if (poidsCalcules > 0 && couverture >= SEUIL_COUVERTURE) {
       // Round the quotient first so float noise cannot flip a .5 boundary.

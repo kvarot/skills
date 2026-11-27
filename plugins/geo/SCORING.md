@@ -12,8 +12,8 @@ Dix scores sur 100, indépendants. Six sont des scores de **potentiel** calculé
 
 Chaque critère a un poids et un `acquis` entre 0 et 1, ou `null` s'il n'est pas calculable.
 
-- `valeur = arrondi(100 × Σ(poids × acquis) / Σ poids des critères calculés)` ; le quotient est d'abord arrondi à 6 décimales pour écarter le bruit flottant, puis l'arrondi usuel s'applique.
-- `couverture = Σ poids des critères calculés / Σ poids de tous les critères` (arrondie à 4 décimales).
+- `valeur = arrondi(100 × Σ(poids × part × acquis) / Σ(poids × part) des critères calculés)` ; le quotient est d'abord arrondi à 6 décimales pour écarter le bruit flottant, puis l'arrondi usuel s'applique.
+- `couverture = Σ(poids × part) des critères calculés / Σ poids de tous les critères` (arrondie à 4 décimales). `part` vaut 1, sauf pour les critères de contenu (voir « Langues »).
 - Un critère non calculable vaut **absent**, jamais 0 : il sort du dénominateur et fait baisser la couverture.
 - Si `couverture < 0,5`, `valeur` vaut `null` et `raison` l'explique.
 - Chaque critère porte sa `classe` (`deterministe` ou `heuristique`) et une `preuve` qui nomme les constats et les nombres de pages utilisés. Aucun critère de classe `jugement` en v0.1.
@@ -21,10 +21,13 @@ Chaque critère a un poids et un `acquis` entre 0 et 1, ou `null` s'il n'est pas
 ## Règles de critère
 
 - **Critère « absence d'un constat »** : `acquis = 1 − pages touchées / pages`. Les pages comptées sont les pages collectées ; pour les critères de contenu, les pages dont la langue est prise en charge et qui ont au moins un passage.
-- **Constat de site** (sans liste de pages, par exemple `GEO-SITEMAP-ABSENT`, ou cause qui vaut pour tout le site comme un `robots.txt` bloquant) : il touche toutes les pages, donc `acquis = 0`.
+- **Constat de site** (sans liste de pages, par exemple `GEO-SITEMAP-ABSENT` ou `GEO-ROBOTSTXT-BLOQUE-TOUT`) : il touche toutes les pages, donc `acquis = 0`, **quel que soit le nombre de pages collectées, même zéro**. Un `Disallow: /` ne produit aucune page : le critère vaut 0, il n'est pas « non calculé ». Dans ce cas seulement (zéro page et `GEO-ROBOTSTXT-BLOQUE-TOUT`), `html-lisible` vaut 0 aussi : aucune page n'est lisible par un robot.
+- **Pages comptées** : les critères par page ne comptent que les URL touchées qui sont des **pages collectées** (comparaison après normalisation d'URL, comme le collecteur). Si un constat est présent mais ne touche que des URL hors pages collectées, il compte pour une page, jamais pour zéro.
+- **Critères fondés sur des URL** (`reponses-http`, `sitemap-coherent`, `pages-non-orphelines`, `pas-de-defi-waf`) : le dénominateur est l'ensemble des **URL connues** de l'audit (pages collectées, URL en erreur, URL du sitemap, URL défiées), et la preuve l'écrit (« n URL sur m URL connues »). Entrée optionnelle `collecte` pour fournir erreurs et sitemap ; sans elle, les URL connues sont les pages et les URL des constats. Avec zéro page collectée, un défi WAF donne 0 avec la preuve « défi WAF : aucune page analysable ».
+- **Pages d'article** : `auteur-declare` et `date-presente` ne comptent que les pages d'article ou de documentation (même règle que `GEO-DATE-ABSENTE`, fonction `estPageArticle` de `controles.mjs`) ; sans une telle page, le critère est non calculé, pas à 0.
 - **Critères d'entité** : binaires (cause présente → 0, absente → 1), sauf `produits-balises` qui compte des pages.
-- **Une cause racine pèse une fois par score** : les constats qui partagent une cause forment un seul critère, acquis seulement si aucun n'est présent (les pages touchées sont réunies). Regroupement v0.1 : `GEO-ROBOTSTXT-BLOQUE-TOUT` + `GEO-ROBOTS-RECHERCHE-BLOQUE` → critère `recherche-non-bloquee` de `acces-ia` (« les robots de recherche ne peuvent pas lire le site »). Dans `seo-technique`, `GEO-ROBOTSTXT-BLOQUE-TOUT` a son propre critère `robots-txt-ouvert` (il bloque aussi les moteurs classiques) ; il ne compte qu'une fois dans ce score.
-- **Contenu en langue non prise en charge** : les critères de contenu ne sont pas calculés (`acquis: null`, preuve « langue non prise en charge »). Aucun constat ni jugement n'est inventé ; la couverture du score baisse.
+- **Une cause racine pèse une fois par score** : les constats qui partagent une cause forment un seul critère, acquis seulement si aucun n'est présent (les pages touchées sont réunies). Regroupement v0.1 : `GEO-ROBOTSTXT-BLOQUE-TOUT` + `GEO-ROBOTS-RECHERCHE-BLOQUE` → critère `recherche-non-bloquee` de `acces-ia` (« les robots de recherche ne peuvent pas lire le site »). Quand `GEO-ROBOTSTXT-BLOQUE-TOUT` est présent, `consultation-non-bloquee` est **non calculé** (« même cause que recherche-non-bloquee (robots.txt bloque tout) ») : le même `Disallow: /` ne pèse qu'une fois. Dans `seo-technique`, `GEO-ROBOTSTXT-BLOQUE-TOUT` a son propre critère `robots-txt-ouvert` (il bloque aussi les moteurs classiques) ; il ne compte qu'une fois dans ce score.
+- **Langues** : les critères de contenu ne regardent que les pages en langue prise en charge ayant au moins un passage. Chacun contribue à la couverture pour `poids × part`, avec `part = pages prises en charge / pages` (son poids entier reste au dénominateur) ; la valeur le pondère de la même façon. Sur 1 page française et 49 allemandes, la couverture du score de contenu tombe à 0,02 et la valeur est `null`. La preuve indique toujours le nombre de pages non calculées. Aucun constat ni jugement n'est inventé.
 - **Sans page collectée** : tous les critères issus de pages sont non calculés.
 - Les constats de sévérité `information` n'affectent jamais un score. `GEO-LLMSTXT` et `GEO-CONTENT-SIGNAL` n'ont **aucun critère** (poids 0, jamais présentés comme un levier) ; `GEO-ROBOTS-ENTRAINEMENT-POLITIQUE` (politique observée, aucune recommandation) et `GEO-ENTITE-WIKIDATA-AMBIGU` (homonymie à désambiguïser par le propriétaire) n'ont pas de critère non plus.
 - **Constats bloquants ou importants sans critère** : aucun. Un test vérifie que chacun est lu par au moins un critère.
@@ -97,7 +100,7 @@ Les critères fondés sur le contenu (`passages-citables`, `auteur-declare`) ne 
 | `nom-coherent` | 20 | `GEO-ENTITE-NOM-INCOHERENT` | un nom écrit de plusieurs façons brouille l'entité |
 | `coordonnees-coherentes` | 20 | `GEO-ENTITE-COORDONNEES-CONTRADICTOIRES` | contradictions de téléphone ou d'adresse |
 | `sameas-present` | 15 | `GEO-ENTITE-SAMEAS-ABSENT` | liens vers les profils officiels ; non calculé sans organisation déclarée (déjà comptée) |
-| `wikidata` | 10 | `entite.wikidata.statut` | `trouve` = 1, `absent` = 0, `ambigu` ou non vérifié = non calculé ; poids faible car l'absence est normale pour une petite structure |
+| `wikidata` | 10 | `entite.wikidata.statut` | `trouve` = 1 ; `absent`, `ambigu` ou non vérifié = non calculé (l'absence est normale pour une petite structure et n'est pas pénalisée : la vérification facultative ne peut jamais faire baisser le score) |
 | `produits-balises` | 10 | `GEO-ENTITE-PRODUIT-SANS-SCHEMA` (heuristique) | comptage de pages, règle étroite |
 
 La vérification Wikidata étant facultative, sans vérification Wikidata (option), la couverture de ce score est au plus de 0,9 ; les vérifications manuelles restent listées dans le rapport.
