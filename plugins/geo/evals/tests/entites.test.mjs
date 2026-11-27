@@ -391,3 +391,54 @@ test('entités tierces : jamais sans nom du site connu ; seules tierces = pas d�
   assert.equal(dossier.entites_tierces, 1)
   assert.equal(trouver(dossier, 'GEO-ENTITE-COORDONNEES-CONTRADICTOIRES'), undefined)
 })
+
+// --- 0.1.1, revue : ancrage sur l'accueil ou la page de départ, signal d'annuaire pour la règle du h1 ---------
+
+test('cas A : page « À propos » dont le h1 et l’organisation portent une raison sociale distincte, sans url → signalée', async () => {
+  const r = await analyserEntite(collecte([
+    page('/', { ogSiteName: 'Atelier Nord', jsonld: [ld(org({ telephone: '01 23 45 67 89' }))] }),
+    page('/a-propos', { hn: [{ niveau: 1, texte: 'Atelier du Sud' }], jsonld: [ld(org({ name: 'Atelier du Sud', telephone: '04 11 22 33 44' }))] }),
+  ]))
+  assert.ok(trouver(r, 'GEO-ENTITE-NOM-INCOHERENT'))
+  assert.ok(trouver(r, 'GEO-ENTITE-COORDONNEES-CONTRADICTOIRES'))
+  assert.equal(r.entites_tierces, 0)
+})
+
+test('cas B : seule organisation sur la page de départ /fr/ avec url = cette page → entité du site', async () => {
+  const r = await analyserEntite(collecte([
+    page('/fr/', { profondeur: 0, ogSiteName: 'Atelier Nord', jsonld: [ld(org({ name: 'Menuiserie Verte', url: O + '/fr/' }))] }),
+    page('/fr/contact', { ogSiteName: 'Atelier Nord' }),
+  ]))
+  assert.equal(trouver(r, 'GEO-ENTITE-SANS-ORGANIZATION'), undefined)
+  assert.ok(trouver(r, 'GEO-ENTITE-NOM-INCOHERENT'))
+  assert.equal(r.entites_tierces, 0)
+})
+
+test('cas C : url de l’accueil en /index.html ou avec ?utm= → racine ; une fiche mise en avant sur l’accueil reste tierce', async () => {
+  for (const url of [O + '/index.html', O + '/?utm_source=lettre', '/index.php']) {
+    const r = await analyserEntite(collecte([
+      page('/', { ogSiteName: 'Atelier Nord', jsonld: [ld(org({ name: 'Menuiserie Verte', url }))] }),
+      page('/b', { jsonld: [ld(org({ name: 'Menuiserie Verte', url, telephone: '0123456789' }))] }),
+    ]))
+    assert.equal(trouver(r, 'GEO-ENTITE-SANS-ORGANIZATION'), undefined, url)
+    assert.ok(trouver(r, 'GEO-ENTITE-NOM-INCOHERENT'), url)
+    assert.equal(r.entites_tierces, 0, url)
+  }
+  const index = await analyserEntite(collecte([page('/index.html', { profondeur: 0, ogSiteName: 'Atelier Nord', jsonld: [ld(org({ name: 'Menuiserie Verte', url: O + '/index.html' }))] })]))
+  assert.equal(trouver(index, 'GEO-ENTITE-SANS-ORGANIZATION'), undefined)
+  assert.ok(trouver(index, 'GEO-ENTITE-NOM-INCOHERENT'))
+  const enAvant = await analyserEntite(collecte([page('/', { ogSiteName: 'Annuaire Santé', jsonld: [ld(org({ name: 'Annuaire Santé' })), ld({ '@type': 'Physician', name: 'Jeanne Exemple', url: O + '/praticiens/jeanne-exemple', telephone: '0111111111' })] })]))
+  assert.equal(enAvant.entites_tierces, 1)
+  assert.equal(trouver(enAvant, 'GEO-ENTITE-NOM-INCOHERENT'), undefined)
+})
+
+test('signal d’annuaire : deux fiches sans url de noms différents repris par le h1 → tierces ; une seule → du site', async () => {
+  const sansUrl = (chemin, nom, tel) => page(chemin, { hn: [{ niveau: 1, texte: nom }], jsonld: [ld({ '@type': 'Physician', name: nom, telephone: tel })] })
+  const accueil = page('/', { ogSiteName: 'Annuaire Santé', jsonld: [ld(org({ name: 'Annuaire Santé', telephone: '0100000001', sameAs: ['https://profil.example/a'] }))] })
+  const deux = await analyserEntite(collecte([accueil, sansUrl('/p/a', 'Anne Exemple', '0111111111'), sansUrl('/p/b', 'Bruno Test', '0122222222')]))
+  assert.equal(deux.entites_tierces, 2)
+  assert.equal(trouver(deux, 'GEO-ENTITE-COORDONNEES-CONTRADICTOIRES'), undefined)
+  const une = await analyserEntite(collecte([accueil, sansUrl('/p/a', 'Anne Exemple', '0111111111')]))
+  assert.equal(une.entites_tierces, 0)
+  assert.ok(trouver(une, 'GEO-ENTITE-COORDONNEES-CONTRADICTOIRES'))
+})

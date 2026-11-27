@@ -103,9 +103,11 @@ export async function lireRobotsTxt(client, origine) {
       }
       throw e
     }
-    const lieu = rr.statut >= 300 && rr.statut < 400 ? rr.entetes?.location : null
-    if (!lieu) return { ...rr, redirections }
+    const redirige = rr.statut >= 300 && rr.statut < 400
+    const lieu = redirige ? rr.entetes?.location : null
     const indisponible = (raison) => ({ ...rr, corps: null, redirections, raison: `robots.txt : ${raison} : considéré indisponible (RFC 9309), aucune restriction`, indisponible: true })
+    if (redirige && !lieu) return indisponible(`statut ${rr.statut} sans en-tête Location`)
+    if (!lieu) return { ...rr, redirections }
     if (redirections.length >= MAX_SAUTS_ROBOTS) return indisponible(`plus de ${MAX_SAUTS_ROBOTS} redirections`)
     let suite
     try { suite = new URL(lieu, courante) } catch { return indisponible('redirection invalide') }

@@ -94,9 +94,13 @@ const baseDe = (u) => (absolue(u) ? u : DOSSIER + (String(u).startsWith('/') ? u
 const sansWww = (h) => String(h).toLowerCase().replace(/^www\./, '')
 const estAccueil = (p) => p.profondeur === 0 || (() => { try { return new URL(baseDe(p.url)).pathname === '/' } catch { return false } })()
 
-// Where the node's own url / @id points: 'racine' (the site root: same host, www. ignored, path / and no query),
-// 'autre' (any other page or host), or null (none usable). Fragment-only and blank values ("#org", "_:b0") name the
-// node inside the page and are ignored. In folder mode the host is unknown: any absolute URL with path / is the root.
+// Path with a trailing /index.<ext> folded onto its directory (/index.html = /, /fr/index.php = /fr/).
+const cheminNorm = (u) => u.pathname.replace(/\/index\.[a-z0-9]+$/i, '/')
+
+// Where the node's own url / @id points: 'racine' (the site root: same host, www. ignored, path / or /index.*,
+// query string ignored), 'page' (the page that carries the node, same normalisation), 'autre' (any other page or
+// host), or null (none usable). Fragment-only and blank values ("#org", "_:b0") name the node inside the page and
+// are ignored. In folder mode the host is unknown: any URL with a root path is the root.
 function cibleNoeud(n, pageUrl) {
   const valeurs = [...chaines(n.url), ...chaines(n['@id'])].filter((v) => !v.startsWith('#') && !v.startsWith('_:'))
   let page
@@ -107,8 +111,9 @@ function cibleNoeud(n, pageUrl) {
     try { u = new URL(v, page) } catch { continue }
     if (!/^https?:$/.test(u.protocol)) continue
     const memeHote = !absolue(pageUrl) || sansWww(u.host) === sansWww(page.host)
-    if (memeHote && u.pathname === '/' && !u.search) return 'racine'
-    res = 'autre'
+    if (memeHote && cheminNorm(u) === '/') return 'racine'
+    if (memeHote && cheminNorm(u) === cheminNorm(page)) res ??= 'page'
+    else res = 'autre'
   }
   return res
 }
@@ -221,19 +226,24 @@ export async function analyserEntite(collecte, { marque, client, wikidata = fals
   }
   if (typeof marque === 'string' && normaliserNom(marque)) { ajouterNom(marque, null, 'option:marque'); nomsSite.add(normaliserNom(marque)) }
 
-  // Anchors: organisation nodes that are about the site by position or address (home page without a url elsewhere,
-  // or url / @id on the site root). Their names designate the site too.
+  // Anchors: organisation nodes that are about the site by position or address (home or start page, without a url
+  // other than that page itself; or url / @id on the site root). Their names designate the site too.
   const ancre = (o) => o.cible === 'racine' || (o.accueil && o.cible !== 'autre')
+  const distinctDuSite = (o) => { const ses = chaines(o.n.name).map(normaliserNom).filter(Boolean); return ses.length > 0 && !ses.some((k) => [...nomsSite].some((s) => nomsCompatibles(k, s))) }
+  const dansH1 = (o) => !o.accueil && !!o.h1 && chaines(o.n.name).map(normaliserNom).filter(Boolean).some((k) => ` ${o.h1} `.includes(` ${k} `))
   for (const o of candidats) if (ancre(o)) for (const nom of chaines(o.n.name)) nomsSite.add(normaliserNom(nom))
   nomsSite.delete('')
+  // Directory signal for the h1 rule: at least two distinct non-home pages, each with an organisation node named
+  // like its h1, under at least two different names (one About page titled with a legal name is not a directory).
+  const fiches = candidats.filter((o) => !ancre(o) && distinctDuSite(o) && dansH1(o))
+  const annuaire = new Set(fiches.map((o) => o.url)).size >= 2 && new Set(fiches.map((o) => normaliserNom(chaines(o.n.name)[0]))).size >= 2
   // Listed third-party entity: not an anchor, every name distinct from the site's names, and either an own url
-  // elsewhere (profile path, other host) or a name carried by the page's h1 outside the home page. Never decided
-  // without a known site name, and a node without name is never set aside.
+  // elsewhere (profile path, other host; outside the home page, the page itself counts as elsewhere) or, on a
+  // directory (signal above), a name carried by the page's h1. Never decided without a known site name, and a node
+  // without name is never set aside.
   const tierce = (o) => {
-    if (!nomsSite.size || ancre(o)) return false
-    const ses = chaines(o.n.name).map(normaliserNom).filter(Boolean)
-    if (!ses.length || ses.some((k) => [...nomsSite].some((s) => nomsCompatibles(k, s)))) return false
-    return o.cible === 'autre' || (!o.accueil && !!o.h1 && ses.some((k) => ` ${o.h1} `.includes(` ${k} `)))
+    if (!nomsSite.size || ancre(o) || !distinctDuSite(o)) return false
+    return o.cible === 'autre' || (o.cible === 'page' && !o.accueil) || (annuaire && dansH1(o))
   }
   const orgs = [], tierces = []
   for (const o of candidats) (tierce(o) ? tierces : orgs).push(o)
@@ -304,7 +314,7 @@ export async function analyserEntite(collecte, { marque, client, wikidata = fals
     const urlsTiers = unique(tierces.map((o) => o.url)).sort(triTexte)
     const exemples = unique(tierces.map(({ n }) => chaines(n.name)[0])).sort(triTexte).slice(0, 3)
     constats.push(constat('GEO-ENTITE-ENTITES-TIERCES', urlsTiers,
-      { type: 'jsonld', url: urlsTiers[0], detail: `${nomsTiers.length} entité(s) tierce(s) sur ${urlsTiers.length} page(s) : nœuds d’organisation hors accueil et hors racine du site, avec une url propre ou un nom repris par le h1, et un nom distinct de celui du site` },
+      { type: 'jsonld', url: urlsTiers[0], detail: `${nomsTiers.length} entité(s) tierce(s) sur ${urlsTiers.length} page(s) : nœuds d’organisation non rattachés à l’accueil ni à la racine du site, au nom distinct de celui du site, avec une url propre hors racine (ou, sur un annuaire d’au moins deux fiches, un nom repris par le h1 de la page)` },
       `${nomsTiers.length} entité(s) listée(s) par le site (fiches, établissements) reconnue(s) comme tierce(s) : elles ne sont pas comparées à l’identité du site.`, { extrait: extrait(exemples.join(' ; ')) }))
   }
 

@@ -307,6 +307,25 @@ test('robots.txt redirigé vers un hôte non autorisé : ErreurGeo code 3 nomman
   assert.equal(compteur.get(s.base + '/'), undefined)
 })
 
+test('départ -> hôte autorisé B, robots.txt de B -> hôte non autorisé C : code 3 nommant C', async () => {
+  const b = await site({
+    '/': html('B'),
+    '/robots.txt': (_q, res) => { res.writeHead(302, { location: 'http://hote-c.example/robots.txt' }); res.end() },
+  })
+  const s = await site({ '/': (_q, res) => { res.writeHead(301, { location: b.base + '/' }); res.end() } })
+  await assert.rejects(collecterUrl(s.base + '/', { client: client() }),
+    (e) => e.code === 3 && /hote-c\.example/.test(e.message) && /accord/.test(e.message) && !/page de départ/.test(e.message))
+  assert.equal(compteur.get(b.base + '/'), undefined)
+})
+
+test('robots.txt en 3xx sans Location : indisponible, une entrée dans erreurs', async () => {
+  const s = await site({ '/': html('Accueil'), '/robots.txt': (_q, res) => { res.writeHead(302); res.end() } })
+  const c = await collecterUrl(s.base + '/', { client: client() })
+  assert.deepEqual(chemins(c), ['/'])
+  assert.equal(c.erreurs.filter((e) => e.url === s.base + '/robots.txt').length, 1)
+  assert.match(c.erreurs.find((e) => e.url === s.base + '/robots.txt').raison, /sans en-tête Location/)
+})
+
 test('robots.txt redirigé vers un hôte autorisé : redirection suivie, règles appliquées au site audité', async () => {
   const cible = await site({ '/robots.txt': texte('User-agent: *\nDisallow: /prive\n') })
   const s = await site({
