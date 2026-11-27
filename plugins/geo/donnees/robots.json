@@ -1,0 +1,479 @@
+{
+  "version": "2026-11-27",
+  "robots": [
+    {
+      "jeton": "GPTBot",
+      "editeur": "OpenAI",
+      "role": "entrainement",
+      "respecte_robots": "oui",
+      "verification": {
+        "plages_ip_url": "https://openai.com/gptbot.json"
+      },
+      "documente": true,
+      "source": "https://developers.openai.com/api/docs/bots",
+      "verifie_le": "2026-11-27"
+    },
+    {
+      "jeton": "OAI-SearchBot",
+      "editeur": "OpenAI",
+      "role": "indexation",
+      "respecte_robots": "oui",
+      "verification": {
+        "plages_ip_url": "https://openai.com/searchbot.json"
+      },
+      "documente": true,
+      "source": "https://developers.openai.com/api/docs/bots",
+      "verifie_le": "2026-11-27",
+      "note": "Indexation pour ChatGPT search ; selon l’éditeur, bloqué = absent des réponses de ChatGPT search."
+    },
+    {
+      "jeton": "ChatGPT-User",
+      "editeur": "OpenAI",
+      "role": "consultation-utilisateur",
+      "respecte_robots": "partiel",
+      "verification": {
+        "plages_ip_url": "https://openai.com/chatgpt-user.json"
+      },
+      "documente": true,
+      "source": "https://developers.openai.com/api/docs/bots",
+      "verifie_le": "2026-11-27",
+      "note": "Selon l’éditeur, robots.txt « peut ne pas s’appliquer »."
+    },
+    {
+      "jeton": "OAI-AdsBot",
+      "editeur": "OpenAI",
+      "role": "autre",
+      "respecte_robots": "inconnu",
+      "verification": {
+        "plages_ip_url": "https://openai.com/adsbot.json"
+      },
+      "documente": true,
+      "source": "https://developers.openai.com/api/docs/bots",
+      "verifie_le": "2026-11-27",
+      "note": "Pages d’annonces ; comportement vis-à-vis de robots.txt non précisé."
+    },
+    {
+      "jeton": "ClaudeBot",
+      "editeur": "Anthropic",
+      "role": "entrainement",
+      "respecte_robots": "oui",
+      "verification": {
+        "plages_ip_url": "https://claude.com/crawling/bots.json"
+      },
+      "documente": true,
+      "source": "https://support.claude.com/en/articles/8896518",
+      "verifie_le": "2026-11-27",
+      "note": "Crawl-delay pris en charge ; plages non attribuées par robot."
+    },
+    {
+      "jeton": "Claude-SearchBot",
+      "editeur": "Anthropic",
+      "role": "indexation",
+      "respecte_robots": "oui",
+      "verification": {
+        "plages_ip_url": "https://claude.com/crawling/bots.json"
+      },
+      "documente": true,
+      "source": "https://support.claude.com/en/articles/8896518",
+      "verifie_le": "2026-11-27",
+      "note": "Plages non attribuées par robot."
+    },
+    {
+      "jeton": "Claude-User",
+      "editeur": "Anthropic",
+      "role": "consultation-utilisateur",
+      "respecte_robots": "oui",
+      "verification": {
+        "plages_ip_url": "https://claude.com/crawling/bots.json"
+      },
+      "documente": true,
+      "source": "https://support.claude.com/en/articles/8896518",
+      "verifie_le": "2026-11-27",
+      "note": "Respect de robots.txt déclaré de façon générale ; plages non attribuées par robot."
+    },
+    {
+      "jeton": "Googlebot",
+      "editeur": "Google",
+      "role": "indexation",
+      "respecte_robots": "oui",
+      "verification": {
+        "dns_inverse": [
+          "crawl-*.googlebot.com"
+        ]
+      },
+      "documente": true,
+      "source": "https://developers.google.com/crawling/docs/crawlers-fetchers/verify-google-requests",
+      "verifie_le": "2026-11-27",
+      "note": "Contrôle aussi AI Overviews et AI Mode. Plages : fichier common-crawlers.json."
+    },
+    {
+      "jeton": "Google-Extended",
+      "editeur": "Google",
+      "role": "controle",
+      "respecte_robots": "inconnu",
+      "verification": null,
+      "documente": true,
+      "source": "https://developers.google.com/crawling/docs/crawlers-fetchers/google-common-crawlers",
+      "verifie_le": "2026-11-27",
+      "note": "Jeton de contrôle : entraînement et ancrage Gemini / Vertex ; sans effet sur Google Search. N’émet aucune requête."
+    },
+    {
+      "jeton": "GoogleOther",
+      "editeur": "Google",
+      "role": "autre",
+      "respecte_robots": "oui",
+      "verification": null,
+      "documente": true,
+      "source": "https://developers.google.com/crawling/docs/crawlers-fetchers/google-common-crawlers",
+      "verifie_le": "2026-11-27",
+      "note": "Recherche interne. Plages : fichier common-crawlers.json."
+    },
+    {
+      "jeton": "Google-CloudVertexBot",
+      "editeur": "Google",
+      "role": "indexation",
+      "respecte_robots": "oui",
+      "verification": null,
+      "documente": true,
+      "source": "https://developers.google.com/crawling/docs/crawlers-fetchers/google-common-crawlers",
+      "verifie_le": "2026-11-27",
+      "note": "Indexation demandée par le propriétaire du site (Vertex AI Agents). Plages : fichier special-crawlers.json."
+    },
+    {
+      "jeton": "Google-Agent",
+      "editeur": "Google",
+      "role": "consultation-utilisateur",
+      "respecte_robots": "partiel",
+      "verification": null,
+      "documente": true,
+      "source": "https://developers.google.com/crawling/docs/crawlers-fetchers/google-agent",
+      "verifie_le": "2026-11-27",
+      "note": "Selon l’éditeur, robots.txt « ignore généralement ». Plages : fichier user-triggered-agents.json."
+    },
+    {
+      "jeton": "Google-GeminiNotebook",
+      "editeur": "Google",
+      "role": "consultation-utilisateur",
+      "respecte_robots": "partiel",
+      "verification": null,
+      "documente": true,
+      "source": "https://developers.google.com/search/docs/crawling-indexing/google-user-triggered-fetchers",
+      "verifie_le": "2026-11-27",
+      "note": "Ex-Google-NotebookLM (ancien nom accepté jusqu’en août 2026). Selon l’éditeur, robots.txt ignoré généralement. Plages : fichier user-triggered-fetchers-google.json."
+    },
+    {
+      "jeton": "bingbot",
+      "editeur": "Microsoft",
+      "role": "indexation",
+      "respecte_robots": "oui",
+      "verification": {
+        "plages_ip_url": "https://www.bing.com/toolbox/bingbot.json",
+        "dns_inverse": [
+          "*.search.msn.com"
+        ]
+      },
+      "documente": true,
+      "source": "https://www.bing.com/toolbox/bingbot.json",
+      "verifie_le": "2026-11-27",
+      "note": "Copilot s’appuie sur l’index Bing (non vérifié officiellement). Fichier d’IP daté 2024-01-03 ; DNS inverse noté de mémoire, non vérifié ; pages d’aide Bing non lisibles (rendues en JavaScript), d’où cette source."
+    },
+    {
+      "jeton": "PerplexityBot",
+      "editeur": "Perplexity",
+      "role": "indexation",
+      "respecte_robots": "oui",
+      "verification": {
+        "plages_ip_url": "https://www.perplexity.ai/perplexitybot.json"
+      },
+      "documente": true,
+      "source": "https://docs.perplexity.ai/guides/bots",
+      "verifie_le": "2026-11-27",
+      "note": "Indexation, pas d’entraînement."
+    },
+    {
+      "jeton": "Perplexity-User",
+      "editeur": "Perplexity",
+      "role": "consultation-utilisateur",
+      "respecte_robots": "partiel",
+      "verification": {
+        "plages_ip_url": "https://www.perplexity.ai/perplexity-user.json"
+      },
+      "documente": true,
+      "source": "https://docs.perplexity.ai/guides/bots",
+      "verifie_le": "2026-11-27",
+      "note": "Selon l’éditeur, robots.txt « ignore généralement »."
+    },
+    {
+      "jeton": "Applebot",
+      "editeur": "Apple",
+      "role": "indexation",
+      "respecte_robots": "oui",
+      "verification": {
+        "plages_ip_url": "https://search.developer.apple.com/applebot.json",
+        "dns_inverse": [
+          "*.applebot.apple.com"
+        ]
+      },
+      "documente": true,
+      "source": "https://support.apple.com/en-us/119829",
+      "verifie_le": "2026-11-27",
+      "note": "Peut servir à l’entraînement ; repli sur les règles Googlebot."
+    },
+    {
+      "jeton": "Applebot-Extended",
+      "editeur": "Apple",
+      "role": "controle",
+      "respecte_robots": "inconnu",
+      "verification": null,
+      "documente": true,
+      "source": "https://support.apple.com/en-us/119829",
+      "verifie_le": "2026-11-27",
+      "note": "Jeton de contrôle (entraînement). N’émet aucune requête."
+    },
+    {
+      "jeton": "meta-externalagent",
+      "editeur": "Meta",
+      "role": "entrainement",
+      "respecte_robots": "oui",
+      "verification": null,
+      "documente": true,
+      "source": "https://developers.facebook.com/docs/sharing/webmasters/web-crawlers/",
+      "verifie_le": "2026-11-27",
+      "note": "Entraînement / indexation ; l’éditeur indique qu’il est bloquable. Pas de fichier IP dédié (ASN 32934, à revérifier)."
+    },
+    {
+      "jeton": "meta-webindexer",
+      "editeur": "Meta",
+      "role": "indexation",
+      "respecte_robots": "oui",
+      "verification": null,
+      "documente": true,
+      "source": "https://developers.facebook.com/docs/sharing/webmasters/web-crawlers/",
+      "verifie_le": "2026-11-27",
+      "note": "Indexation Meta AI ; bloquable selon l’éditeur. Pas de fichier IP dédié."
+    },
+    {
+      "jeton": "meta-externalfetcher",
+      "editeur": "Meta",
+      "role": "consultation-utilisateur",
+      "respecte_robots": "partiel",
+      "verification": null,
+      "documente": true,
+      "source": "https://developers.facebook.com/docs/sharing/webmasters/web-crawlers/",
+      "verifie_le": "2026-11-27",
+      "note": "Selon l’éditeur, robots.txt « peut contourner ». Pas de fichier IP dédié."
+    },
+    {
+      "jeton": "Amazonbot",
+      "editeur": "Amazon",
+      "role": "autre",
+      "respecte_robots": "oui",
+      "verification": null,
+      "documente": true,
+      "source": "https://developer.amazon.com/amazonbot",
+      "verifie_le": "2026-11-27",
+      "note": "Amélioration produit ; peut entraîner. Liste d’IP publiée par l’éditeur."
+    },
+    {
+      "jeton": "Amzn-SearchBot",
+      "editeur": "Amazon",
+      "role": "indexation",
+      "respecte_robots": "oui",
+      "verification": null,
+      "documente": true,
+      "source": "https://developer.amazon.com/amazonbot",
+      "verifie_le": "2026-11-27",
+      "note": "Liste d’IP publiée par l’éditeur."
+    },
+    {
+      "jeton": "Amzn-User",
+      "editeur": "Amazon",
+      "role": "consultation-utilisateur",
+      "respecte_robots": "partiel",
+      "verification": null,
+      "documente": true,
+      "source": "https://developer.amazon.com/amazonbot",
+      "verifie_le": "2026-11-27",
+      "note": "Selon l’éditeur, robots.txt « peut ne pas suivre ». Liste d’IP publiée par l’éditeur."
+    },
+    {
+      "jeton": "CCBot",
+      "editeur": "Common Crawl",
+      "role": "autre",
+      "respecte_robots": "oui",
+      "verification": {
+        "plages_ip_url": "https://index.commoncrawl.org/ccbot.json",
+        "dns_inverse": [
+          "crawl.commoncrawl.org"
+        ]
+      },
+      "documente": true,
+      "source": "https://commoncrawl.org/ccbot",
+      "verifie_le": "2026-11-27",
+      "note": "Corpus ouvert, très réutilisé pour l’entraînement."
+    },
+    {
+      "jeton": "MistralAI-User",
+      "editeur": "Mistral",
+      "role": "consultation-utilisateur",
+      "respecte_robots": "inconnu",
+      "verification": {
+        "plages_ip_url": "https://mistral.ai/mistralai-user-ips.json"
+      },
+      "documente": true,
+      "source": "https://docs.mistral.ai/robots",
+      "verifie_le": "2026-11-27",
+      "note": "Formulation de l’éditeur : régit les sites demandés."
+    },
+    {
+      "jeton": "MistralAI-Index",
+      "editeur": "Mistral",
+      "role": "indexation",
+      "respecte_robots": "oui",
+      "verification": {
+        "plages_ip_url": "https://mistral.ai/mistralai-index-ips.json"
+      },
+      "documente": true,
+      "source": "https://docs.mistral.ai/robots",
+      "verifie_le": "2026-11-27"
+    },
+    {
+      "jeton": "MistralAI-Training",
+      "editeur": "Mistral",
+      "role": "entrainement",
+      "respecte_robots": "oui",
+      "verification": null,
+      "documente": true,
+      "source": "https://docs.mistral.ai/robots",
+      "verifie_le": "2026-11-27",
+      "note": "Bloquable selon l’éditeur ; aucune vérification publiée."
+    },
+    {
+      "jeton": "DuckAssistBot",
+      "editeur": "DuckDuckGo",
+      "role": "consultation-utilisateur",
+      "respecte_robots": "oui",
+      "verification": {
+        "plages_ip_url": "https://duckduckgo.com/duckassistbot.json"
+      },
+      "documente": true,
+      "source": "https://duckduckgo.com/duckduckgo-help-pages/results/duckassistbot",
+      "verifie_le": "2026-11-27",
+      "note": "Réponses IA, pas d’entraînement ; respect de robots.txt pris en compte en ~3 jours."
+    },
+    {
+      "jeton": "YouBot",
+      "editeur": "You.com",
+      "role": "indexation",
+      "respecte_robots": "oui",
+      "verification": {
+        "dns_inverse": [
+          "youbot-*.search.you.com"
+        ]
+      },
+      "documente": true,
+      "source": "https://you.com/docs/youbot",
+      "verifie_le": "2026-11-27",
+      "note": "Crawl-delay compris. Plage 68.67.112.0/24 ; Web Bot Auth."
+    },
+    {
+      "jeton": "Bytespider",
+      "editeur": "ByteDance",
+      "role": "autre",
+      "respecte_robots": "inconnu",
+      "verification": null,
+      "documente": false,
+      "source": null,
+      "verifie_le": "2026-11-27",
+      "note": "Non documenté par l’éditeur (mentions de tiers seulement) ; ne jamais présenter comme officiel."
+    },
+    {
+      "jeton": "TikTokSpider",
+      "editeur": "ByteDance",
+      "role": "autre",
+      "respecte_robots": "inconnu",
+      "verification": null,
+      "documente": false,
+      "source": null,
+      "verifie_le": "2026-11-27",
+      "note": "Non documenté par l’éditeur (mentions de tiers seulement) ; ne jamais présenter comme officiel."
+    },
+    {
+      "jeton": "GrokBot",
+      "editeur": "xAI",
+      "role": "autre",
+      "respecte_robots": "inconnu",
+      "verification": null,
+      "documente": false,
+      "source": null,
+      "verifie_le": "2026-11-27",
+      "note": "Non documenté par l’éditeur (mentions de tiers seulement) ; ne jamais présenter comme officiel."
+    },
+    {
+      "jeton": "xAI-Grok",
+      "editeur": "xAI",
+      "role": "autre",
+      "respecte_robots": "inconnu",
+      "verification": null,
+      "documente": false,
+      "source": null,
+      "verifie_le": "2026-11-27",
+      "note": "Non documenté par l’éditeur (mentions de tiers seulement) ; ne jamais présenter comme officiel."
+    },
+    {
+      "jeton": "xAI-SearchBot",
+      "editeur": "xAI",
+      "role": "autre",
+      "respecte_robots": "inconnu",
+      "verification": null,
+      "documente": false,
+      "source": null,
+      "verifie_le": "2026-11-27",
+      "note": "Non documenté par l’éditeur (mentions de tiers seulement) ; ne jamais présenter comme officiel."
+    },
+    {
+      "jeton": "DeepSeekBot",
+      "editeur": "DeepSeek",
+      "role": "autre",
+      "respecte_robots": "inconnu",
+      "verification": null,
+      "documente": false,
+      "source": null,
+      "verifie_le": "2026-11-27",
+      "note": "Non documenté par l’éditeur (mentions de tiers seulement) ; ne jamais présenter comme officiel."
+    },
+    {
+      "jeton": "cohere-ai",
+      "editeur": "Cohere",
+      "role": "autre",
+      "respecte_robots": "inconnu",
+      "verification": null,
+      "documente": false,
+      "source": null,
+      "verifie_le": "2026-11-27",
+      "note": "Non documenté par l’éditeur (mentions de tiers seulement) ; ne jamais présenter comme officiel."
+    },
+    {
+      "jeton": "anthropic-ai",
+      "editeur": "Anthropic",
+      "role": "autre",
+      "respecte_robots": "inconnu",
+      "verification": null,
+      "documente": false,
+      "source": null,
+      "verifie_le": "2026-11-27",
+      "note": "Non documenté par l’éditeur (mentions de tiers seulement) ; ne jamais présenter comme officiel."
+    },
+    {
+      "jeton": "Claude-Web",
+      "editeur": "Anthropic",
+      "role": "autre",
+      "respecte_robots": "inconnu",
+      "verification": null,
+      "documente": false,
+      "source": null,
+      "verifie_le": "2026-11-27",
+      "note": "Non documenté par l’éditeur (mentions de tiers seulement) ; ne jamais présenter comme officiel."
+    }
+  ]
+}
