@@ -23,6 +23,8 @@ for (const l of ['fr', 'en']) {
     chiffre: new RegExp(`(?<![\\p{L}\\p{N}])\\d+(?:\\s\\d{3})*(?:[.,]\\d+)?\\s*(?:${d.unites.join('|')})(?![\\p{L}\\p{N}'’])`, 'iu'),
   }
 }
+// Distinctive words of other common languages: they only serve to refuse fr/en for pages in those languages.
+const AUTRES = Object.fromEntries(Object.entries(JSON.parse(readFileSync(new URL('../../donnees/langues/_autres.json', import.meta.url), 'utf8'))).map(([l, m]) => [l, new Set(m)]))
 // A currency symbol placed before the number ($45, £30, €12).
 const MONNAIE_AVANT = /[€$£]\s?\d/u
 
@@ -39,13 +41,16 @@ export function detecterLangue(texte, langPage = null) {
   }
   const jetons = mots(texte)
   if (!jetons.length) return 'autre'
-  let meilleure = 'autre'
-  let meilleurRatio = 0
+  const ratio = (ensemble) => jetons.filter((j) => ensemble.has(j)).length / jetons.length
+  const ratios = {}
+  for (const l of ['fr', 'en']) ratios[l] = ratio(LANGUES[l].mots_vides)
+  for (const [l, ensemble] of Object.entries(AUTRES)) ratios[l] = ratio(ensemble)
+  // fr/en only when the ratio reaches the threshold AND beats every other language by 1.5x.
   for (const l of ['fr', 'en']) {
-    const ratio = jetons.filter((j) => LANGUES[l].mots_vides.has(j)).length / jetons.length
-    if (ratio >= SEUIL_LANGUE && ratio > meilleurRatio) { meilleure = l; meilleurRatio = ratio }
+    const autres = Math.max(...Object.entries(ratios).filter(([k]) => k !== l).map(([, r]) => r))
+    if (ratios[l] >= SEUIL_LANGUE && ratios[l] >= 1.5 * autres) return l
   }
-  return meilleure
+  return 'autre'
 }
 
 const ABREVIATION = /(?:^|\s)(?:\p{Lu}|Mme|Mlle|Mr|Dr|Pr|St|vs|cf|env|etc)\.$/u

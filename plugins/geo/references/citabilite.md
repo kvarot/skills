@@ -10,7 +10,7 @@ Un passage est un titre et les blocs qui le suivent jusqu’au titre suivant ; l
 
 Sont exclus des passages : les blocs `nosnippet` ou `data-nosnippet` (ils ne peuvent pas être cités) et les passages sans corps (titres consécutifs).
 
-Langues : français et anglais seulement. La langue vient de l’attribut `lang` de la page quand il vaut `fr*` ou `en*` ; toute autre valeur déclarée donne « autre ». Sans `lang`, la langue est celle dont la part de mots vides dépasse 5 % (la plus haute l’emporte). En langue « autre », rien n’est calculé : aucun passage, aucun constat de contenu, et les rapports indiquent « non calculé : langue non prise en charge ».
+Langues : français et anglais seulement. La langue vient de l’attribut `lang` de la page quand il vaut `fr*` ou `en*` ; toute autre valeur déclarée donne « autre ». Sans `lang`, une langue (fr ou en) n’est retenue que si sa part de mots vides distinctifs atteint 5 % et vaut au moins 1,5 fois celle de la meilleure autre langue ; les listes `donnees/langues/_autres.json` (espagnol, italien, portugais, néerlandais, allemand) servent à refuser ces pages. En langue « autre », rien n’est calculé : aucun passage, aucun constat de contenu, et les rapports indiquent « non calculé : langue non prise en charge ».
 
 ## Les six critères
 
@@ -28,5 +28,6 @@ Les leviers de recherche (§2.4) sont des hypothèses à tester : les gains publ
 ## Limites connues
 
 - Le lien externe d’un passage est déduit : les faits extraits ne rattachent pas les liens aux blocs. Un lien compte quand son texte (3 caractères au moins) figure tel quel dans un bloc du passage et que son hôte diffère de celui de la page.
+- « selon » et « according to » au sens de « en fonction de » (« selon la taille ») sont comptés comme une source : limite connue.
 - Les motifs sont des heuristiques par expressions régulières : faux positifs et faux négatifs possibles, listes de mots dans `donnees/langues/`.
 - Les quatre constats de contenu (`GEO-CONTENU-*`) sont de classe heuristique et de gravité mineure ; ils sont documentés dans `constats.md`.

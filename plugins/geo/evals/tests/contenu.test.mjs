@@ -51,7 +51,7 @@ test('passage FR : définition, chiffre à virgule décimale et source vrais', (
 })
 
 test('passage EN : « It is also… » n’est pas autonome ; X is a / X are définissent', () => {
-  const r = analyserContenu(page([h('Sea kayaks'), p('It is also used for the long trips along the coast with all of the family.'), h('What is a kayak?'), p('A kayak is a small boat that is driven by a paddle.'), h('Boats'), p('Kayaks are light boats used by the people of the north.')], { lang: 'en' }))
+  const r = analyserContenu(page([h('Sea kayaks'), p('It is also used for the long trips along the coast with all of the family.'), h('What is a kayak?'), p('A kayak is a small boat that is driven by a paddle.'), h('Boats'), p('Kayaks are a family of light boats used by the people of the north.')], { lang: 'en' }))
   assert.equal(r.langue, 'en')
   assert.equal(r.passages[0].criteres.autonome, false)
   assert.equal(r.passages[0].criteres.definition, false)
@@ -196,4 +196,45 @@ test('sortie : titre échappé et borné, déterminisme', () => {
   assert.ok(r.passages[0].titre.length <= 280)
   assert.equal(r.passages[0].non_fiable, true)
   assert.equal(JSON.stringify(analyserContenu(entree)), JSON.stringify(analyserContenu(entree)))
+})
+
+test('langue sans lang : espagnol, néerlandais, italien, portugais, allemand donnent autre', () => {
+  const echantillons = {
+    es: 'El gato duerme en el sofá y los niños juegan con una pelota para el perro del vecino, pero la casa está muy tranquila.',
+    nl: 'De kat slaapt op de bank en het huis is rustig voor een gezin dat niet veel lawaai maakt, maar ook zijn de kinderen blij met de hond.',
+    it: 'Il gatto dorme sul divano e i bambini giocano con una palla per il cane della vicina, ma la casa è molto tranquilla e non ci sono problemi.',
+    pt: 'O gato dorme no sofá e os meninos brincam com uma bola para o cão da vizinha, mas a casa está muito tranquila e não há problemas.',
+    de: 'Die Katze schläft auf dem Sofa und die Kinder spielen mit einem Ball für den Hund des Nachbarn, aber das Haus ist nicht laut.',
+  }
+  for (const [l, t] of Object.entries(echantillons)) {
+    assert.equal(detecterLangue(t), 'autre', l)
+    const r = analyserContenu(page([h('Titre'), p(t)], { lang: null }))
+    assert.equal(r.langue, 'autre', l)
+    assert.deepEqual(r.constats, [], l)
+  }
+  assert.equal(detecterLangue('Le chat dort sur le canapé et la maison est calme pour les enfants.'), 'fr')
+  assert.equal(detecterLangue('The cat sleeps on the sofa and the house is quiet for all of the children.'), 'en')
+  assert.equal(detecterLangue('Le kayak de mer est une embarcation conçue pour la navigation côtière, avec des pagaies et sans moteur. Le mot kayak vient de l’inuit. The kit is light.'), 'fr')
+})
+
+test('définition : faux positifs courants écartés, sujets nominaux en Ce / This acceptés', () => {
+  const def = (texte, lang) => analyserContenu(page([h('T'), p(texte)], { lang })).passages[0].criteres.definition
+  assert.equal(def('Le kayak est un peu lourd pour les gens de la ville.', 'fr'), false)
+  assert.equal(def('Le kayak est une fois plus long que la planche de la ville.', 'fr'), false)
+  assert.equal(def('Ce kayak est un bateau conçu pour la mer et les gens de la ville.', 'fr'), true)
+  assert.equal(def('Ce sont des bateaux conçus pour la mer et les gens de la ville.', 'fr'), false)
+  assert.equal(def('Cette coque est une pièce de la ville pour les gens.', 'fr'), true)
+  assert.equal(def('The roads are closed for the people of the town and the city.', 'en'), false)
+  assert.equal(def('The kayak is a bit heavy for the people of the town and the city.', 'en'), false)
+  assert.equal(def('The kayak is a lot heavier than the board for the people of the city.', 'en'), false)
+  assert.equal(def('This kayak is a boat designed for the sea and the people of the city.', 'en'), true)
+  assert.equal(def('These kayaks are a family of boats designed for the sea and the city.', 'en'), true)
+  assert.equal(def('This is a boat designed for the sea and the people of the city.', 'en'), false)
+  assert.equal(def('This means that the boat is light for the people of the city.', 'en'), false)
+  assert.equal(def('They are a team of people of the city and the town.', 'en'), false)
+})
+
+test('question_titre : « Qu’est-ce que… » est une question', () => {
+  const r = analyserContenu(page([h('Qu’est-ce que le kayak'), p('Un texte pour les gens de la ville et la maison.')]))
+  assert.equal(r.passages[0].criteres.question_titre, true)
 })
