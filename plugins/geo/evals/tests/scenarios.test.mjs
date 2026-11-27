@@ -243,12 +243,29 @@ test('donnees : 11 profils, 11 intentions, >= 6 gabarits, {concurrent} reserve',
 
 test('francais : pas d elision manquante ni de contraction manquante', () => {
   for (const graine of [1, 2, 3]) {
-    const r = genererScenarios(riche(), { niveau: 'standard', graine })
+    const p = riche()
+    p.besoins.push('harmoniser les tarifs', 'hausser les prix')
+    const r = genererScenarios(p, { niveau: 'exhaustif', graine })
+    const noms = new RegExp([...p.concurrents, ...p.zones].join('|'), 'g') // proper nouns are never altered
     for (const s of r.scenarios) {
-      assert.ok(!/(de|que|je|ne|le|la) [aeiouyéèêàâîôûh]/i.test(s.texte.replace(/(de|le|la) h(aut|ors|all)/gi, '')) || /(de|que|je|ne|le|la) y/i.test(s.texte), s.texte)
-      assert.ok(!/(à|de) les? /i.test(s.texte), s.texte)
+      const t = s.texte.replace(noms, '#').replace(/\bil y a\b/gi, '').replace(/\b(de|le|la) h(aut|aus|ors|all)/gi, '')
+      assert.ok(!/\b(de|que|je|ne|le|la) [aeiouyéèêàâîôûh]/i.test(t), s.texte)
+      assert.ok(!/\b(à|de) les? /i.test(t), s.texte)
     }
+    const tous = r.scenarios.map((s) => s.texte).join('\n')
+    assert.match(tous, /d'harmoniser/)
+    assert.match(tous, /de hausser/)
   }
+})
+
+test('eliderFr protege concurrents et zones dans les textes generes', () => {
+  const base = { ...riche(), zones: ['Les Herbiers'], concurrents: ['Le Devis', 'Hubspotte'] }
+  const tous = genererScenarios(base, { niveau: 'exhaustif', graine: 2 }).scenarios.map((s) => s.texte).join('\n')
+  assert.match(tous, /alternative à Le Devis/)
+  assert.match(tous, /que Hubspotte/)
+  assert.doesNotMatch(tous, /alternative au Devis|qu'Hubspotte|l'Devis|aux Herbiers|l'Herbiers/)
+  assert.match(tous, /Les Herbiers/)
+  assert.match(tous, /d'organiser/)
 })
 
 test('eliderFr : elisions, contractions, h aspire, casse', () => {

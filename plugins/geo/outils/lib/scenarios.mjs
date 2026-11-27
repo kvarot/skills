@@ -172,8 +172,11 @@ export function genererScenarios(profilSite, { niveau, graine } = {}) {
       const valeurs = {}
       const coeur = modele.texte.replace(/\{(\w+)\}/g, (_, s) => (s === 'profil_formulation' ? '' : (valeurs[s] ??= choisir(rng, pools[s]))))
         .replace(/\s+/g, ' ').trim()
-      const texte = eliderFr(modele.texte.replace(/\{(\w+)\}/g, (_, s) => (s === 'profil_formulation' ? fragment : valeurs[s]))
+      // Competitor and zone names are proper nouns: shielded by placeholders while elision runs, then restored.
+      const protege = (s) => s === 'concurrent' || s === 'zone'
+      const texte = eliderFr(modele.texte.replace(/\{(\w+)\}/g, (_, s) => (s === 'profil_formulation' ? fragment : protege(s) ? `${s}` : valeurs[s]))
         .replace(/\s+/g, ' ').trim(), langue)
+        .replace(/(\w+)/g, (_, s) => valeurs[s])
       const norme = normaliser(coeur)
       let rejet = vus.has(norme)
       if (!rejet && contientMarque(texte, termes)) { rejet = true; rejetsMarque++ }
