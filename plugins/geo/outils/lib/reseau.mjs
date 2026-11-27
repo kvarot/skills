@@ -62,14 +62,18 @@ export function estAdresseInterdite(ip) {
 
 // --- host allowlist ---------------------------------------------------------
 
+// Normalised host form used everywhere: lowercase, IPv6 brackets removed.
+const normaliserHote = (h) => String(h).trim().toLowerCase().replace(/^\[|\]$/g, '')
+const nomHote = (u) => normaliserHote(u.hostname)
+
 // Hosts from <dossier>/session.json (`hotes_autorises`) plus the ones passed on the command line.
 export function hotesAutorises(dossierDonnees, extra = []) {
   const hotes = new Set()
   try {
     const session = JSON.parse(readFileSync(path.join(dossierDonnees, 'session.json'), 'utf8'))
-    for (const h of Array.isArray(session?.hotes_autorises) ? session.hotes_autorises : []) if (typeof h === 'string' && h.trim()) hotes.add(h.trim().toLowerCase())
+    for (const h of Array.isArray(session?.hotes_autorises) ? session.hotes_autorises : []) if (typeof h === 'string' && h.trim()) hotes.add(normaliserHote(h))
   } catch { /* missing or invalid session file: no hosts from it */ }
-  for (const h of extra) if (typeof h === 'string' && h.trim()) hotes.add(h.trim().toLowerCase())
+  for (const h of extra) if (typeof h === 'string' && h.trim()) hotes.add(normaliserHote(h))
   return hotes
 }
 
@@ -144,7 +148,7 @@ export function creerClient({
   // the connection to (null for an IP literal or when resolution is not needed). Every resolved
   // address must be acceptable; autoriserLocal lifts the refusal but the pin still applies.
   async function verifier(u) {
-    const hote = u.hostname.replace(/^[|]$/g, '')
+    const hote = nomHote(u)
     if (isIPv4(hote) || isIPv6(hote)) {
       return !autoriserLocal && estAdresseInterdite(hote) ? { raison: `adresse interdite (${hote}) pour ${hote}` } : { adresse: null }
     }
@@ -229,7 +233,7 @@ ${autoriserLocal ? 'local' : ''}`).digest('hex') + '.json') : null
     let courante
     try { courante = new URL(url) } catch { return echec(String(url), 'URL invalide') }
     if (!/^https?:$/.test(courante.protocol)) return echec(courante.href, 'protocole non pris en charge (http ou https attendu)')
-    if (!hotes?.has(courante.hostname.toLowerCase())) throw new ErreurGeo(`Hôte non autorisé : ${courante.hostname}. Ajoutez-le à hotes_autorises ou passez --hotes-autorises.`, 3)
+    if (!hotes?.has(nomHote(courante))) throw new ErreurGeo(`Hôte non autorisé : ${courante.hostname}. Ajoutez-le à hotes_autorises ou passez --hotes-autorises.`, 3)
 
     const demande = courante.href
     let premier = true
@@ -242,7 +246,7 @@ ${autoriserLocal ? 'local' : ''}`).digest('hex') + '.json') : null
         const mis = lireCache(demande, accept)
         if (mis) return mis
       }
-      await attendre(courante.hostname.toLowerCase())
+      await attendre(nomHote(courante))
       let r
       try { r = await saut(courante.href, accept, agent, verdict.adresse) } catch (e) {
         const cause = e?.name === 'AbortError' || e?.name === 'TimeoutError' ? `délai de ${timeoutMs} ms dépassé` : `erreur réseau (${e?.cause?.code ?? e?.code ?? e?.message ?? 'inconnue'})`
@@ -259,7 +263,7 @@ ${autoriserLocal ? 'local' : ''}`).digest('hex') + '.json') : null
       try { suite = new URL(r.redirection, courante) } catch { return echec(courante.href, 'redirection invalide', redirections) }
       suite.hash = ''
       if (!/^https?:$/.test(suite.protocol)) return echec(courante.href, `redirection vers un protocole non pris en charge (${suite.protocol})`, redirections)
-      if (!hotes.has(suite.hostname.toLowerCase())) return echec(courante.href, `redirection vers un hôte non autorisé (${suite.hostname})`, redirections)
+      if (!hotes.has(nomHote(suite))) return echec(courante.href, `redirection vers un hôte non autorisé (${suite.hostname})`, redirections)
       redirections.push(suite.href)
       courante = suite
     }

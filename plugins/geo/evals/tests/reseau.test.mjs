@@ -226,3 +226,26 @@ test('réponse gzip décodée', async () => {
   await new Promise((r) => s2.listen(0, '127.0.0.1', r))
   try { assert.equal((await client().demander(`http://127.0.0.1:${s2.address().port}/`)).corps, 'compressé') } finally { s2.closeAllConnections(); s2.close() }
 })
+
+const v6 = await new Promise((resolve) => {
+  const t = http.createServer((q, r) => { r.writeHead(200, { 'content-type': 'text/html' }); r.end('v6') })
+  t.once('error', () => resolve(null))
+  t.listen(0, '::1', () => resolve(t))
+})
+after(() => { v6?.closeAllConnections?.(); v6?.close() })
+
+test('littéral IPv6 : autorisé en local, refusé sinon', { skip: v6 ? false : 'pas de bouclage IPv6 (::1) sur cette machine' }, async () => {
+  const url = `http://[::1]:${v6.address().port}/`
+  const ok = await creerClient({ hotes: new Set(['::1']), autoriserLocal: true, delaiMs: 0 }).demander(url)
+  assert.equal(ok.statut, 200); assert.equal(ok.corps, 'v6')
+  const non = await creerClient({ hotes: new Set(['::1']), delaiMs: 0 }).demander(url)
+  assert.equal(non.statut, 0); assert.match(non.raison, /adresse interdite/)
+})
+
+test('hotesAutorises : un littéral IPv6 entre crochets est normalisé', () => {
+  const d = mkdtempSync(path.join(tmpdir(), 'geo-res-'))
+  try {
+    writeFileSync(path.join(d, 'session.json'), JSON.stringify({ hotes_autorises: ['[::1]'] }))
+    assert.deepEqual([...hotesAutorises(d, ['[::2]'])].sort(), ['::1', '::2'])
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
