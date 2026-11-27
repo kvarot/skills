@@ -238,3 +238,10 @@ test('question_titre : « Qu’est-ce que… » est une question', () => {
   const r = analyserContenu(page([h('Qu’est-ce que le kayak'), p('Un texte pour les gens de la ville et la maison.')]))
   assert.equal(r.passages[0].criteres.question_titre, true)
 })
+
+test('définition : « est un bon… » reste une définition, « est un peu… » non', () => {
+  const def = (texte) => analyserContenu(page([h('T'), p(texte)])).passages[0].criteres.definition
+  assert.equal(def('Un kayak est un bon bateau pour la mer et les gens de la ville.'), true)
+  assert.equal(def('Le kayak est un bon exemple de bateau pour les gens de la ville.'), true)
+  assert.equal(def('Le kayak est un peu lourd pour les gens de la ville.'), false)
+})
