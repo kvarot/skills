@@ -13,7 +13,7 @@ Chaque constat porte une preuve `{ type, url, detail }` reproductible. Les extra
 **Gravité** : bloquant
 
 - Catégorie : indexation ; classe : deterministe
-- Description : Page exclue de l’index par une directive noindex (balise meta robots ou en-tête X-Robots-Tag).
+- Description : Page exclue de l’index par une directive noindex (balise meta robots ou en-tête X-Robots-Tag). Portée : page de départ et pages listées dans le sitemap ; les autres pages en noindex relèvent du choix du propriétaire et ne sont pas signalées.
 - Preuve attendue : http ou html : valeur de `x-robots-tag` (`curl -sI <url>`) ou balise `<meta name="robots">`.
 - Correction type : Retirer `noindex` des pages qui doivent apparaître dans la recherche ; le conserver seulement sur les pages volontairement privées.
 - Source officielle : https://developers.google.com/search/docs/appearance/ai-features

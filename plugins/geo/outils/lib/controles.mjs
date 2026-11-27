@@ -9,7 +9,7 @@ const def = (id, severite, categorie, description, classe = 'deterministe') => (
 
 export const CATALOGUE = [
   // indexation
-  def('GEO-NOINDEX', 'bloquant', 'indexation', 'Page exclue de l’index par une directive noindex (balise meta robots ou en-tête X-Robots-Tag).'),
+  def('GEO-NOINDEX', 'bloquant', 'indexation', 'Page exclue de l’index par une directive noindex (balise meta robots ou en-tête X-Robots-Tag). Portée : page de départ et pages listées dans le sitemap ; les autres pages en noindex relèvent du choix du propriétaire et ne sont pas signalées.'),
   def('GEO-ROBOTSTXT-BLOQUE-TOUT', 'bloquant', 'indexation', 'Le robots.txt interdit tout le site à tous les robots (User-agent: * et Disallow: /).'),
   def('GEO-SITEMAP-ABSENT', 'important', 'indexation', 'Aucun sitemap trouvé (ni déclaré dans robots.txt, ni à /sitemap.xml).'),
   def('GEO-SITEMAP-INCOHERENT', 'mineur', 'indexation', 'Le sitemap liste des URL inutilisables : en erreur, en noindex, canoniques ailleurs, d’un autre hôte, ou sitemap illisible.'),
