@@ -18,7 +18,7 @@ export const VERSION = '0.1.0'
 const HOTE_WIKIDATA = 'www.wikidata.org'
 
 export const USAGE = `Usage : node geo.mjs <commande> [options]
-  init                                       crée .claude/geo/, session.json et la base
+  init                                       crée .claude/geo/ et la base, vide hotes_autorises (nouvelle session)
   autoriser <hôte>[,<hôte>…]                 ajoute des hôtes à session.json
   auditer --url <u> | --dossier <d> [--max-pages n] [--marque <nom>] [--wikidata]
           [--autoriser-local] [--hotes-autorises h,…] [--echec-si bloquant|important]
@@ -156,7 +156,8 @@ async function cmdInit(args) {
   options(args)
   const dir = dossierDonnees()
   fs.mkdirSync(dir, { recursive: true })
-  if (!fs.existsSync(path.join(dir, 'session.json'))) ecrireSession(dir, { hotes_autorises: [] })
+  // A new session starts with no allowed host (design §10.5): consent is asked again every session.
+  ecrireSession(dir, { ...lireSession(dir), hotes_autorises: [] })
   await avecBase(() => {})
   ecrireJson({ dossier: dir, session: lireSession(dir) })
 }
@@ -330,7 +331,9 @@ async function cmdExporterContenu(args) {
   fs.mkdirSync(dir, { recursive: true })
   const part = passages.slice((lot - 1) * PASSAGES_PAR_LOT, lot * PASSAGES_PAR_LOT)
   fs.writeFileSync(path.join(dir, 'passages.json'), JSON.stringify(part, null, 2))
-  ecrireJson({ audit_id: Number(o.audit), lot, lots: total, passages: part.length, dossier: dir, non_fiable: true })
+  // Passage ids (page URL + index, not page text) let the caller check the agent's answer without reading tmp/.
+  const ids = part.map((p) => { const v = String(p?.id ?? ''); return /^[!-~]{1,2048}$/.test(v) ? v : extrait(v, 280).extrait })
+  ecrireJson({ audit_id: Number(o.audit), lot, lots: total, passages: part.length, ids, dossier: dir, non_fiable: true })
 }
 
 export function enregistrerCommandes(commande) {

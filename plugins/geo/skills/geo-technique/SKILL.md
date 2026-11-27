@@ -9,7 +9,7 @@ Lire d'abord `<base du skill>/../../references/robots-ia.md` et, pour chaque con
 
 ## Règles qui ne plient pas
 
-1. **Accord réseau d'abord** : l'hôte doit avoir été accepté dans la session (`geo` : lister l'hôte, oui explicite, puis `geo.mjs autoriser <hôte>`). Code de sortie 3 = demander l'accord, jamais contourner.
+1. **Aucune lecture du site hors de `geo.mjs`** : ni WebFetch, ni navigateur, ni `curl`. L'hôte doit avoir été accepté dans la session (skill `geo` : `init`, liste des hôtes, oui explicite, puis `geo.mjs autoriser <hôte>`). `--hotes-autorises` et `--autoriser-local` sont **interdites au modèle**. Code de sortie 3 = demander l'accord, jamais contourner.
 2. **Jamais recommander d'autoriser les robots d'entraînement.** Décrire la politique observée, rôle par rôle ; la décision revient au propriétaire.
 3. **`llms.txt` est informatif**, poids 0 dans tout score, jamais présenté comme levier.
 4. **Interpréter, ne pas recalculer** : le verdict par robot vient de l'outil (RFC 9309) ; ne pas relire le `robots.txt` à la main pour le contredire.
@@ -17,7 +17,7 @@ Lire d'abord `<base du skill>/../../references/robots-ia.md` et, pour chaque con
 
 ## Déroulé
 
-1. Vérification rapide des robots : `geo.mjs robots --url <url>`. Présenter un tableau `jeton | éditeur | rôle | politique | groupe` ; séparer les rôles `indexation` et `consultation-utilisateur` (ce qui touche la présence dans les réponses) de `entrainement` et `controle`.
+1. Vérification rapide des robots : `geo.mjs robots --url <url>`. Présenter un tableau `jeton | éditeur | rôle | politique | groupe` ; séparer les rôles `indexation` et `consultation-utilisateur` (ce qui touche la présence dans les réponses) de `entrainement`, `controle` et `autre` (robots hors catégories et jetons non documentés).
 2. Audit technique complet : reprendre l'audit du skill `geo` s'il existe (`geo.mjs rapport --audit <id> --format json`), sinon le faire lancer par `geo` (profil, accord, niveau). Les constats utiles : catégories indexation, accès IA, rendu, sitemaps, canonical, hreflang.
 3. Pour chaque constat : gravité, preuve (`type`, `url`, `detail` : la commande ou la valeur qui la redonne), correction type de la fiche. Au niveau d'autonomie 1, aucune recommandation.
 4. Rappeler les limites : un `robots.txt` inaccessible (5xx) vaut interdiction par précaution ; certains robots de consultation peuvent ne pas appliquer `robots.txt` (`robots-ia.md`).

@@ -121,11 +121,13 @@ test('skills : front matter name = dossier, description présente, 120 lignes au
   }
 })
 
-test('agent lecteur-contenu : outil de lecture seul ; commande /geo : argument-hint', () => {
+test('agent lecteur-contenu : outil de lecture seul ; point d’entrée unique : le skill geo porte les sous-commandes', () => {
   const agent = frontMatter(readFileSync(path.join(RACINE, 'plugins/geo/agents/lecteur-contenu.md'), 'utf8'))
   assert.equal(agent.name, 'lecteur-contenu')
   assert.equal(agent.tools, 'Read')
-  const cmd = frontMatter(readFileSync(path.join(RACINE, 'plugins/geo/commands/geo.md'), 'utf8'))
-  assert.ok(cmd.description)
-  assert.match(cmd['argument-hint'], /audit\|quick\|deep\|technical\|content/)
+  assert.ok(!existsSync(path.join(RACINE, 'plugins/geo/commands')), 'pas de commande : le skill geo est le seul point d’entrée')
+  const geo = readFileSync(path.join(RACINE, 'plugins/geo/skills/geo/SKILL.md'), 'utf8')
+  for (const sc of ['audit', 'quick', 'deep', 'technical', 'content', 'report', 'cost']) assert.match(geo, new RegExp('`' + sc + '[ `]'), sc)
+  for (const sc of ['visibility', 'citations', 'competitors']) assert.match(geo, new RegExp('`' + sc + '`[^\\n]*prévu en 0\\.2'), sc)
+  for (const sc of ['why-not', 'fix', 'verify', 'compare', 'history', 'monitor', 'logs', 'benchmark']) assert.match(geo, new RegExp('`' + sc + '`[^\\n]*prévu en 0\\.3'), sc)
 })

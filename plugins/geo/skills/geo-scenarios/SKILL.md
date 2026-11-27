@@ -10,10 +10,11 @@ Lire d'abord `<base du skill>/../../references/scenarios.md`. Outils : `node <ba
 ## Règles qui ne plient pas
 
 1. **Le profil est confirmé par l'utilisateur** avant toute génération ; un profil deviné produit une mesure sans valeur.
-2. **Jamais la marque ni ses alias** dans une requête de découverte ; les requêtes de marque sont à part.
-3. **Aucune requête ajoutée à la main** au jeu : tout ajout passe par le profil, puis régénération par l'outil.
-4. **Un jeu figé ne se modifie plus** : toute modification = nouveau jeu, nouvelle empreinte.
-5. **Formes imposées** dans le profil (sinon les gabarits produisent des phrases fausses) :
+2. **Sources du profil : les réponses de l'utilisateur et la sortie de `geo.mjs auditer` seulement.** Jamais de WebFetch, de navigateur ni d'autre lecture du site ; un audit demande d'abord l'accord réseau de session (skill `geo`).
+3. **Jamais la marque ni ses alias** dans une requête de découverte ; les requêtes de marque sont à part.
+4. **Aucune requête ajoutée à la main** au jeu : tout ajout passe par le profil, puis régénération par l'outil.
+5. **Un jeu figé ne se modifie plus** : toute modification = nouveau jeu, nouvelle empreinte.
+6. **Formes imposées** dans le profil (sinon les gabarits produisent des phrases fausses) :
    - `besoins` : en français, **verbe à l'infinitif** (`planifier les interventions`, pas `planification`) ; en anglais, **forme en -ing** (`scheduling field visits`) ;
    - `zones` : **nom seul**, sans préposition (`Lyon`, pas `à Lyon`) ;
    - `categorie` : **sans article** (`logiciel de planification`, pas `un logiciel…`) ;
@@ -22,7 +23,7 @@ Lire d'abord `<base du skill>/../../references/scenarios.md`. Outils : `node <ba
 
 ## Déroulé
 
-1. Construire le profil depuis le site (accueil, offres) et les réponses de l'utilisateur ; demander les zones et concurrents manquants plutôt que livrer un jeu réduit. L'écrire dans `.claude/geo/profil.json` (outil d'écriture) après confirmation.
+1. Construire le profil avec l'utilisateur et, si un audit existe, depuis sa sortie (`geo.mjs rapport --audit <id> --format json` : entité, pages) ; demander les zones et concurrents manquants plutôt que livrer un jeu réduit. L'écrire dans `.claude/geo/profil.json` (outil d'écriture) après confirmation.
 2. Générer : `geo.mjs scenarios generer --profil .claude/geo/profil.json --niveau <rapide|standard|approfondi|exhaustif> --graine <entier>`. Montrer un échantillon par intention, la taille et `manques` (dire pourquoi le jeu est plus petit si c'est le cas).
 3. Corrections de l'utilisateur : modifier le profil, régénérer, remontrer.
 4. Sur validation explicite : `geo.mjs scenarios figer --profil .claude/geo/profil.json --niveau <n> --graine <g> --origine <url>`. Annoncer `jeu_id` et `empreinte`. `geo.mjs scenarios lister` montre les jeux figés.

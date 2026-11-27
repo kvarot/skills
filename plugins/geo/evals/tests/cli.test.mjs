@@ -83,6 +83,16 @@ test('init crée session.json vide et la base ; autoriser ajoute sans doublon', 
   assert.equal((await geo(['autoriser'], home)).code, 1)
 })
 
+test('init : une nouvelle session repart sans hôte autorisé', async () => {
+  const home = await homeAutorise()
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(home, 'session.json'), 'utf8')).hotes_autorises, ['127.0.0.1'])
+  const r = await geo(['init'], home)
+  assert.equal(r.code, 0)
+  assert.deepEqual(json(r).session.hotes_autorises, [])
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(home, 'session.json'), 'utf8')).hotes_autorises, [])
+  assert.equal((await geo(['auditer', '--url', base, '--autoriser-local'], home)).code, 3)
+})
+
 test('auditer après autoriser : code 0, JSON valide, clés attendues dans l’ordre', async () => {
   const home = await homeAutorise()
   const r = await geo(['auditer', '--url', base, '--autoriser-local'], home)
@@ -271,6 +281,7 @@ test('exporter-contenu : lot copié sous tmp/, lot hors plage refusé, --purger 
   const s = json(r)
   assert.equal(s.lot, 1)
   assert.equal(s.passages, passagesAudit.length)
+  assert.deepEqual(s.ids, passagesAudit.map((p) => p.id))
   assert.ok(!r.stdout.includes('Lumivia est un logiciel'))
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(home, 'tmp', 'lot-1', 'passages.json'), 'utf8')), passagesAudit)
   assert.equal((await geo(['exporter-contenu', '--audit', String(a.audit_id), '--lot', '2'], home)).code, 1)

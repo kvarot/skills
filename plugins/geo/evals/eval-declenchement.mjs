@@ -2,7 +2,8 @@
 // Adapted from plugins/seo/evals/eval-declenchement.mjs (same author, MIT), itself adapted from
 // validation-produit/evals/eval-declenchement.mjs and inspired by the anthropics/skills
 // skill-creator runner (Apache-2.0). For each case: a headless `claude -p` from an empty folder,
-// with this plugin loaded (--plugin-dir) and only the Skill tool offered. Cases marked
+// with this plugin loaded (--plugin-dir), built-in tools limited to Skill (--tools Skill) and no
+// MCP server (--strict-mcp-config); tools the harness adds on its own may still be listed. Cases marked
 // `deux_plugins: true` also load the sibling seo plugin, to check that the two plugins share
 // requests correctly. Observed skill = the skill named by the first tool call if it is Skill on a
 // geo* or seo* skill. A case passes when the observed skill equals `skill_attendu` (null = no
@@ -163,7 +164,16 @@ const categories = {
 const jetons = { entree: 0, cache_ecrit: 0, cache_lu: 0, sortie: 0 }
 for (const r of res) for (const e of r.essais) for (const k of Object.keys(jetons)) jetons[k] += e.jetons?.[k] || 0
 const summary = { total: res.length, ...mesures(unique), exclus, categories, jetons, par_skill: parSkill }
-const out = { filtre, modele, runs, date: new Date().toISOString(), duree_s: Math.round((Date.now() - debut) / 1000), summary, results: res }
-writeFileSync(a.sortie ? path.resolve(a.sortie) : path.join(here, 'resultats-declenchement.json'), JSON.stringify(out, null, 1))
+// Earlier runs kept in the same results file (`historique`), so a re-run never erases them.
+const fichierSortie = a.sortie ? path.resolve(a.sortie) : path.join(here, 'resultats-declenchement.json')
+let historique = []
+try {
+  const avant = JSON.parse(readFileSync(fichierSortie, 'utf8'))
+  historique = Array.isArray(avant.historique) ? avant.historique : []
+  if (avant.summary) historique.push({ modele: avant.modele, runs: avant.runs, date: avant.date, duree_s: avant.duree_s, summary: avant.summary,
+    echecs: (avant.results || []).filter((r) => r.pass === false).map((r) => ({ query: r.query, skill_attendu: r.skill_attendu, observe: r.observe })) })
+} catch {}
+const out = { filtre, modele, runs, date: new Date().toISOString(), duree_s: Math.round((Date.now() - debut) / 1000), summary, results: res, historique }
+writeFileSync(fichierSortie, JSON.stringify(out, null, 1))
 console.log(JSON.stringify(summary, null, 1))
 if (exclus.erreur || exclus.timeout) process.exitCode = 1

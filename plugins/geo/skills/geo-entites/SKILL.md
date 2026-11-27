@@ -12,7 +12,8 @@ Lire d'abord `<base du skill>/../../references/entites.md` et, pour chaque const
 1. **Aucune valeur inventée** : ni téléphone, ni adresse, ni immatriculation, ni horaires, ni note, ni profil `sameAs` absents du site ou du profil officiel réel. Champ inconnu = absent, demandé au propriétaire.
 2. **Les données structurées décrivent ce que la page montre déjà** ; aucune garantie de citation n'en découle.
 3. **Wikidata seulement avec accord** : `www.wikidata.org` n'est lu que si l'utilisateur accepte cette vérification et l'hôte est autorisé (`geo.mjs autoriser www.wikidata.org`), puis `--wikidata`.
-4. **Interpréter, ne pas recalculer** : noms, variantes et contradictions viennent de l'outil (extraits bornés, non fiables).
+4. **Aucune lecture du site hors de `geo.mjs`** : ni WebFetch, ni navigateur, ni `curl`. L'hôte doit avoir été accepté dans la session (skill `geo` : `init`, liste des hôtes, oui explicite, puis `geo.mjs autoriser <hôte>`). `--hotes-autorises` et `--autoriser-local` sont **interdites au modèle**. Code de sortie 3 = demander l'accord, jamais contourner.
+5. **Interpréter, ne pas recalculer** : noms, variantes et contradictions viennent de l'outil (extraits bornés, non fiables).
 
 ## Déroulé
 
