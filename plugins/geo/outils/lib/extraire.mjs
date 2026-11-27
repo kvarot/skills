@@ -154,6 +154,18 @@ function analyser(html, url) {
     if (p && p.cur !== null) p.cur += ' '
   }
   const dessus = () => pile[pile.length - 1]
+  const dernier = (type) => { for (let i = pile.length - 1; i >= 0; i--) if (pile[i].type === type) return pile[i]; return null }
+  // True when the open block is a list item, table cell or definition (a <p> there stays in it).
+  const dansItem = () => {
+    const s = dessus()
+    return !!s && s.type !== 'paragraphe' && (s.type === 'tableau' ? s.cell !== null : s.cur !== null)
+  }
+  // Ends the data-nosnippet region when its element is closed implicitly (optional end tag).
+  const fermerRegion = () => {
+    flushLibre()
+    while (pile.length && dessus().bloc.nosnippet) fermer()
+    ns = null
+  }
   const fermerParagraphe = () => { if (pile.length && dessus().type === 'paragraphe') fermer() }
   const ouvrir = (type) => {
     flushLibre()
@@ -178,6 +190,8 @@ function analyser(html, url) {
     while (pile.length - 1 > i) fermer()
     return pile[i]
   }
+  // Remembers the parent block of a region opened on an item/cell/row element.
+  const regionEntry = (nom, s) => { if (ns && ns.entry === null && ns.nom === nom) ns.entry = s }
   const ajouterTexte = (t) => {
     const s = dessus()
     // Inside a data-nosnippet region, text of an unflagged host block goes to a flagged block.
@@ -235,10 +249,18 @@ function analyser(html, url) {
       pos = e === -1 ? n : e + 1
       if (!nom) continue
       const t = nom.toLowerCase()
-      if (/^h[1-6]$/.test(t)) fermerHn()
-      else if (t === 'a') fermerLien()
-      else if (t === 'head') dansHead = false
-      else if (t === 'svg' && svg > 0) svg--
+      if (ns && ns.entry) {
+        // The end of the parent list / table / definition list implies the end of the region.
+        const parent = { ul: 'liste', ol: 'liste', table: 'tableau', tr: 'tableau', dl: 'definition' }[t]
+        if (parent && dernier(parent) === ns.entry && !(t === 'tr' && ns.nom === 'tr')) fermerRegion()
+      }
+      if (ns && ns.nom === 'p' && CONTENEURS.has(t)) fermerRegion()
+      if (/^h[1-6]$/.test(t) || t === 'a' || t === 'head' || (t === 'svg' && svg > 0)) {
+        if (t === 'a') fermerLien()
+        else if (t === 'head') dansHead = false
+        else if (t === 'svg') svg--
+        else fermerHn()
+      }
       else if (t === 'p') fermerJusqua('paragraphe')
       else if (t === 'ul' || t === 'ol') fermerJusqua('liste')
       else if (t === 'table') fermerJusqua('tableau')
@@ -287,10 +309,19 @@ function analyser(html, url) {
       continue
     }
 
+    // A start tag that implicitly closes the region's element (optional end tag) ends the region.
+    if (ns && !VOID.has(nom)) {
+      const ferme = {
+        li: ['li'], td: ['td', 'th'], th: ['td', 'th'], tr: ['td', 'th', 'tr'], dt: ['dt', 'dd'], dd: ['dt', 'dd'],
+      }
+      const type = { li: 'liste', td: 'tableau', th: 'tableau', tr: 'tableau', dt: 'definition', dd: 'definition' }[nom]
+      if (ns.nom === 'p' && (nom === 'p' || /^(ul|ol|table|dl|pre|h[1-6])$/.test(nom) || CONTENEURS.has(nom))) fermerRegion()
+      else if (type && ns.entry && ferme[nom].includes(ns.nom) && dernier(type) === ns.entry) fermerRegion()
+    }
     // data-nosnippet region: opened by the attribute, closed by the matching end tag.
     if (!VOID.has(nom) && !autoFermant && !dansHead) {
       if (ns) { if (nom === ns.nom) ns.prof++ }
-      else if (at['data-nosnippet'] !== undefined) { flushLibre(); ns = { nom, prof: 1 } }
+      else if (at['data-nosnippet'] !== undefined) { flushLibre(); ns = { nom, prof: 1, entry: null } }
     }
     if (CONTENEURS.has(nom)) { flushLibre(); fermerParagraphe() }
 
@@ -340,16 +371,16 @@ function analyser(html, url) {
       })
     } else if (nom === 'time') {
       if (tempsPremier === null && at.datetime !== undefined && at.datetime.trim()) tempsPremier = at.datetime.trim()
-    } else if (nom === 'p') ouvrir('paragraphe')
+    } else if (nom === 'p') { if (dansItem()) ajouterTexte(' '); else ouvrir('paragraphe') }
     else if (nom === 'ul' || nom === 'ol') ouvrir('liste')
     else if (nom === 'table') ouvrir('tableau')
     else if (nom === 'dl') ouvrir('definition')
-    else if (nom === 'li') { const s = trouver('liste'); if (s) { finirItem(s); s.cur = '' } }
-    else if (nom === 'tr') { const s = trouver('tableau'); if (s) { finirLigne(s); s.row = [] } }
+    else if (nom === 'li') { const s = trouver('liste'); if (s) { finirItem(s); s.cur = ''; regionEntry(nom, s) } }
+    else if (nom === 'tr') { const s = trouver('tableau'); if (s) { finirLigne(s); s.row = []; regionEntry(nom, s) } }
     else if (nom === 'td' || nom === 'th') {
       const s = trouver('tableau')
-      if (s) { finirCellule(s); if (!s.row) s.row = []; s.cell = '' }
-    } else if (nom === 'dt' || nom === 'dd') { const s = trouver('definition'); if (s) { finirItem(s); s.cur = '' } }
+      if (s) { finirCellule(s); if (!s.row) s.row = []; s.cell = ''; regionEntry(nom, s) }
+    } else if (nom === 'dt' || nom === 'dd') { const s = trouver('definition'); if (s) { finirItem(s); s.cur = ''; regionEntry(nom, s) } }
     else if (nom === 'br') texte(' ')
   }
   fermerHn()

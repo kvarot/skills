@@ -175,3 +175,29 @@ test('blocs : titre avec niveau, attributs malformés tolérés', () => {
   assert.equal(f.blocs[0].texte, 'Titre long')
   assert.doesNotThrow(() => extraire('<p a="1" a="2" =x "y" data-nosnippet=>t</p><h2 <b>x', 'u'))
 })
+
+test('data-nosnippet sur un élément à balise de fin optionnelle : la région se ferme', () => {
+  const p = extraire('<p data-nosnippet>x<p>y<p>z', 'u')
+  assert.deepEqual(p.blocs.map((b) => [b.texte, b.nosnippet === true]), [['x', true], ['y', false], ['z', false]])
+  const li = extraire('<ul><li data-nosnippet>x<li>y<li>z</ul><p>after</p>', 'u')
+  assert.deepEqual(li.blocs.map((b) => [b.type, b.texte, b.nosnippet === true]), [
+    ['liste', 'y\nz', false], ['paragraphe', 'x', true], ['paragraphe', 'after', false],
+  ])
+  const td = extraire('<table><tr><td data-nosnippet>a<td>b</table><p>c</p>', 'u')
+  assert.deepEqual(td.blocs.map((b) => [b.texte, b.nosnippet === true]), [['b', false], ['a', true], ['c', false]])
+  const dd = extraire('<dl><dt data-nosnippet>t<dd>d</dl><p>e</p>', 'u')
+  assert.equal(dd.blocs.at(-1).nosnippet, undefined)
+  // A nested list inside a flagged item keeps the region open.
+  const nested = extraire('<ul><li data-nosnippet>x<ul><li>inner</li></ul></li><li>y</li></ul>', 'u')
+  assert.equal(nested.blocs.find((b) => b.texte === 'inner').nosnippet, true)
+  assert.equal(nested.blocs.find((b) => b.texte === 'y').nosnippet, undefined)
+})
+
+test('blocs : <p> dans un li ou une cellule garde la structure liste / tableau', () => {
+  const l = extraire('<ul><li><p>Un</p></li><li><p>Deux</p></li></ul>', 'u')
+  assert.deepEqual(l.blocs, [{ type: 'liste', texte: 'Un\nDeux' }])
+  const t = extraire('<table><tr><td><p>A</p></td><td><p>B</p></td></tr></table>', 'u')
+  assert.deepEqual(t.blocs, [{ type: 'tableau', texte: 'A | B' }])
+  const m = extraire('<ul><li><p>Un</p><p>bis</p></li></ul>', 'u')
+  assert.deepEqual(m.blocs, [{ type: 'liste', texte: 'Un bis' }])
+})
