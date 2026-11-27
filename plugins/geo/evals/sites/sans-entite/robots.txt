@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /prive/
+
+Sitemap: http://SITE/sitemap.xml

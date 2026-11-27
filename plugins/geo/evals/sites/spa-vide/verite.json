@@ -1,0 +1,12 @@
+{
+  "attendus": [
+    {
+      "id": "GEO-HTML-VIDE",
+      "page": "/"
+    }
+  ],
+  "interdits": [
+    "GEO-WAF-DEFI",
+    "GEO-ROBOTSTXT-BLOQUE-TOUT"
+  ]
+}

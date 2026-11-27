@@ -1,0 +1,9 @@
+{
+  "/": {
+    "statut": 503,
+    "entetes": {
+      "cf-mitigated": "challenge",
+      "server": "cloudflare"
+    }
+  }
+}

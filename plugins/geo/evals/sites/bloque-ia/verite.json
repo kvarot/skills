@@ -1,0 +1,35 @@
+{
+  "attendus": [
+    {
+      "id": "GEO-ROBOTS-RECHERCHE-BLOQUE"
+    },
+    {
+      "id": "GEO-ROBOTS-CONSULTATION-BLOQUE"
+    },
+    {
+      "id": "GEO-ROBOTS-ENTRAINEMENT-POLITIQUE"
+    }
+  ],
+  "interdits": [
+    "GEO-ROBOTSTXT-BLOQUE-TOUT",
+    "GEO-WAF-DEFI"
+  ],
+  "absents": [
+    {
+      "id": "GEO-CONTENU-AUCUNE-DEFINITION",
+      "page": "/de.html"
+    },
+    {
+      "id": "GEO-CONTENU-AUTEUR-ABSENT",
+      "page": "/de.html"
+    },
+    {
+      "id": "GEO-CONTENU-PASSAGES-DEPENDANTS",
+      "page": "/de.html"
+    },
+    {
+      "id": "GEO-CONTENU-SANS-SOURCE",
+      "page": "/de.html"
+    }
+  ]
+}

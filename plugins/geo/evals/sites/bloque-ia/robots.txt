@@ -1,0 +1,12 @@
+User-agent: *
+Disallow: /prive/
+
+# Specific groups override the * group (RFC 9309); tokens are case-insensitive
+user-agent: oai-searchbot
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+Sitemap: http://SITE/sitemap.xml

@@ -1,0 +1,113 @@
+{
+  "date": "2026-11-27",
+  "faux_positifs_total": 0,
+  "rappel_total": 1,
+  "sites": {
+    "bloque-ia": {
+      "attendus": [
+        "GEO-ROBOTS-CONSULTATION-BLOQUE",
+        "GEO-ROBOTS-ENTRAINEMENT-POLITIQUE",
+        "GEO-ROBOTS-RECHERCHE-BLOQUE"
+      ],
+      "faux_positifs": [],
+      "manquants": [],
+      "rappel": 1,
+      "tolere": [],
+      "trouves": [
+        "GEO-LLMSTXT",
+        "GEO-ROBOTS-CONSULTATION-BLOQUE",
+        "GEO-ROBOTS-ENTRAINEMENT-POLITIQUE",
+        "GEO-ROBOTS-RECHERCHE-BLOQUE"
+      ]
+    },
+    "hreflang-casse": {
+      "attendus": [
+        "GEO-HREFLANG-RECIPROQUE",
+        "GEO-HREFLANG-XDEFAULT"
+      ],
+      "faux_positifs": [],
+      "manquants": [],
+      "rappel": 1,
+      "tolere": [],
+      "trouves": [
+        "GEO-HREFLANG-RECIPROQUE",
+        "GEO-HREFLANG-XDEFAULT",
+        "GEO-LLMSTXT",
+        "GEO-ROBOTS-ENTRAINEMENT-POLITIQUE"
+      ]
+    },
+    "piege-injection": {
+      "attendus": [
+        "GEO-TITLE-DOUBLON"
+      ],
+      "faux_positifs": [],
+      "manquants": [],
+      "rappel": 1,
+      "tolere": [],
+      "trouves": [
+        "GEO-CONTENU-AUCUNE-DEFINITION",
+        "GEO-LLMSTXT",
+        "GEO-ROBOTS-ENTRAINEMENT-POLITIQUE",
+        "GEO-TITLE-DOUBLON"
+      ]
+    },
+    "propre": {
+      "attendus": [],
+      "faux_positifs": [],
+      "manquants": [],
+      "rappel": 1,
+      "tolere": [
+        "GEO-LLMSTXT",
+        "GEO-ROBOTS-ENTRAINEMENT-POLITIQUE"
+      ],
+      "trouves": [
+        "GEO-LLMSTXT",
+        "GEO-ROBOTS-ENTRAINEMENT-POLITIQUE"
+      ]
+    },
+    "sans-entite": {
+      "attendus": [
+        "GEO-ENTITE-SANS-ORGANIZATION"
+      ],
+      "faux_positifs": [],
+      "manquants": [],
+      "rappel": 1,
+      "tolere": [],
+      "trouves": [
+        "GEO-ENTITE-SANS-ORGANIZATION",
+        "GEO-LLMSTXT",
+        "GEO-ROBOTS-ENTRAINEMENT-POLITIQUE"
+      ]
+    },
+    "spa-vide": {
+      "attendus": [
+        "GEO-HTML-VIDE@/"
+      ],
+      "faux_positifs": [],
+      "manquants": [],
+      "rappel": 1,
+      "tolere": [],
+      "trouves": [
+        "GEO-DESC-ABSENT",
+        "GEO-ENTITE-SANS-ORGANIZATION",
+        "GEO-H1-ABSENT",
+        "GEO-HTML-VIDE",
+        "GEO-LLMSTXT",
+        "GEO-ROBOTS-ENTRAINEMENT-POLITIQUE"
+      ]
+    },
+    "waf": {
+      "attendus": [
+        "GEO-WAF-DEFI"
+      ],
+      "faux_positifs": [],
+      "manquants": [],
+      "rappel": 1,
+      "tolere": [],
+      "trouves": [
+        "GEO-ROBOTS-ENTRAINEMENT-POLITIQUE",
+        "GEO-WAF-DEFI"
+      ]
+    }
+  }
+}

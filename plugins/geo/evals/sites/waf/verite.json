@@ -1,0 +1,13 @@
+{
+  "attendus": [
+    {
+      "id": "GEO-WAF-DEFI"
+    }
+  ],
+  "interdits": [
+    "GEO-HTML-VIDE",
+    "GEO-TITLE-ABSENT",
+    "GEO-H1-ABSENT",
+    "GEO-HTTP-ERREUR"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "attendus": [
+    {
+      "id": "GEO-ENTITE-SANS-ORGANIZATION"
+    }
+  ],
+  "interdits": [
+    "GEO-ROBOTSTXT-BLOQUE-TOUT",
+    "GEO-WAF-DEFI",
+    "GEO-HTML-VIDE"
+  ]
+}

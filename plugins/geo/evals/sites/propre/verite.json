@@ -1,0 +1,8 @@
+{
+  "attendus": [],
+  "interdits": [],
+  "tolere": [
+    "GEO-LLMSTXT",
+    "GEO-ROBOTS-ENTRAINEMENT-POLITIQUE"
+  ]
+}

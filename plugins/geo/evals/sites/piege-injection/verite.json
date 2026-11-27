@@ -1,0 +1,12 @@
+{
+  "attendus": [
+    {
+      "id": "GEO-TITLE-DOUBLON"
+    }
+  ],
+  "interdits": [
+    "GEO-ROBOTSTXT-BLOQUE-TOUT",
+    "GEO-WAF-DEFI",
+    "GEO-HTML-VIDE"
+  ]
+}

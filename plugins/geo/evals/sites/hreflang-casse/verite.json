@@ -1,0 +1,15 @@
+{
+  "attendus": [
+    {
+      "id": "GEO-HREFLANG-RECIPROQUE"
+    },
+    {
+      "id": "GEO-HREFLANG-XDEFAULT"
+    }
+  ],
+  "interdits": [
+    "GEO-ROBOTSTXT-BLOQUE-TOUT",
+    "GEO-WAF-DEFI",
+    "GEO-HTML-VIDE"
+  ]
+}
