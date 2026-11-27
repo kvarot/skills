@@ -1,0 +1,13 @@
+{
+  "decouverte": { "poids": 18, "avec_marque_autorise": false },
+  "comparaison": { "poids": 10, "avec_marque_autorise": true },
+  "recommandation": { "poids": 14, "avec_marque_autorise": false },
+  "achat": { "poids": 7, "avec_marque_autorise": false },
+  "alternative": { "poids": 8, "avec_marque_autorise": true },
+  "probleme": { "poids": 10, "avec_marque_autorise": false },
+  "local": { "poids": 6, "avec_marque_autorise": false },
+  "tarif": { "poids": 7, "avec_marque_autorise": false },
+  "fonctionnalite": { "poids": 8, "avec_marque_autorise": false },
+  "reglementaire": { "poids": 5, "avec_marque_autorise": false },
+  "technique": { "poids": 7, "avec_marque_autorise": false }
+}

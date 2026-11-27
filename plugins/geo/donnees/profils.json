@@ -1,0 +1,13 @@
+{
+  "debutant": { "poids": 1.5, "formulations": { "fr": ["je débute,", "pour commencer,", "je ne m'y connais pas bien,"], "en": ["I'm new to this,", "as a beginner,", "I don't know much about this,"] } },
+  "experimente": { "poids": 1, "formulations": { "fr": ["avec de l'expérience dans le domaine,", "j'ai déjà un peu de recul,"], "en": ["with some experience behind me,", "I've done this before,"] } },
+  "expert-technique": { "poids": 0.8, "formulations": { "fr": ["côté technique,", "en tant que spécialiste,"], "en": ["from a technical standpoint,", "as a specialist,"] } },
+  "independant": { "poids": 1.2, "formulations": { "fr": ["en tant qu'indépendant,", "je travaille seul,"], "en": ["as a freelancer,", "I work on my own,"] } },
+  "dirigeant": { "poids": 0.8, "formulations": { "fr": ["en tant que dirigeant,", "pour mon entreprise,"], "en": ["as a business owner,", "for my company,"] } },
+  "responsable-informatique": { "poids": 0.7, "formulations": { "fr": ["en tant que responsable informatique,", "pour notre parc d'outils,"], "en": ["as an IT manager,", "for our tool stack,"] } },
+  "acheteur": { "poids": 1, "formulations": { "fr": ["je dois choisir un fournisseur,", "avant de décider,"], "en": ["I need to pick a supplier,", "before making a decision,"] } },
+  "alternative": { "poids": 0.6, "formulations": { "fr": ["je cherche autre chose que ce que j'utilise,", "je veux changer d'outil,"], "en": ["I want something different from what I use,", "I'm ready to switch tools,"] } },
+  "budget-limite": { "poids": 1, "formulations": { "fr": ["avec un petit budget,", "sans dépenser beaucoup,"], "en": ["on a small budget,", "without spending much,"] } },
+  "contraintes-reglementaires": { "poids": 0.6, "formulations": { "fr": ["en respectant la réglementation,", "avec des obligations légales à tenir,"], "en": ["while staying compliant,", "with legal obligations to meet,"] } },
+  "local": { "poids": 0.8, "formulations": { "fr": ["pour mon activité locale,", "pour une petite structure de proximité,"], "en": ["for my local business,", "for a small neighbourhood business,"] } }
+}
