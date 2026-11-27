@@ -249,3 +249,20 @@ test('hotesAutorises : un littéral IPv6 entre crochets est normalisé', () => {
     assert.deepEqual([...hotesAutorises(d, ['[::2]'])].sort(), ['::1', '::2'])
   } finally { rmSync(d, { recursive: true, force: true }) }
 })
+
+test('suivre: false renvoie la 3xx sans la suivre', async () => {
+  const vus = []
+  const s = http.createServer((req, res) => {
+    vus.push(req.url)
+    if (req.url === '/a') { res.writeHead(302, { location: '/b' }); res.end() } else { res.writeHead(200, { 'content-type': 'text/html' }); res.end('b') }
+  })
+  await new Promise((r) => s.listen(0, '127.0.0.1', r))
+  try {
+    const u = `http://127.0.0.1:${s.address().port}`
+    const r = await client().demander(u + '/a', { suivre: false })
+    assert.equal(r.statut, 302)
+    assert.equal(r.entetes.location, '/b')
+    assert.deepEqual(vus, ['/a'])
+    await assert.rejects(creerClient({ hotes: new Set(['autre.example']), delaiMs: 0 }).demander(u + '/a', { suivre: false }), { code: 3 })
+  } finally { s.closeAllConnections?.(); s.close() }
+})

@@ -225,3 +225,67 @@ test('collecterDossier : pages .html d\'un dossier statique', () => {
     assert.throws(() => collecterDossier(path.join(d, 'nope')))
   } finally { rmSync(d, { recursive: true, force: true }) }
 })
+
+test('redirection vers une page déjà en file : une seule page, une seule requête', async () => {
+  const s = await site({
+    '/': html('Accueil', ['/ancien', '/nouveau']),
+    '/ancien': (_q, res) => { res.writeHead(301, { location: '/nouveau' }); res.end() },
+    '/nouveau': html('Nouveau'),
+  })
+  const c = await collecterUrl(s.base + '/', { client: client() })
+  assert.equal(chemins(c).filter((p) => p === '/nouveau').length, 1)
+  assert.equal(compteur.get(s.base + '/nouveau'), 1)
+})
+
+test('slugs avec point explorés, fichiers non-pages ignorés', async () => {
+  const s = await site({
+    '/': html('Accueil', ['/blog/article-2.5', '/produit/v1.2', '/contact.us', '/img/logo.png', '/doc.pdf']),
+    '/blog/article-2.5': html('A'), '/produit/v1.2': html('B'), '/contact.us': html('C'),
+  })
+  const c = await collecterUrl(s.base + '/', { client: client() })
+  assert.deepEqual(chemins(c).sort(), ['/', '/blog/article-2.5', '/contact.us', '/produit/v1.2'])
+  assert.equal(compteur.get(s.base + '/doc.pdf'), undefined)
+})
+
+test('redirection vers un chemin interdit par robots : jamais demandé', async () => {
+  const s = await site({
+    '/': html('Accueil', ['/vieux']),
+    '/vieux': (_q, res) => { res.writeHead(302, { location: '/admin' }); res.end() },
+    '/admin': html('Admin'),
+    '/robots.txt': texte('User-agent: *\nDisallow: /admin\n'),
+  })
+  const c = await collecterUrl(s.base + '/', { client: client() })
+  assert.equal(compteur.get(s.base + '/admin'), undefined)
+  assert.ok(c.erreurs.some((e) => e.url === s.base + '/admin' && /robots/i.test(e.raison)))
+  assert.deepEqual(chemins(c), ['/'])
+})
+
+test('sitemap : image:loc et video:loc ne comptent pas comme pages', async () => {
+  const s = await site({
+    '/': html('Accueil'),
+    '/sitemap.xml': xmlAvec((b) => `<urlset xmlns="x" xmlns:image="y"><url><loc>${b}/p</loc><image:image><image:loc>${b}/i.png</image:loc></image:image></url></urlset>`),
+  })
+  const c = await collecterUrl(s.base + '/', { client: client() })
+  assert.deepEqual(c.site.sitemaps[0].urls, [s.base + '/p'])
+})
+
+test('redirection vers un autre hôte autorisé : non collectée, listée', async () => {
+  const autre = await site({ '/': html('Autre') })
+  const s = await site({
+    '/': html('Accueil', ['/x']),
+    '/x': (_q, res) => { res.writeHead(302, { location: autre.base + '/' }); res.end() },
+  })
+  // same IP, other port: a distinct host (host:port)
+  const c = await collecterUrl(s.base + '/', { client: client() })
+  assert.deepEqual(chemins(c), ['/'])
+  assert.ok(c.erreurs.some((e) => e.url === s.base + '/x' && /autre hôte/.test(e.raison)))
+  assert.equal(compteur.get(autre.base + '/'), undefined)
+})
+
+test('la page de départ peut changer d\'hôte une fois : cet hôte devient celui du site', async () => {
+  const cible = await site({ '/': html('Accueil', ['/b']), '/b': html('B') })
+  const s = await site({ '/': (_q, res) => { res.writeHead(301, { location: cible.base + '/' }); res.end() } })
+  const c = await collecterUrl(s.base + '/', { client: client() })
+  assert.deepEqual(chemins(c).sort(), ['/', '/b'])
+  assert.equal(c.site.racine, cible.base)
+})

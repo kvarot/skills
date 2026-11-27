@@ -229,7 +229,9 @@ ${autoriserLocal ? 'local' : ''}`).digest('hex') + '.json') : null
     } finally { clearTimeout(timer) }
   }
 
-  async function demander(url, { accept = ACCEPT_DEFAUT, agent = AGENT } = {}) {
+  // `suivre: false` returns a 3xx answer as is (statut, entetes incl. location, corps null) instead of following it;
+  // the request actually made is still allowlist- and SSRF-checked.
+  async function demander(url, { accept = ACCEPT_DEFAUT, agent = AGENT, suivre = true } = {}) {
     let courante
     try { courante = new URL(url) } catch { return echec(String(url), 'URL invalide') }
     if (!/^https?:$/.test(courante.protocol)) return echec(courante.href, 'protocole non pris en charge (http ou https attendu)')
@@ -252,6 +254,7 @@ ${autoriserLocal ? 'local' : ''}`).digest('hex') + '.json') : null
         const cause = e?.name === 'AbortError' || e?.name === 'TimeoutError' ? `délai de ${timeoutMs} ms dépassé` : `erreur réseau (${e?.cause?.code ?? e?.code ?? e?.message ?? 'inconnue'})`
         return echec(courante.href, cause, redirections)
       }
+      if (r.redirection !== undefined && !suivre) return { url: courante.href, statut: r.statut, entetes: r.entetes, corps: null, redirections, depuisCache: false }
       if (r.redirection === undefined) {
         const reponse = { url: courante.href, statut: r.statut, entetes: r.entetes, corps: r.corps, redirections, depuisCache: false }
         if (r.raison) reponse.raison = r.raison

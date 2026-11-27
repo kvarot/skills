@@ -10,8 +10,10 @@ const JETON_ROBOTS = 'geo-audit'
 const MAX_URLS_SITEMAP = 50000
 const MAX_NIVEAU_SITEMAP = 2 // index -> child index -> child urlset
 const MAX_SITEMAPS = 50
+const MAX_SAUTS = 10
 const PARAMS_SUIVI = /^(utm_[a-z_]+|fbclid|gclid|msclkid|mc_[a-z]+|_ga|_gl|yclid|igshid)$/i
-const EXT_HTML = /^(html?|php|aspx?|jsp)$/i
+// Extensions that are never pages; any other dotted slug (article-2.5, contact.us) is crawled.
+const EXT_NON_PAGE = /^(jpe?g|png|gif|webp|avif|svg|ico|bmp|tiff?|pdf|docx?|xlsx?|pptx?|odt|ods|zip|gz|tgz|tar|rar|7z|css|js|mjs|map|woff2?|ttf|otf|eot|mp3|mp4|m4a|wav|ogg|webm|mov|avi|mkv|xml|json|txt|rss|atom|csv|exe|dmg|apk)$/i
 
 // --- helpers ----------------------------------------------------------------
 
@@ -30,7 +32,7 @@ function normaliser(href, base) {
   if (!/^https?:$/.test(u.protocol)) return null
   u.hash = ''
   const ext = /\.([a-z0-9]+)$/i.exec(u.pathname.split('/').pop())
-  if (ext && !EXT_HTML.test(ext[1])) return null
+  if (ext && EXT_NON_PAGE.test(ext[1])) return null
   const garde = [...u.searchParams].filter(([k]) => !PARAMS_SUIVI.test(k)).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
   u.search = ''
   for (const [k, v] of garde) u.searchParams.append(k, v)
@@ -45,13 +47,19 @@ function decoderXml(s) {
 }
 
 // Reads a sitemap or sitemap index with tolerance for namespaces, prefixes and CDATA. Never throws.
+// `loc` is read only as a direct child of <url> / <sitemap> (same prefix), so image:loc and video:loc are ignored.
 export function lireSitemap(xml) {
   const txt = String(xml ?? '')
   const index = /<(?:[\w.-]+:)?sitemapindex[\s>]/i.test(txt)
   const locs = []
-  const re = /<(?:[\w.-]+:)?loc(?:\s[^>]*)?>([\s\S]*?)<\/(?:[\w.-]+:)?loc\s*>/gi
-  let m
-  while ((m = re.exec(txt)) !== null) { const v = decoderXml(m[1]); if (v) locs.push(v) }
+  const blocs = /<((?:[\w.-]+:)?)(url|sitemap)(?:\s[^>]*)?>([\s\S]*?)<\/\1\2\s*>/gi
+  let b
+  while ((b = blocs.exec(txt)) !== null) {
+    const prefixe = b[1].replace(/\./g, '\\.')
+    const m = new RegExp('<' + prefixe + 'loc(?:\\s[^>]*)?>([\\s\\S]*?)</' + prefixe + 'loc\\s*>', 'i').exec(b[3])
+    const v = m ? decoderXml(m[1]) : ''
+    if (v) locs.push(v)
+  }
   return { type: index ? 'index' : 'urlset', locs }
 }
 
@@ -77,21 +85,25 @@ export async function collecterUrl(url, { client, maxPages = 50 } = {}) {
   const depart = new URL(url)
   const erreurs = []
   const erreur = (u, raison) => erreurs.push({ url: u, raison })
-  const origine = depart.origin
+  let origine = depart.origin
   let hote = depart.host
 
   // robots.txt (RFC 9309): 4xx = allow all; 5xx or network failure = disallow all for us.
-  let robots = null, robotsTxt = null, toutInterdit = false
-  const rr = await client.demander(origine + '/robots.txt', { accept: 'text/plain,*/*;q=0.1' })
-  const statutRobots = rr.statut
-  if (rr.statut >= 200 && rr.statut < 300 && typeof rr.corps === 'string') { robotsTxt = rr.corps; robots = analyserRobots(rr.corps) }
-  else if (rr.statut >= 400 && rr.statut < 500) robots = null
-  else if (rr.statut === 0 || rr.statut >= 500) { toutInterdit = true; erreur(origine + '/robots.txt', `robots.txt inaccessible (${rr.statut === 0 ? rr.raison : 'statut ' + rr.statut}) : exploration interdite par précaution (RFC 9309)`) }
+  let robots = null, robotsTxt = null, toutInterdit = false, statutRobots = null
+  async function chargerRobots() {
+    robots = null; robotsTxt = null; toutInterdit = false
+    const rr = await client.demander(origine + '/robots.txt', { accept: 'text/plain,*/*;q=0.1' })
+    statutRobots = rr.statut
+    if (rr.statut >= 200 && rr.statut < 300 && typeof rr.corps === 'string') { robotsTxt = rr.corps; robots = analyserRobots(rr.corps) }
+    else if (rr.statut === 0 || rr.statut >= 500) { toutInterdit = true; erreur(origine + '/robots.txt', `robots.txt inaccessible (${rr.statut === 0 ? rr.raison : 'statut ' + rr.statut}) : exploration interdite par précaution (RFC 9309)`) }
+  }
+  await chargerRobots()
   const permis = (u) => !toutInterdit && (!robots || robots.autorise(JETON_ROBOTS, chemin(u)))
   const refus = (u) => erreur(u, toutInterdit ? 'robots.txt inaccessible : exploration interdite par précaution' : `interdit par robots.txt pour ${JETON_ROBOTS}`)
 
   const pages = []
-  let waf = null
+  const collectees = new Set() // final URLs already collected, reached directly or through a redirect
+  let waf = null // first challenge seen on ANY page (not only the start page); later ones are only listed in erreurs
   const vus = new Set()
   const file = []
   const plafondVus = maxPages * 50 + 1000 // bounds memory on very link-heavy sites
@@ -100,11 +112,50 @@ export async function collecterUrl(url, { client, maxPages = 50 } = {}) {
   file.push({ url: departNorm, profondeur: 0 })
   let tete = 0
 
+  // Fetches one URL following redirects by hand, so that each hop is checked (same host, robots.txt)
+  // BEFORE it is requested. Only the start URL may change host (once); its final host becomes the crawl host.
+  // Returns { rep, redirections } or { vide: true } when nothing is left to collect (errors already listed).
+  async function recuperer(cible, premier) {
+    const redirections = []
+    const chaine = new Set([cible])
+    let courante = cible
+    let hoteChange = false
+    for (;;) {
+      let rep
+      try { rep = await client.demander(courante, { suivre: false }) } catch (e) {
+        if (e?.code === 3) { erreur(courante, e.message); return { vide: true } }
+        throw e
+      }
+      const lieu = rep.statut >= 300 && rep.statut < 400 ? rep.entetes?.location : null
+      if (!lieu) return { rep, redirections }
+      if (redirections.length >= MAX_SAUTS) { erreur(cible, `trop de redirections (plus de ${MAX_SAUTS})`); return { vide: true } }
+      let suite
+      try { suite = new URL(lieu, courante) } catch { erreur(cible, 'redirection invalide'); return { vide: true } }
+      suite.hash = ''
+      if (!/^https?:$/.test(suite.protocol)) { erreur(cible, `redirection vers un protocole non pris en charge (${suite.protocol})`); return { vide: true } }
+      const cle = normaliser(suite.href, suite.href) ?? suite.href
+      if (suite.host !== hote) {
+        if (!(premier && !hoteChange)) { erreur(cible, `redirection vers un autre hôte (${suite.host}) : non collecté`); return { vide: true } }
+        hoteChange = true
+        hote = suite.host; origine = suite.origin
+        await chargerRobots() // robots.txt and sitemaps follow the new host
+      }
+      if (chaine.has(cle)) { erreur(cible, 'boucle de redirections'); return { vide: true } }
+      if (!permis(cle)) { refus(cle); return { vide: true } }
+      redirections.push(cle)
+      chaine.add(cle)
+      if (collectees.has(cle)) return { vide: true } // target already collected: no second fetch
+      courante = cle
+    }
+  }
+
   while (tete < file.length && pages.length < maxPages) {
     const { url: cible, profondeur } = file[tete++]
+    if (collectees.has(cible)) continue
     if (!permis(cible)) { refus(cible); continue }
-    const rep = await client.demander(cible)
-    if (pages.length === 0 && profondeur === 0) hote = new URL(rep.url || cible).host // start page may redirect within the allowlist
+    const r = await recuperer(cible, profondeur === 0 && pages.length === 0)
+    if (r.vide) continue
+    const { rep, redirections } = r
     const defi = detecterWaf(rep)
     if (defi) {
       waf ??= { detecte: true, preuve: defi }
@@ -116,18 +167,16 @@ export async function collecterUrl(url, { client, maxPages = 50 } = {}) {
     if (rep.statut < 200 || rep.statut >= 300) { erreur(cible, `statut ${rep.statut}`); continue }
     if (rep.corps === null || rep.corps === undefined) { erreur(cible, rep.raison ?? 'corps illisible'); continue }
     const finale = normaliser(rep.url, rep.url) ?? rep.url
-    if (finale !== cible) {
-      if (vus.has(finale) && pages.some((p) => p.url === finale)) continue // redirect to a page already collected
-      vus.add(finale)
-      if (!permis(finale)) { refus(finale); continue }
-    }
+    if (collectees.has(finale)) continue
+    collectees.add(finale)
+    vus.add(finale)
     const faits = extraire(rep.corps, finale)
     pages.push({
       ...faits,
       statut: rep.statut,
       entetes: { x_robots_tag: entete(rep.entetes, 'x-robots-tag'), content_type: entete(rep.entetes, 'content-type'), last_modified: entete(rep.entetes, 'last-modified') },
       profondeur,
-      redirections: rep.redirections ?? [],
+      redirections,
       empreinte_texte: empreinte(faits.blocs),
     })
     for (const l of faits.liens ?? []) {
