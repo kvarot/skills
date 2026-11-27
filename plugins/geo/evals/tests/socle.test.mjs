@@ -37,6 +37,13 @@ test('extrait : borné, échappé, sans caractères de contrôle ni invisibles',
   assert.equal(extrait('a & "b"').extrait, 'a &amp; &quot;b&quot;')
 })
 
+test('extrait : retire étiquettes Unicode, sélecteurs de variation et annotations', async () => {
+  const { extrait } = await import(pathToFileURL(SORTIE).href)
+  assert.equal(extrait('a󠁁b').extrait, 'ab')
+  assert.equal(extrait('a️b󠄀c').extrait, 'abc')
+  assert.equal(extrait('a￹b￻c').extrait, 'abc')
+})
+
 test('cheminDonnees : GEO_HOME sinon <cwd>/.claude/geo', async () => {
   const { cheminDonnees } = await import(pathToFileURL(SORTIE).href)
   const avant = process.env.GEO_HOME
