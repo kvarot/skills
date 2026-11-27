@@ -22,6 +22,8 @@
 | <runner> | heavy suites | 2 slots |
 | Codex | reviews, bounded tasks | quota: note reset time on the board |
 
+Copy the limits that differ from 6 into `<ORCH>/projets/<PREFIX>/limites.json` (`{ "defaut": 6, "machines": { "<runner>": 2 } }`): the register checks them at each claim.
+
 ## Areas often shared (reserve explicitly)
 - <migrations folder> — numbering rule: <rule>
 - <i18n catalogues>, <lockfiles>, <router/registry files>
