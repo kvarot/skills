@@ -337,7 +337,8 @@ function controlesRobotsIa(c, ctx, registre) {
 function controlesRendu(c, ctx) {
   const sortie = []
   const defiee = c.site.waf?.detecte ? c.site.waf.preuve?.url : null
-  const vides = c.pages.filter((p) => p.corpsVide && p.url !== defiee)
+  // A page in noindex (e.g. a thank-you page) is outside the index: its thinness is not a rendering defect; GEO-NOINDEX covers the start page.
+  const vides = c.pages.filter((p) => p.corpsVide && p.url !== defiee && !MOTIF_NOINDEX.test(texte(p.robots)) && !MOTIF_NOINDEX.test(texte(p.entetes?.x_robots_tag)))
   if (vides.length) {
     const l = tri(vides.map((p) => p.url))
     sortie.push({ id: 'GEO-HTML-VIDE', pages: l, preuve: { type: 'html', url: l[0], detail: `moins de 20 mots de texte visible dans le HTML reçu (${vides.length} page(s))` }, detail: `${l.length} page(s) au HTML quasiment vide (rendu côté client ou coquille vide).` })
@@ -350,7 +351,7 @@ function controlesRendu(c, ctx) {
   return sortie
 }
 
-function controlesStructure(c) {
+function controlesStructure(c, ctx) {
   const { pages } = c
   const sortie = []
   const simple = (id, filtre, preuveDetail, detail) => {
@@ -368,7 +369,9 @@ function controlesStructure(c) {
     if (!titres.has(t)) titres.set(t, [])
     titres.get(t).push(p)
   }
-  const doublons = [...titres.values()].filter((g) => g.length > 1)
+  // URL variants declaring the same canonical (e.g. /merci and /merci/) are one page, not a duplicate title.
+  const memeCanonique = (g) => { const k = g.map((p) => cleChemin(p.canonical || p.url, ctx?.hote)); return k[0] !== null && k.every((x) => x === k[0]) }
+  const doublons = [...titres.values()].filter((g) => g.length > 1 && !memeCanonique(g))
   if (doublons.length) {
     const l = tri(doublons.flat().map((p) => p.url))
     sortie.push({ id: 'GEO-TITLE-DOUBLON', pages: l, preuve: { type: 'html', url: l[0], detail: `${doublons.length} titre(s) partagé(s) par ${l.length} pages` }, detail: `${doublons.length} title(s) en doublon sur ${l.length} pages.`, extrait: extrait(doublons[0][0].title) })

@@ -449,3 +449,30 @@ test('robots-ia : Google-CloudVertexBot bloqué ne déclenche pas GEO-ROBOTS-REC
   const cs = ctl(collecte({ site: { robotsTxt: robotsTxt('User-agent: Google-CloudVertexBot', 'Disallow: /') } }))
   assert.ok(!ids(cs).includes('GEO-ROBOTS-RECHERCHE-BLOQUE'))
 })
+
+test('structure : un même canonical (variantes /x et /x/) n’est pas un titre en doublon', () => {
+  const cs = ctl(collecte({ pages: [
+    page('/', { profondeur: 0, liens: LIEN_A }),
+    page('/a', { title: 'Merci', canonical: O + '/a/', liens: LIEN_ACCUEIL }),
+    page('/a/', { title: 'Merci', canonical: O + '/a/', liens: LIEN_ACCUEIL }),
+  ] }))
+  assert.ok(!ids(cs).includes('GEO-TITLE-DOUBLON'))
+})
+
+test('rendu : une page courte en noindex n’est pas un HTML vide', () => {
+  const merci = ctl(collecte({ pages: [
+    page('/', { profondeur: 0, liens: LIEN_A }),
+    page('/a', { corpsVide: true, mots: 6, robots: 'noindex', liens: LIEN_ACCUEIL }),
+  ] }))
+  assert.ok(!ids(merci).includes('GEO-HTML-VIDE'))
+  const entete = ctl(collecte({ pages: [
+    page('/', { profondeur: 0, liens: LIEN_A }),
+    page('/a', { corpsVide: true, mots: 6, entetes: { x_robots_tag: 'noindex', content_type: 'text/html', last_modified: null }, liens: LIEN_ACCUEIL }),
+  ] }))
+  assert.ok(!ids(entete).includes('GEO-HTML-VIDE'))
+  const indexee = ctl(collecte({ pages: [
+    page('/', { profondeur: 0, liens: LIEN_A }),
+    page('/a', { corpsVide: true, mots: 6, liens: LIEN_ACCUEIL }),
+  ] }))
+  assert.ok(ids(indexee).includes('GEO-HTML-VIDE'))
+})
