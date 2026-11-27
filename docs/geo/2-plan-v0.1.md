@@ -333,7 +333,7 @@ plugins/geo/
 
 **Files :** Créer `README.md`, `ARCHITECTURE.md`, `BENCHMARK.md` (résumé + lien vers `docs/geo/0-benchmark.md`), `METHODOLOGY.md`, `SCORING.md` (compléter), `ROADMAP.md` (versions 0.2-0.4 du §9), `SECURITY.md` (garde SSRF, sortie bornée, isolation et sa limite assumée §10.4, clés d'API), `PRIVACY.md` (données locales, rien envoyé sans accord, purge), `CHANGELOG.md`, `THIRD_PARTY_LICENSES.md` (idées empruntées B§1-B§3, aucune copie de code, licences des sources) sous `plugins/geo/`.
 
-- [ ] **Step 1 :** écrire ; README : installation, prérequis (Node ≥ 22.5), commandes disponibles en 0.1, mode gratuit, ce qui est « non mesuré » et pourquoi, exemple de rapport (généré sur `evals/sites/propre`, copié dans `docs/exemples/rapport-propre.md`).
+- [ ] **Step 1 :** écrire ; README : installation, prérequis (Node ≥ 22.13), commandes disponibles en 0.1, mode gratuit, ce qui est « non mesuré » et pourquoi, exemple de rapport (généré sur `evals/sites/propre`, copié dans `docs/exemples/rapport-propre.md`).
 - [ ] **Step 2 :** suite complète `node --test plugins/geo/evals/tests/` → verte ; contrôle de confidentialité avec `.noms-interdits.local` présent → vert.
 - [ ] **Step 3 :** revue indépendante : agent relecteur neuf, sans la conception, avec le diff de la branche ; corriger chaque constat retenu, relancer les tests.
 - [ ] **Step 4 :** commit `docs(geo): v0.1 documentation`, puis `git push origin main` du dépôt `kvarot/skills`.

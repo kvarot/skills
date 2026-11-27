@@ -45,7 +45,7 @@ const DEFINITIONS = {
     'redirections-courtes': cst('pages', ['GEO-REDIRECTION-CHAINE']),
     'profondeur-faible': cst('pages', ['GEO-PROFONDEUR']),
     'pages-non-orphelines': cst('pages', ['GEO-PAGE-ORPHELINE'], { urls: true }),
-    'sitemap-coherent': cst('pages', ['GEO-SITEMAP-INCOHERENT'], { urls: true }),
+    'sitemap-coherent': cst('pages', ['GEO-SITEMAP-INCOHERENT'], { urls: true, si_sitemaps_non_lus: true }),
     'hn-sans-saut': cst('pages', ['GEO-HN-SAUT']),
     'hreflang-xdefault': cst('pages', ['GEO-HREFLANG-XDEFAULT']),
   },
