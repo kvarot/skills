@@ -1,12 +1,15 @@
 User-agent: *
 Disallow: /prive/
 
-# Specific groups override the * group (RFC 9309); tokens are case-insensitive
+# Tokens are case-insensitive; several User-agent lines share one group
 user-agent: oai-searchbot
-User-agent: GPTBot
+User-agent: ChatGPT-User
 Disallow: /
 
-User-agent: ChatGPT-User
+User-agent: GPTBot
+Disallow: /de.html
+
+User-agent: GPTBot
 Disallow: /
 
 Sitemap: http://SITE/sitemap.xml

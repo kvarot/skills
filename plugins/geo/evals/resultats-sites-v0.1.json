@@ -38,6 +38,7 @@
     },
     "piege-injection": {
       "attendus": [
+        "GEO-ENTITE-NOM-INCOHERENT",
         "GEO-TITLE-DOUBLON"
       ],
       "faux_positifs": [],
@@ -46,6 +47,7 @@
       "tolere": [],
       "trouves": [
         "GEO-CONTENU-AUCUNE-DEFINITION",
+        "GEO-ENTITE-NOM-INCOHERENT",
         "GEO-LLMSTXT",
         "GEO-ROBOTS-ENTRAINEMENT-POLITIQUE",
         "GEO-TITLE-DOUBLON"
@@ -57,10 +59,18 @@
       "manquants": [],
       "rappel": 1,
       "tolere": [
+        "GEO-CONTENU-AUCUNE-DEFINITION",
+        "GEO-CONTENU-AUTEUR-ABSENT",
+        "GEO-CONTENU-SANS-SOURCE",
+        "GEO-DESC-ABSENT",
         "GEO-LLMSTXT",
         "GEO-ROBOTS-ENTRAINEMENT-POLITIQUE"
       ],
       "trouves": [
+        "GEO-CONTENU-AUCUNE-DEFINITION",
+        "GEO-CONTENU-AUTEUR-ABSENT",
+        "GEO-CONTENU-SANS-SOURCE",
+        "GEO-DESC-ABSENT",
         "GEO-LLMSTXT",
         "GEO-ROBOTS-ENTRAINEMENT-POLITIQUE"
       ]

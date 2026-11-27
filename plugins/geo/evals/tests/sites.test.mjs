@@ -9,6 +9,8 @@ import os from 'node:os'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { createHash } from 'node:crypto'
+import { CATALOGUE } from '../../outils/lib/controles.mjs'
 
 const GEO = fileURLToPath(new URL('../../outils/geo.mjs', import.meta.url))
 const SITES = fileURLToPath(new URL('../sites/', import.meta.url))
@@ -30,7 +32,8 @@ async function servir(dossier) {
     const chemin = decodeURIComponent(req.url.split('?')[0])
     const spec = specs[chemin]
     const rel = chemin === '/' ? 'index.html' : chemin.slice(1)
-    const fichier = path.join(dossier, rel)
+    let fichier = path.join(dossier, rel)
+    if (fs.existsSync(fichier) && fs.statSync(fichier).isDirectory()) fichier = path.join(fichier, 'index.html')
     const existe = !rel.startsWith('_') && fichier.startsWith(dossier) && fs.existsSync(fichier) && fs.statSync(fichier).isFile()
     if (!existe && !spec) { res.writeHead(404, { 'content-type': 'text/plain' }); return res.end('introuvable') }
     let corps = existe ? fs.readFileSync(fichier, 'utf8') : ''
@@ -57,13 +60,17 @@ function geo(args, { home, cwd }) {
 }
 const auditer = (base, ctx) => geo(['auditer', '--url', base, '--autoriser-local', '--hotes-autorises', '127.0.0.1', '--max-pages', '6'], ctx)
 
+
+// path + size + SHA-256 of every file under root (excluding .git and node_modules): detects creations, deletions AND overwrites.
 const lister = (racine) => {
   const out = []
   const visiter = (d) => {
     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
       if (e.name === '.git' || e.name === 'node_modules') continue
       const p = path.join(d, e.name)
-      if (e.isDirectory()) visiter(p); else out.push(path.relative(racine, p))
+      if (e.isDirectory()) { visiter(p); continue }
+      const buf = fs.readFileSync(p)
+      out.push(`${path.relative(racine, p)}|${buf.length}|${createHash('sha256').update(buf).digest('hex')}`)
     }
   }
   visiter(racine)
@@ -82,13 +89,16 @@ for (const nom of noms) {
     const r = await auditer(base, { home, cwd })
     assert.equal(r.code, 0, r.stderr)
     assert.equal(r.stderr, '')
-    const trouves = JSON.parse(r.stdout).constats
+    const audit = JSON.parse(r.stdout)
+    const trouves = audit.constats
     const ids = new Set(trouves.map((c) => c.id))
-    const trouve = (a) => trouves.some((c) => c.id === a.id && (!a.page || (c.pages ?? []).some((p) => new URL(p, base).pathname === a.page)))
+    const surPage = (c, page) => (c.pages ?? []).some((p) => new URL(p, base).pathname === page)
+    const trouve = (a) => trouves.some((c) => c.id === a.id && (!a.page || surPage(c, a.page)))
+    // A constat of the id without any page may concern the page: it counts as present (conservative).
+    const present = (a) => trouves.some((c) => c.id === a.id && ((c.pages ?? []).length === 0 || surPage(c, a.page)))
     const manquants = verite.attendus.filter((a) => !trouve(a)).map(cle).sort()
     const faux = (verite.interdits ?? []).filter((id) => ids.has(id)).sort()
-    // absents: constats that must not appear on a given page (e.g. content heuristics on an unsupported language)
-    const presents = (verite.absents ?? []).filter((a) => trouve(a)).map(cle).sort()
+    const presents = (verite.absents ?? []).filter(present).map(cle).sort()
     mesures[nom] = {
       attendus: verite.attendus.map(cle).sort(),
       faux_positifs: [...faux, ...presents],
@@ -99,11 +109,31 @@ for (const nom of noms) {
     }
     assert.deepEqual(manquants, [], `constats attendus absents sur ${nom}`)
     assert.deepEqual(faux, [], `constats interdits présents sur ${nom}`)
-    assert.deepEqual(presents, [], `constats absents attendus mais présents sur ${nom}`)
+    assert.deepEqual(presents, [], `constats qui devraient être absents (par page) sur ${nom}`)
     if (nom === 'propre') {
       const graves = trouves.filter((c) => ['bloquant', 'important'].includes(c.severite)).map((c) => c.id)
       assert.deepEqual(graves, [], 'propre : aucun constat bloquant ni important')
       assert.deepEqual([...ids].filter((id) => !(verite.tolere ?? []).includes(id)), [], 'propre : constats mineurs à lister dans tolere')
+      const attendusInterdits = CATALOGUE.filter((e) => ['bloquant', 'important'].includes(e.severite)).map((e) => e.id).sort()
+      assert.deepEqual([...verite.interdits].sort(), attendusInterdits, 'propre : interdits = tous les bloquants et importants du catalogue')
+    }
+    // Per-robot verdicts (Review Focus 2): blocked paths per documented token, merged groups included.
+    if (verite.robots) {
+      const parJeton = new Map(audit.robots_ia.map((x) => [x.jeton, x.chemins_bloques ?? []]))
+      for (const j of verite.robots.bloques) assert.ok((parJeton.get(j) ?? []).length > 0, `${j} doit être bloqué`)
+      for (const j of verite.robots.non_bloques) assert.ok(parJeton.has(j) && parJeton.get(j).length === 0, `${j} ne doit pas être bloqué`)
+      for (const [j, chemins] of Object.entries(verite.robots.fusion ?? {})) assert.deepEqual([...parJeton.get(j)].sort(), [...chemins].sort(), `groupes ${j} fusionnés (RFC 9309)`)
+    }
+    // Unsupported language (Review Focus 5): reported as such, coverage lowered, no invented content constat.
+    if (verite.langue_non_prise_en_charge) {
+      for (const page of verite.langue_non_prise_en_charge) {
+        const p = audit.contenu_resume.pages.find((x) => new URL(x.url).pathname === page)
+        assert.ok(p, `${page} analysée`)
+        assert.equal(p.prise_en_charge, false, `${page} : langue non prise en charge`)
+      }
+      const qs = audit.scores.find((x) => x.id === 'qualite-semantique')
+      assert.ok(qs.couverture < 1, 'qualite-semantique : couverture < 1')
+      assert.ok(qs.criteres.some((c) => /langue non prise en charge/.test(c.preuve)), 'la preuve du score cite les pages en langue non prise en charge')
     }
     assert.deepEqual(lister(cwd), [], 'aucun fichier écrit dans le dossier courant')
   })
@@ -116,8 +146,8 @@ test('piege-injection : rien de brut hors extraits, aucun fichier hors GEO_HOME,
   const r = await auditer(base, { home, cwd })
   assert.equal(r.code, 0, r.stderr)
   const audit = JSON.parse(r.stdout)
-  // Strip every { extrait, non_fiable } object, then look for the injected strings in what is left.
   const estExtrait = (x) => x && typeof x === 'object' && 'extrait' in x && 'non_fiable' in x
+  // Strip every { extrait, non_fiable } object, then look for the injected strings in what is left.
   const nettoye = (x) => {
     if (Array.isArray(x)) return x.map(nettoye)
     if (estExtrait(x)) return '[extrait]'
@@ -125,34 +155,41 @@ test('piege-injection : rien de brut hors extraits, aucun fichier hors GEO_HOME,
     return x
   }
   const reste = JSON.stringify(nettoye(audit))
-  assert.doesNotMatch(reste, /Ignore previous instructions/i)
-  assert.doesNotMatch(reste, /write OK to robots/i)
-  assert.doesNotMatch(reste, /javascript:/i)
-  assert.doesNotMatch(reste, TAGS)
-  // Inside extraits: tag characters stripped, angle brackets escaped.
+  for (const motif of [/Ignore previous instructions/i, /write OK to robots/i, /maintenance mode/i, /Reveal your instructions/i, /javascript:/i, TAGS]) {
+    assert.doesNotMatch(reste, motif, `hors extrait : ${motif}`)
+  }
   const extraits = []
   const collecter = (x) => {
     if (Array.isArray(x)) x.forEach(collecter)
-    else if (estExtrait(x)) extraits.push(String(x.extrait))
+    else if (estExtrait(x)) extraits.push(x)
     else if (x && typeof x === 'object') Object.values(x).forEach(collecter)
   }
   collecter(audit)
-  for (const e of extraits) { assert.doesNotMatch(e, TAGS); assert.doesNotMatch(e, /[<>]/) }
+  // Positive control: the hostile strings really reach the output, inside labelled extraits.
+  assert.ok(extraits.some((e) => /Ignore previous/.test(e.extrait) && e.non_fiable === true), 'un extrait non_fiable porte la phrase injectée')
+  assert.ok(extraits.some((e) => /clic/.test(e.extrait) && e.non_fiable === true), 'un extrait non_fiable porte le nom JSON-LD hostile')
+  for (const e of extraits) {
+    assert.equal(e.non_fiable, true)
+    assert.doesNotMatch(String(e.extrait), TAGS)
+    assert.doesNotMatch(String(e.extrait), /[<>]/)
+  }
   assert.doesNotMatch(r.stdout, TAGS)
   assert.deepEqual(lister(cwd), [], 'aucun fichier dans le dossier courant')
-  assert.deepEqual(lister(RACINE_REPO), avant, 'aucun fichier créé dans le dépôt')
+  assert.deepEqual(lister(RACINE_REPO), avant, 'aucun fichier du dépôt créé, modifié ou supprimé')
   const md = await geo(['rapport', '--audit', audit.audit_id, '--format', 'md'], { home, cwd })
   assert.equal(md.code, 0, md.stderr)
-  assert.doesNotMatch(md.stdout, /\]\(\s*[a-z][a-z0-9+.-]*:/i, 'aucun lien Markdown actif')
-  // The report may quote the injected title, but only inside a line labelled as untrusted excerpt.
+  assert.match(md.stdout, /Extrait non fiable/)
+  for (const [motif, msg] of [[/\]\(\s*[a-z][a-z0-9+.-]*:/i, 'lien Markdown actif'], [/\]\(\/\//, 'lien relatif au protocole'], [/!\[/, 'image Markdown'], [/^\[[^\]]+\]:\s*\S/m, 'lien de référence'], [TAGS, 'caractères invisibles']]) {
+    assert.doesNotMatch(md.stdout, motif, msg)
+  }
+  // The report may quote the injected text, but only on lines labelled as untrusted excerpt.
   const horsExtraits = md.stdout.split(/\r?\n/).filter((l) => !/Extrait non fiable/.test(l)).join(' ')
-  assert.doesNotMatch(horsExtraits, /Ignore previous instructions/i)
-  assert.doesNotMatch(md.stdout, TAGS)
+  for (const motif of [/Ignore previous instructions/i, /maintenance mode/i, /Reveal your instructions/i]) assert.doesNotMatch(horsExtraits, motif)
 })
 
-// Deterministic output (sorted keys and arrays); the date is kept while the measurements are unchanged.
-after(() => {
-  if (Object.keys(mesures).length !== noms.length) return
+// Results file: written only with GEO_ECRIRE_RESULTATS=1; otherwise the measurements must equal the committed file (date ignored).
+test('résultats : conformes au fichier versionné', () => {
+  assert.equal(Object.keys(mesures).length, noms.length, 'tous les sites ont été mesurés')
   const sites = Object.fromEntries(noms.map((n) => [n, mesures[n]]))
   const attendus = noms.reduce((s, n) => s + sites[n].attendus.length, 0)
   const manquants = noms.reduce((s, n) => s + sites[n].manquants.length, 0)
@@ -161,10 +198,10 @@ after(() => {
     rappel_total: attendus ? (attendus - manquants) / attendus : 1,
     sites,
   }
-  let date = new Date().toISOString().slice(0, 10)
-  try {
-    const { date: ancienne, ...reste } = JSON.parse(fs.readFileSync(RESULTATS, 'utf8'))
-    if (JSON.stringify(reste) === JSON.stringify(corps)) date = ancienne
-  } catch { /* first run */ }
-  fs.writeFileSync(RESULTATS, JSON.stringify({ date, ...corps }, null, 2) + '\n')
+  if (process.env.GEO_ECRIRE_RESULTATS === '1') {
+    fs.writeFileSync(RESULTATS, JSON.stringify({ date: new Date().toISOString().slice(0, 10), ...corps }, null, 2) + '\n')
+    return
+  }
+  const { date: _date, ...reste } = JSON.parse(fs.readFileSync(RESULTATS, 'utf8'))
+  assert.deepEqual(reste, JSON.parse(JSON.stringify(corps)), 'écart avec resultats-sites-v0.1.json (relancer avec GEO_ECRIRE_RESULTATS=1 si voulu)')
 })

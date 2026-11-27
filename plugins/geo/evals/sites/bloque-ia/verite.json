@@ -14,6 +14,26 @@
     "GEO-ROBOTSTXT-BLOQUE-TOUT",
     "GEO-WAF-DEFI"
   ],
+  "robots": {
+    "bloques": [
+      "GPTBot",
+      "OAI-SearchBot",
+      "ChatGPT-User"
+    ],
+    "non_bloques": [
+      "ClaudeBot",
+      "Claude-SearchBot"
+    ],
+    "fusion": {
+      "GPTBot": [
+        "/",
+        "/de.html"
+      ]
+    }
+  },
+  "langue_non_prise_en_charge": [
+    "/de.html"
+  ],
   "absents": [
     {
       "id": "GEO-CONTENU-AUCUNE-DEFINITION",

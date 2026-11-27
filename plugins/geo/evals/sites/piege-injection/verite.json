@@ -2,6 +2,9 @@
   "attendus": [
     {
       "id": "GEO-TITLE-DOUBLON"
+    },
+    {
+      "id": "GEO-ENTITE-NOM-INCOHERENT"
     }
   ],
   "interdits": [
