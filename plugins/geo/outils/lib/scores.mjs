@@ -25,7 +25,8 @@ const cst = (base, ids, extra = {}) => ({ type: 'constats', base, ids, ...extra 
 const DEFINITIONS = {
   'seo-technique': {
     'indexable': cst('pages', ['GEO-NOINDEX']),
-    'robots-txt-ouvert': cst('pages', ['GEO-ROBOTSTXT-BLOQUE-TOUT']),
+    // One cause: robots.txt forbids everything, by its rules or by being unreachable (RFC 9309).
+    'robots-txt-ouvert': cst('pages', ['GEO-ROBOTSTXT-BLOQUE-TOUT', 'GEO-ROBOTSTXT-INACCESSIBLE']),
     'reponses-http': cst('pages', ['GEO-HTTP-ERREUR'], { urls: true }),
     'titre-present': cst('pages', ['GEO-TITLE-ABSENT']),
     'canonical-meme-hote': cst('pages', ['GEO-CANONICAL-AUTRE-HOTE']),
@@ -33,7 +34,8 @@ const DEFINITIONS = {
     'h1-present': cst('pages', ['GEO-H1-ABSENT']),
     'titres-uniques': cst('pages', ['GEO-TITLE-DOUBLON']),
     'langue-declaree': cst('pages', ['GEO-LANG-ABSENT']),
-    'sitemap-present': cst('pages', ['GEO-SITEMAP-ABSENT']),
+    // Not evaluated when the sitemaps could not be read (refused by robots.txt, robots.txt unreachable).
+    'sitemap-present': cst('pages', ['GEO-SITEMAP-ABSENT'], { si_sitemaps_non_lus: true }),
     'donnees-structurees-valides': cst('pages', ['GEO-JSONLD-INVALIDE']),
     'hreflang-reciproque': cst('pages', ['GEO-HREFLANG-RECIPROQUE']),
     'canonical-present': cst('pages', ['GEO-CANONICAL-ABSENT']),
@@ -48,11 +50,11 @@ const DEFINITIONS = {
     'hreflang-xdefault': cst('pages', ['GEO-HREFLANG-XDEFAULT']),
   },
   'acces-ia': {
-    // One cause: search crawlers cannot read the site (blanket Disallow, or a documented search robot blocked).
-    'recherche-non-bloquee': cst('pages', ['GEO-ROBOTSTXT-BLOQUE-TOUT', 'GEO-ROBOTS-RECHERCHE-BLOQUE']),
+    // One cause: search crawlers cannot read the site (blanket Disallow, unreachable robots.txt, or a documented search robot blocked).
+    'recherche-non-bloquee': cst('pages', ['GEO-ROBOTSTXT-BLOQUE-TOUT', 'GEO-ROBOTSTXT-INACCESSIBLE', 'GEO-ROBOTS-RECHERCHE-BLOQUE']),
     'pas-de-defi-waf': cst('pages', ['GEO-WAF-DEFI'], { urls: true }),
     'html-lisible': cst('pages', ['GEO-HTML-VIDE']),
-    'consultation-non-bloquee': cst('pages', ['GEO-ROBOTS-CONSULTATION-BLOQUE'], { sauf: 'GEO-ROBOTSTXT-BLOQUE-TOUT', sauf_preuve: 'même cause que recherche-non-bloquee (robots.txt bloque tout)' }),
+    'consultation-non-bloquee': cst('pages', ['GEO-ROBOTS-CONSULTATION-BLOQUE'], { sauf: ['GEO-ROBOTSTXT-BLOQUE-TOUT', 'GEO-ROBOTSTXT-INACCESSIBLE'], sauf_preuve: 'même cause que recherche-non-bloquee (robots.txt bloque tout ou est inaccessible)' }),
   },
   'qualite-semantique': {
     'definition-presente': cst('contenu', ['GEO-CONTENU-AUCUNE-DEFINITION']),
@@ -69,9 +71,12 @@ const DEFINITIONS = {
     'avis-visibles': cst('pages', ['GEO-JSONLD-AVIS-NON-VISIBLES']),
   },
   'identite-numerique': {
+    // Entity criteria need collected pages: with none, nothing was observed and nothing is credited.
     'organisation-declaree': cst('entite', ['GEO-ENTITE-SANS-ORGANIZATION']),
-    'nom-coherent': cst('entite', ['GEO-ENTITE-NOM-INCOHERENT']),
-    'coordonnees-coherentes': cst('entite', ['GEO-ENTITE-COORDONNEES-CONTRADICTOIRES']),
+    // Not evaluated without a declared name (og:site_name, JSON-LD or --marque): coherence of nothing is not credited.
+    'nom-coherent': cst('entite', ['GEO-ENTITE-NOM-INCOHERENT'], { si_noms: true }),
+    // Not evaluated without a declared organisation (where contact data would live).
+    'coordonnees-coherentes': cst('entite', ['GEO-ENTITE-COORDONNEES-CONTRADICTOIRES'], { sauf: 'GEO-ENTITE-SANS-ORGANIZATION' }),
     // Not evaluated without a declared organisation: the missing organisation is already counted once above.
     'sameas-present': cst('entite', ['GEO-ENTITE-SAMEAS-ABSENT'], { sauf: 'GEO-ENTITE-SANS-ORGANIZATION' }),
     'wikidata': { type: 'wikidata' },
@@ -116,17 +121,22 @@ const cle = (u, base) => (typeof u === 'string' ? (normaliserUrl(u, base) ?? u) 
 function evaluerConstats(def, ctx) {
   const noms = def.ids.join(' + ')
   const trouves = ctx.constats.filter((c) => def.ids.includes(c.id))
-  if (def.sauf && ctx.constats.some((c) => c.id === def.sauf)) return nul(`${noms} : non calculé, ${def.sauf_preuve ?? `${def.sauf} déjà compté`}`)
+  const sauf = [].concat(def.sauf ?? [])
+  const present = sauf.find((id) => ctx.constats.some((c) => c.id === id))
+  if (present) return nul(`${noms} : non calculé, ${def.sauf_preuve ?? `${present} déjà compté`}`)
+  if (def.si_sitemaps_non_lus && ctx.sitemapsNonLus) return nul(`${noms} : non calculé, sitemaps non lus (interdits par robots.txt ou robots.txt inaccessible)`)
   if (def.base === 'entite') {
     if (!ctx.entite) return nul(`${noms} : non calculé, analyse d’entité absente`)
+    if (ctx.pages.length === 0) return nul(`${noms} : non calculé, aucune page collectée (rien d’observé sur l’entité)`)
+    if (def.si_noms && !ctx.nomsDeclares) return nul(`${noms} : non calculé, aucun nom déclaré (og:site_name, JSON-LD ou --marque)`)
     if (def.portee !== 'pages') return { acquis: trouves.length ? 0 : 1, preuve: `${noms} : ${trouves.length ? 'présent' : 'absent'}` }
   }
   // A site-level constat (no page list) touches every page, whatever the number of collected pages (even none).
   if (trouves.some((c) => !c.pages || c.pages.length === 0)) return { acquis: 0, preuve: `${noms} : constat de site, touche toutes les pages` }
   const cles = (c) => c.pages.map((u) => cle(u, ctx.base))
   // Nothing collected because robots.txt bans everything: no page is readable by a robot.
-  if (def.ids.includes('GEO-HTML-VIDE') && ctx.pages.length === 0 && ctx.constats.some((c) => c.id === 'GEO-ROBOTSTXT-BLOQUE-TOUT')) {
-    return { acquis: 0, preuve: `${noms} : aucune page lisible par un robot (robots.txt bloque tout, aucune page collectée)` }
+  if (def.ids.includes('GEO-HTML-VIDE') && ctx.pages.length === 0 && ctx.constats.some((c) => c.id === 'GEO-ROBOTSTXT-BLOQUE-TOUT' || c.id === 'GEO-ROBOTSTXT-INACCESSIBLE')) {
+    return { acquis: 0, preuve: `${noms} : aucune page lisible par un robot (robots.txt bloque tout ou est inaccessible, aucune page collectée)` }
   }
 
   if (def.urls) {
@@ -187,7 +197,8 @@ function evaluerPassagesCitables(ctx) {
 
 function evaluerWikidata(ctx) {
   const statut = ctx.entite?.wikidata?.statut
-  if (statut === 'trouve') return { acquis: 1, preuve: 'wikidata.statut : trouve (une entrée)' }
+  if (statut === 'trouve') return { acquis: 1, preuve: 'wikidata.statut : trouve (une entrée dont le site officiel P856 est sur l’hôte audité)' }
+  if (statut === 'libelle_identique') return nul('wikidata.statut : libelle_identique, non calculé (libellé identique trouvé, identité non vérifiée)')
   if (statut === 'absent') return nul('wikidata.statut : absent, non calculé (absence normale pour une petite structure, non pénalisée)')
   if (statut === 'ambigu') return nul('wikidata.statut : ambigu, non calculé (désambiguïsation à faire par le propriétaire)')
   return nul(`wikidata.statut : ${statut ?? 'inconnu'}, non calculé (vérification non faite)`)
@@ -199,7 +210,7 @@ const mots = (texte) => new Set(normaliser(texte).split(' ').filter((m) => m.len
 
 function evaluerIntentions(ctx) {
   const scenarios = Array.isArray(ctx.scenarios) ? ctx.scenarios.filter((s) => s && typeof s.texte === 'string' && typeof s.intention === 'string') : []
-  if (scenarios.length === 0) return nul('couverture des intentions : non calculé, aucun jeu de scénarios fourni')
+  if (scenarios.length === 0) return nul('couverture des intentions : non calculé, aucun jeu de scénarios figé pour ce site')
   const jeuxPages = ctx.pages.map((p) => {
     const textes = [p.title, ...(Array.isArray(p.hn) ? p.hn.filter((h) => h?.niveau === 1).map((h) => h.texte) : [])].filter((t) => typeof t === 'string')
     return mots(textes.join(' '))
@@ -212,7 +223,7 @@ function evaluerIntentions(ctx) {
   }))
   return {
     acquis: ARRONDI(couvertes.length / intentions.length),
-    preuve: `${couvertes.length} intention(s) sur ${intentions.length} ont au moins une page dont le h1 ou le title partage au moins 2 mots non vides avec un scénario (heuristique)`,
+    preuve: `${ctx.jeuId ? `jeu n° ${ctx.jeuId} : ` : ''}${couvertes.length} intention(s) sur ${intentions.length} ont au moins une page dont le h1 ou le title partage au moins 2 mots non vides avec un scénario (heuristique)`,
   }
 }
 
@@ -227,7 +238,7 @@ function evaluer(def, ctx) {
   }
 }
 
-// calculerScores({ constats, contenu, entite, scenarios?, pages }, poids = chargerPoids()) -> Score[]
+// calculerScores({ constats, contenu, entite, scenarios?, jeu_id?, pages, collecte? }, poids = chargerPoids()) -> Score[]
 // Score = { id, valeur: number|null, couverture: 0..1, criteres: [{ id, classe, poids, part, acquis, preuve }], version_poids, raison? }
 export function calculerScores(entrees, poids = chargerPoids()) {
   const e = entrees && typeof entrees === 'object' ? entrees : {}
@@ -249,6 +260,10 @@ export function calculerScores(entrees, poids = chargerPoids()) {
     constats: rassembler(e),
     entite: e.entite && typeof e.entite === 'object' ? e.entite : null,
     scenarios: e.scenarios,
+    jeuId: Number.isInteger(e.jeu_id) ? e.jeu_id : null,
+    sitemapsNonLus: Number(collecte.site?.sitemapsNonVerifies) > 0,
+    // A declared name: any name source other than the title suffix (og:site_name, JSON-LD, --marque).
+    nomsDeclares: (Array.isArray(e.entite?.noms) ? e.entite.noms : []).some((n) => (Array.isArray(n?.sources) ? n.sources : []).some((s) => s?.champ !== 'title')),
     // Content criteria only count pages analysed in a supported language and with at least one passage.
     passagesParPage: contenu.filter((c) => c.prise_en_charge === true && Array.isArray(c.passages) && c.passages.length > 0).map((c) => c.passages),
     // Normalised URLs of collected pages whose content was analysed with at least one passage.

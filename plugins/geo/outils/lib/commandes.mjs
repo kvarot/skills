@@ -74,13 +74,24 @@ function ecrireSession(dir, session) {
 }
 
 // Network client bound to the allowlist (session.json + --hotes-autorises). Test-only pacing override needs --autoriser-local.
+// The cache lives in memory for one command: every audit re-reads the site (nothing is written to <données>/cache/).
+// `depuisCache()` counts the answers served from that cache during the command.
 function clientReseau(opts) {
   const dir = dossierDonnees()
   const hotes = hotesAutorises(dir, liste(opts['hotes-autorises']))
   const autoriserLocal = opts['autoriser-local'] === true
   const delai = Number(process.env.GEO_DELAI_MS)
   const delaiMs = autoriserLocal && Number.isFinite(delai) && delai >= 0 ? delai : 1000
-  return { client: creerClient({ hotes, autoriserLocal, delaiMs, cache: path.join(dir, 'cache') }), hotes }
+  const brut = creerClient({ hotes, autoriserLocal, delaiMs, cache: new Map() })
+  let servies = 0
+  const client = {
+    async demander(url, o) {
+      const r = await brut.demander(url, o)
+      if (r?.depuisCache) servies++
+      return r
+    },
+  }
+  return { client, hotes, depuisCache: () => servies }
 }
 
 // Resolves a path under the data directory; refuses anything that escapes it.
@@ -183,7 +194,7 @@ async function cmdAuditer(args) {
   const maxPages = o['max-pages'] === undefined ? 50 : Number(o['max-pages'])
   if (!Number.isInteger(maxPages) || maxPages < 1) throw new ErreurGeo('--max-pages attend un entier positif.')
 
-  const { client, hotes } = clientReseau(o)
+  const { client, hotes, depuisCache } = clientReseau(o)
   if (o.wikidata && !hotes.has(HOTE_WIKIDATA)) throw new ErreurGeo(`Hôte non autorisé : ${HOTE_WIKIDATA} (requis par --wikidata). Ajoutez-le avec « autoriser » ou --hotes-autorises.`, 3)
 
   let collecte, origine
@@ -192,7 +203,7 @@ async function cmdAuditer(args) {
     collecte = await collecterUrl(o.url, { client, maxPages })
     origine = collecte.site?.racine ?? new URL(o.url).origin
   } else {
-    collecte = collecterDossier(path.resolve(o.dossier))
+    collecte = collecterDossier(path.resolve(o.dossier), { maxPages })
     origine = 'dossier:' + path.basename(path.resolve(o.dossier))
   }
   collecte = { ...collecte, origine: o.url ? origine : undefined }
@@ -202,7 +213,9 @@ async function cmdAuditer(args) {
   const entiteBrute = await analyserEntite(collecte, { marque: o.marque, client, wikidata: o.wikidata === true })
   const contenus = tab(collecte.pages).map((p) => analyserContenu(p))
   const poids = chargerPoids()
-  const scores = calculerScores({ constats: constatsTech, contenu: contenus, entite: entiteBrute, pages: collecte.pages, collecte }, poids)
+  // Intent coverage uses the latest frozen scenario set of this origin, if any (none: the score stays null).
+  const jeu = await avecBase((base) => base.dernierJeu(origine))
+  const scores = calculerScores({ constats: constatsTech, contenu: contenus, entite: entiteBrute, pages: collecte.pages, collecte, scenarios: jeu?.scenarios ?? [], jeu_id: jeu?.id }, poids)
 
   const constats = [...constatsTech, ...tab(entiteBrute.constats).map(({ rang, ...c }) => c), ...fusionnerConstatsContenu(contenus)]
     .map(assainirConstat)
@@ -220,7 +233,7 @@ async function cmdAuditer(args) {
     constats: fusionnerConstatsContenu(contenus).map((c) => ({ id: c.id, severite: c.severite, pages: tab(c.pages).length })),
   }
   const erreurs = tab(collecte.erreurs).map((e) => ({ url: extrait(e.url, 300).extrait, raison: extrait(e.raison, 300).extrait }))
-  const exploration = { ...collecte.exploration, waf: !!collecte.site?.waf }
+  const exploration = { ...collecte.exploration, waf: !!collecte.site?.waf, depuis_cache: depuisCache() }
   const entite = resumerEntite(entiteBrute)
 
   const id = await avecBase((base) => base.enregistrerAudit({

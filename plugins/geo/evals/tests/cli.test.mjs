@@ -624,3 +624,166 @@ test('idees-fausses : la négation est évaluée par proposition, pas par ligne'
   ]) assert.ok(trouverIdeesFausses(ph, registre).length >= 1, ph)
   assert.deepEqual(trouverIdeesFausses('Ne vous fiez pas à ce mythe : llms.txt n’améliore pas la visibilité.', registre), [])
 })
+
+// --- final review ---------------------------------------------------------------------
+
+// Server whose answers are read from `etat` at request time (robots.txt can change between two audits).
+async function serveurVariable(etat, fn) {
+  const srv = http.createServer((req, res) => {
+    const r = (typeof etat.routes === 'function' ? etat.routes() : etat.routes)[req.url.split('?')[0]]
+    if (!r) { res.writeHead(404, { 'content-type': 'text/plain' }); return res.end('non') }
+    res.writeHead(r.statut ?? 200, { 'content-type': r.type ?? 'text/html; charset=utf-8', ...(r.entetes ?? {}) })
+    res.end(r.corps ?? '')
+  })
+  await new Promise((ok) => srv.listen(0, '127.0.0.1', ok))
+  try { await fn(`http://127.0.0.1:${srv.address().port}`) } finally { srv.closeAllConnections?.(); srv.close() }
+}
+const idsDe = (s) => s.constats.map((c) => c.id)
+const scoreDe = (s, id) => s.scores.find((x) => x.id === id)
+
+test('C1 : zéro page (dossier vide avec Disallow: /, robots.txt 503) : identite-numerique non affiché, rien crédité', async () => {
+  const home = await homeAutorise()
+  const vide = path.join(home, 'vide')
+  fs.mkdirSync(vide)
+  fs.writeFileSync(path.join(vide, 'robots.txt'), 'User-agent: *\nDisallow: /\n')
+  const d = json(await geo(['auditer', '--dossier', vide], home))
+  await avecServeur({ statut: 503 }, async (b) => {
+    const s = json(await geo(['auditer', '--url', b, '--autoriser-local'], home))
+    for (const a of [d, s]) {
+      const id = scoreDe(a, 'identite-numerique')
+      assert.equal(id.valeur, null, JSON.stringify(id))
+      assert.ok(id.criteres.every((c) => c.acquis === null))
+    }
+  })
+})
+
+test('I1 : robots.txt 503 : constat bloquant GEO-ROBOTSTXT-INACCESSIBLE, aucun faux GEO-SITEMAP-ABSENT, llms.txt non vérifié', async () => {
+  const home = await homeAutorise()
+  await avecServeur({ statut: 503 }, async (b) => {
+    const r = await geo(['auditer', '--url', b, '--autoriser-local', '--echec-si', 'bloquant'], home)
+    assert.equal(r.code, 2)
+    const s = json(r)
+    const c = s.constats.find((x) => x.id === 'GEO-ROBOTSTXT-INACCESSIBLE')
+    assert.equal(c.severite, 'bloquant')
+    assert.equal(c.preuve.commande, `curl -sI '${b}/robots.txt'`)
+    assert.ok(!idsDe(s).includes('GEO-SITEMAP-ABSENT'))
+    assert.match(s.constats.find((x) => x.id === 'GEO-LLMSTXT').detail.extrait, /non vérifié/)
+    assert.equal(scoreDe(s, 'seo-technique').criteres.find((x) => x.id === 'sitemap-present').acquis, null)
+    const md = (await geo(['rapport', '--audit', String(s.audit_id), '--format', 'md'], home)).stdout
+    assert.match(md.split('## Accès des robots IA')[0], /GEO-ROBOTSTXT-INACCESSIBLE/)
+  })
+})
+
+test('I1 : Disallow: / avec Sitemap: déclaré : pas de GEO-SITEMAP-ABSENT, sitemap jamais demandé', async () => {
+  const home = await homeAutorise()
+  let demandes = 0
+  const etat = {}
+  etat.routes = () => ({ '/robots.txt': { type: 'text/plain', corps: `User-agent: *\nDisallow: /\nSitemap: ${etat.base}/plan.xml\n` }, '/plan.xml': { type: 'application/xml', get corps() { demandes++; return '<urlset/>' } } })
+  await serveurVariable(etat, async (b) => {
+    etat.base = b
+    const s = json(await geo(['auditer', '--url', b, '--autoriser-local'], home))
+    assert.ok(idsDe(s).includes('GEO-ROBOTSTXT-BLOQUE-TOUT'))
+    assert.ok(!idsDe(s).includes('GEO-SITEMAP-ABSENT'))
+    assert.equal(demandes, 0)
+  })
+})
+
+test('I3 : un nouvel audit relit le site (robots.txt passé de Allow à Disallow) ; exploration.depuis_cache', async () => {
+  const home = await homeAutorise()
+  const etat = { robots: 'User-agent: *\nAllow: /\n' }
+  etat.routes = () => ({ '/': { corps: pageBonne() }, '/robots.txt': { type: 'text/plain', corps: etat.robots } })
+  await serveurVariable(etat, async (b) => {
+    const a = json(await geo(['auditer', '--url', b, '--autoriser-local'], home))
+    assert.ok(!idsDe(a).includes('GEO-ROBOTSTXT-BLOQUE-TOUT'))
+    assert.equal(a.exploration.depuis_cache, 0)
+    etat.robots = 'User-agent: *\nDisallow: /\n'
+    const s = json(await geo(['auditer', '--url', b, '--autoriser-local'], home))
+    assert.ok(idsDe(s).includes('GEO-ROBOTSTXT-BLOQUE-TOUT'), 'le second audit voit le nouveau robots.txt')
+    assert.equal(s.exploration.pages, 0)
+    assert.equal(s.exploration.depuis_cache, 0)
+  })
+  assert.ok(!fs.existsSync(path.join(home, 'cache')), 'aucune réponse écrite sur disque')
+})
+
+test('I4 : auditer charge le dernier jeu figé de l’origine ; sans jeu, couverture-intentions non calculée', async () => {
+  const home = await homeAutorise()
+  const sans = json(await geo(['auditer', '--url', base, '--autoriser-local'], home))
+  const ci = scoreDe(sans, 'couverture-intentions')
+  assert.equal(ci.criteres[0].acquis, null)
+  assert.match(ci.criteres[0].preuve, /aucun jeu de scénarios figé pour ce site/)
+  const f = path.join(home, 'profil.json')
+  fs.writeFileSync(f, JSON.stringify(profil))
+  const jeu = json(await geo(['scenarios', 'figer', '--profil', f, '--niveau', 'rapide', '--graine', '7', '--origine', base], home))
+  const avec = json(await geo(['auditer', '--url', base, '--autoriser-local'], home))
+  const c = scoreDe(avec, 'couverture-intentions').criteres[0]
+  assert.notEqual(c.acquis, null, c.preuve)
+  assert.match(c.preuve, new RegExp(`^jeu n° ${jeu.jeu_id} : `))
+})
+
+test('I5 : Node < 22.13 : erreur claire en français, code 1 ; 22.13 accepté', async () => {
+  const home = nouveauHome()
+  const r = await geo(['--version'], home, { env: { GEO_TEST_VERSION_NODE: '22.12.0' } })
+  assert.equal(r.code, 1)
+  assert.equal(r.stdout, '')
+  assert.match(r.stderr, /Node 22\.13\.0 ou plus est requis \(version actuelle : 22\.12\.0\)/)
+  assert.equal((await geo(['--version'], home, { env: { GEO_TEST_VERSION_NODE: '22.13.0' } })).code, 0)
+  assert.equal((await geo(['--version'], home, { env: { GEO_TEST_VERSION_NODE: '24.1.0' } })).code, 0)
+})
+
+test('M5 : mode dossier : --max-pages respecté, aucune commande curl sans origine', async () => {
+  const home = nouveauHome()
+  const site = path.join(home, 'site-max')
+  fs.mkdirSync(site)
+  for (const n of ['index', 'a', 'b']) fs.writeFileSync(path.join(site, n + '.html'), pageBonne('Page ' + n).replace('<head>', '<head><meta name="robots" content="noindex">'))
+  const r = await geo(['auditer', '--dossier', site, '--max-pages', '2'], home)
+  assert.equal(r.code, 0, r.stderr)
+  const s = json(r)
+  assert.equal(s.exploration.pages, 2)
+  assert.equal(s.exploration.limite_atteinte, true)
+  assert.ok(!r.stdout.includes('curl'))
+  assert.match(s.constats.find((c) => c.id === 'GEO-NOINDEX').preuve.detail.extrait, /mode dossier : fichier index\.html/)
+})
+
+test('M6 : page de départ redirigée vers un hôte non autorisé : code 3 nommant cet hôte', async () => {
+  const home = await homeAutorise()
+  await serveurVariable({ routes: { '/': { statut: 302, entetes: { location: 'http://ailleurs.example/' } }, '/robots.txt': { type: 'text/plain', corps: '' } } }, async (b) => {
+    const r = await geo(['auditer', '--url', b, '--autoriser-local'], home)
+    assert.equal(r.code, 3)
+    assert.equal(r.stdout, '')
+    assert.match(r.stderr, /ailleurs\.example/)
+    assert.match(r.stderr, /accord/)
+  })
+})
+
+test('preuve.commande : curl -sI rejouable sur stdout et dans le Markdown (non échappée)', async () => {
+  const home = await homeAutorise()
+  sites['/liens/'] = pageBonne().replace('</body>', '<a href="/casse?a=1&b=2">x</a></body>')
+  try {
+    const s = json(await geo(['auditer', '--url', base + '/liens/', '--autoriser-local'], home))
+    const c = s.constats.find((x) => x.id === 'GEO-HTTP-ERREUR')
+    assert.equal(c.preuve.commande, `curl -sI '${base}/casse?a=1&b=2'`)
+    assert.doesNotMatch(JSON.stringify(c.preuve.detail), /curl/)
+    const md = (await geo(['rapport', '--audit', String(s.audit_id), '--format', 'md'], home)).stdout
+    assert.ok(md.includes('`' + c.preuve.commande + '`'))
+  } finally { delete sites['/liens/'] }
+})
+
+test('M1 : rapport : jetons de contrôle et autres robots ont un titre lisible', () => {
+  const md = rapportMarkdown({ origine: 'https://x.example', robots_ia: [
+    { jeton: 'Google-Extended', editeur: 'Google', role: 'controle', documente: true, chemins_bloques: [] },
+    { jeton: 'Inconnu', editeur: null, role: 'autre', documente: false, chemins_bloques: [] },
+  ] })
+  assert.match(md, /### Jetons de contrôle/)
+  assert.match(md, /### Autres robots/)
+  assert.doesNotMatch(md, /### controle/)
+})
+
+test('assainirConstat : une commande hors de la forme curl -x \'url\' est retirée', () => {
+  const mauvaises = ["curl -sI 'https://x.example/'; rm -rf /", "curl -sI 'https://x.example/a b'", 'wget https://x.example/', "curl -sI 'https://x.example/" + 'a'.repeat(600) + "'"]
+  for (const commande of mauvaises) {
+    const a = assainirConstat({ id: 'X', severite: 'important', pages: [], preuve: { type: 'http', url: 'https://x.example/', detail: 'd', commande }, detail: 'd' })
+    assert.equal(a.preuve.commande, undefined, commande)
+  }
+  const ok = assainirConstat({ id: 'X', severite: 'important', pages: [], preuve: { type: 'http', url: 'https://x.example/', detail: 'd', commande: "curl -sI 'https://x.example/a?b=1&c=2'" }, detail: 'd' })
+  assert.equal(ok.preuve.commande, "curl -sI 'https://x.example/a?b=1&c=2'")
+})

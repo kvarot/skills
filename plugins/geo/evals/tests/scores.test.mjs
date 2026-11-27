@@ -223,7 +223,9 @@ test('même cause : robots.txt bloque tout rend la consultation non calculée', 
   const avec = score(calcul({ constats: [constat('GEO-ROBOTSTXT-BLOQUE-TOUT'), constat('GEO-ROBOTS-CONSULTATION-BLOQUE')] }), 'acces-ia')
   const c = critere(avec, 'consultation-non-bloquee')
   assert.equal(c.acquis, null)
-  assert.match(c.preuve, /même cause que recherche-non-bloquee \(robots\.txt bloque tout\)/)
+  assert.match(c.preuve, /même cause que recherche-non-bloquee \(robots\.txt bloque tout ou est inaccessible\)/)
+  const inaccessible = score(calcul({ constats: [constat('GEO-ROBOTSTXT-INACCESSIBLE'), constat('GEO-ROBOTS-CONSULTATION-BLOQUE')] }), 'acces-ia')
+  assert.equal(critere(inaccessible, 'consultation-non-bloquee').acquis, null)
   const seul = score(calcul({ constats: [constat('GEO-ROBOTS-CONSULTATION-BLOQUE')] }), 'acces-ia')
   assert.equal(critere(seul, 'consultation-non-bloquee').acquis, 0)
 })
@@ -338,4 +340,66 @@ test('collecterDossier réel : les URL du sitemap entrent dans les URL connues',
     assert.match(c.preuve, /1 URL sur 4 URL connues/)
     assert.equal(c.acquis, 0.75)
   } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
+// --- final review ---
+const entiteVide = { noms: [], types: [], sameAs: [], coordonnees: {}, wikidata: { statut: 'non_verifie' }, constats: [] }
+
+test('C1 : zéro page : aucun critère d’identité crédité, identite-numerique non affiché', () => {
+  // Repro: empty folder with Disallow: /, or robots.txt 503: no page, an entity object without any finding.
+  for (const constats of [[constat('GEO-ROBOTSTXT-BLOQUE-TOUT')], [constat('GEO-ROBOTSTXT-INACCESSIBLE')]]) {
+    const s = score(calcul({ pages: [], constats, entite: entiteVide }), 'identite-numerique')
+    assert.ok(s.criteres.every((c) => c.acquis === null), JSON.stringify(s.criteres))
+    assert.equal(s.valeur, null)
+    assert.equal(s.couverture, 0)
+    assert.match(critere(s, 'organisation-declaree').preuve, /aucune page collectée/)
+  }
+})
+
+test('C1 : sans organisation, coordonnées non créditées ; sans nom déclaré, cohérence du nom non créditée', () => {
+  const sansOrg = { ...entiteVide, constats: [constat('GEO-ENTITE-SANS-ORGANIZATION')] }
+  const s = score(calcul({ entite: sansOrg }), 'identite-numerique')
+  assert.equal(critere(s, 'organisation-declaree').acquis, 0)
+  assert.equal(critere(s, 'coordonnees-coherentes').acquis, null)
+  assert.equal(critere(s, 'nom-coherent').acquis, null)
+  assert.match(critere(s, 'nom-coherent').preuve, /aucun nom déclaré/)
+  // A title suffix alone is not a declared name; og:site_name is.
+  const titre = { ...sansOrg, noms: [{ valeur: 'Atelier', sources: [{ url: `${O}/`, champ: 'title' }] }] }
+  assert.equal(critere(score(calcul({ entite: titre }), 'identite-numerique'), 'nom-coherent').acquis, null)
+  const og = { ...sansOrg, noms: [{ valeur: 'Atelier', sources: [{ url: `${O}/`, champ: 'og:site_name' }] }] }
+  assert.equal(critere(score(calcul({ entite: og }), 'identite-numerique'), 'nom-coherent').acquis, 1)
+})
+
+test('I1 : robots.txt inaccessible = même cause que bloque-tout (seo-technique et acces-ia), zéro page', () => {
+  const liste = calcul({ pages: [], constats: [constat('GEO-ROBOTSTXT-INACCESSIBLE')] })
+  const seo = score(liste, 'seo-technique')
+  assert.equal(critere(seo, 'robots-txt-ouvert').acquis, 0)
+  assert.match(critere(seo, 'robots-txt-ouvert').preuve, /GEO-ROBOTSTXT-INACCESSIBLE/)
+  const a = score(liste, 'acces-ia')
+  assert.equal(critere(a, 'recherche-non-bloquee').acquis, 0)
+  assert.equal(critere(a, 'html-lisible').acquis, 0)
+  assert.equal(critere(a, 'consultation-non-bloquee').acquis, null)
+  // Both constats together still weigh once.
+  const deux = score(calcul({ pages: [], constats: [constat('GEO-ROBOTSTXT-INACCESSIBLE'), constat('GEO-ROBOTSTXT-BLOQUE-TOUT')] }), 'seo-technique')
+  assert.equal(critere(deux, 'robots-txt-ouvert').poids, critere(seo, 'robots-txt-ouvert').poids)
+})
+
+test('I1 : sitemaps non lus : sitemap-present non calculé (ni crédité ni pénalisé)', () => {
+  const collecte = { erreurs: [], site: { sitemaps: [], sitemapsNonVerifies: 1 } }
+  const c = critere(score(calcul({ collecte }), 'seo-technique'), 'sitemap-present')
+  assert.equal(c.acquis, null)
+  assert.match(c.preuve, /sitemaps non lus/)
+})
+
+test('I7 : Wikidata libellé identique sans site officiel vérifié : non calculé, jamais crédité', () => {
+  const c = critere(score(calcul({ entite: { ...entiteOk, wikidata: { statut: 'libelle_identique' } } }), 'identite-numerique'), 'wikidata')
+  assert.equal(c.acquis, null)
+  assert.match(c.preuve, /libellé identique trouvé, identité non vérifiée/)
+})
+
+test('I4 : couverture-intentions sans jeu figé : preuve « aucun jeu de scénarios figé pour ce site » ; avec jeu : numéro du jeu', () => {
+  assert.match(score(calcul({}), 'couverture-intentions').criteres[0].preuve, /aucun jeu de scénarios figé pour ce site/)
+  const p = [{ url: `${O}/`, title: 'Logiciel de facturation pour artisans', hn: [] }]
+  const s = score(calcul({ pages: p, scenarios: [scenario('Quel logiciel de facturation pour artisans ?', 'recommandation')], jeu_id: 4 }), 'couverture-intentions')
+  assert.match(s.criteres[0].preuve, /^jeu n° 4 : /)
 })

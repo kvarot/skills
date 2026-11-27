@@ -15,7 +15,7 @@
 ## Résumé
 
 - Site : `dossier:propre`
-- Constats : 0 bloquant(s), 0 important(s), 4 mineur(s), 2 information(s).
+- Constats : 0 bloquant(s), 0 important(s), 3 mineur(s), 2 information(s).
 - Pages explorées : 4.
 - Scores de potentiel : seo-technique 99/100, acces-ia 100/100, qualite-semantique 56/100, potentiel-citation 88/100, identite-numerique 100/100, couverture-intentions non affiché.
 
@@ -66,7 +66,14 @@ robots.txt présent dans le dossier.
 | meta-externalagent | Meta | oui | autorisé |
 | MistralAI-Training | Mistral | oui | autorisé |
 
-### Autre
+### Jetons de contrôle
+
+| Robot | Éditeur | Documenté | Politique observée |
+|---|---|---|---|
+| Google-Extended | Google | oui | autorisé |
+| Applebot-Extended | Apple | oui | autorisé |
+
+### Autres robots
 
 | Robot | Éditeur | Documenté | Politique observée |
 |---|---|---|---|
@@ -83,13 +90,6 @@ robots.txt présent dans le dossier.
 | cohere-ai | Cohere | non | autorisé |
 | anthropic-ai | Anthropic | non | autorisé |
 | Claude-Web | Anthropic | non | autorisé |
-
-### controle
-
-| Robot | Éditeur | Documenté | Politique observée |
-|---|---|---|---|
-| Google-Extended | Google | oui | autorisé |
-| Applebot-Extended | Apple | oui | autorisé |
 
 Politique observée dans robots.txt, sans recommandation ; la décision revient au propriétaire du site. Un robot « non documenté » n'a pas de documentation officielle de l'éditeur.
 
@@ -111,14 +111,14 @@ Un score de potentiel mesure ce que l'audit peut vérifier sur le site ; il ne p
 - Noms déclarés : « Menuiserie Verdier ».
 - Types : LocalBusiness.
 - Profils sameAs : 1.
-- Wikidata : non\_verifie (vérification Wikidata non demandée).
+- Wikidata : non vérifié (vérification Wikidata non demandée).
 
 ## Contenu
 
 - Pages analysées : 4 ; passages détectés : 7.
 - Pages en langue non prise en charge : 0.
 - Pages sans texte visible : 0.
-- Constats de contenu : GEO-CONTENU-AUCUNE-DEFINITION (2 page(s)), GEO-CONTENU-SANS-SOURCE (1 page(s)), GEO-CONTENU-AUTEUR-ABSENT (1 page(s)).
+- Constats de contenu : GEO-CONTENU-AUCUNE-DEFINITION (2 page(s)), GEO-CONTENU-SANS-SOURCE (1 page(s)).
 
 ## Couverture de l'audit
 

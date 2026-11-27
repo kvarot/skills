@@ -2,7 +2,7 @@
 // sameAs links, and an optional Wikidata lookup. Never invents a value: everything reported comes
 // from the pages. Page-derived text only leaves through extrait().
 import { CATALOGUE, types } from './controles.mjs'
-import { extrait } from './sortie.mjs'
+import { commandeCurl, extrait } from './sortie.mjs'
 
 const PAR_ID = new Map(CATALOGUE.map((e, i) => [e.id, { ...e, rang: i }]))
 
@@ -106,24 +106,51 @@ function constat(id, pages, preuve, detail, extra = {}) {
 
 // --- Wikidata -----------------------------------------------------------------
 
-async function chercherWikidata(nom, lang, client) {
-  const url = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(nom)}&language=${lang}&format=json&limit=5`
+export const API_WIKIDATA = 'https://www.wikidata.org/w/api.php'
+// Statuses: non_verifie (not asked or failed), absent (no entry with this label), libelle_identique (same label,
+// official website not matching the audited host: identity not verified), ambigu (several candidates), trouve
+// (one entry whose P856 official website is on the audited host).
+export const STATUTS_WIKIDATA = ['non_verifie', 'absent', 'libelle_identique', 'ambigu', 'trouve']
+const ACCEPT_JSON = { accept: 'application/json' }
+
+// GET + JSON parse; { json } or { raison }.
+async function lireJson(client, url) {
   let rep
-  try { rep = await client.demander(url) } catch (e) { return { statut: 'non_verifie', ids: [], raison: extrait(String(e?.message ?? e), 200).extrait, url } }
-  if (!rep || rep.statut !== 200 || typeof rep.corps !== 'string') return { statut: 'non_verifie', ids: [], raison: `réponse inexploitable (statut ${rep?.statut ?? 'inconnu'})${rep?.raison ? ' : ' + extrait(rep.raison, 200).extrait : ''}`, url }
-  let json
-  try { json = JSON.parse(rep.corps) } catch { return { statut: 'non_verifie', ids: [], raison: 'réponse Wikidata illisible (JSON invalide)', url } }
+  try { rep = await client.demander(url, ACCEPT_JSON) } catch (e) { return { raison: extrait(String(e?.message ?? e), 200).extrait } }
+  if (!rep || rep.statut !== 200 || typeof rep.corps !== 'string') return { raison: `réponse inexploitable (statut ${rep?.statut ?? 'inconnu'})${rep?.raison ? ' : ' + extrait(rep.raison, 200).extrait : ''}` }
+  try { return { json: JSON.parse(rep.corps) } } catch { return { raison: 'réponse Wikidata illisible (JSON invalide)' } }
+}
+
+// Hosts of the P856 (official website) claims of one entity.
+function hotesSiteOfficiel(entite) {
+  const claims = Array.isArray(entite?.claims?.P856) ? entite.claims.P856 : []
+  return claims.map((c) => c?.mainsnak?.datavalue?.value).filter((v) => typeof v === 'string').map((v) => { try { return new URL(v).host.toLowerCase() } catch { return null } }).filter(Boolean)
+}
+
+async function chercherWikidata(nom, lang, client, { hote, api = API_WIKIDATA }) {
+  const url = `${api}?action=wbsearchentities&search=${encodeURIComponent(nom)}&language=${lang}&format=json&limit=5`
+  const r = await lireJson(client, url)
+  if (r.raison) return { statut: 'non_verifie', ids: [], raison: r.raison, url }
   const cible = normaliserNom(nom)
-  const exacts = (Array.isArray(json?.search) ? json.search : []).filter((r) => typeof r?.id === 'string' && /^Q[0-9]+$/.test(r.id) && normaliserNom(r.label) === cible).map((r) => r.id)
-  const ids = unique(exacts)
-  return { statut: ids.length === 0 ? 'absent' : ids.length === 1 ? 'trouve' : 'ambigu', ids, url }
+  const ids = unique((Array.isArray(r.json?.search) ? r.json.search : []).filter((x) => typeof x?.id === 'string' && /^Q[0-9]+$/.test(x.id) && normaliserNom(x.label) === cible).map((x) => x.id))
+  if (ids.length === 0) return { statut: 'absent', ids, url }
+  const libelle = (raison) => (ids.length === 1 ? { statut: 'libelle_identique', ids, raison, url } : { statut: 'ambigu', ids, raison, url })
+  if (!hote) return libelle('libellé identique trouvé, identité non vérifiée (mode dossier : aucun hôte audité à comparer au site officiel P856)')
+  // Identity check: the entity's official website (P856) must be on the audited host. One request, same allowed host.
+  const urlClaims = `${api}?action=wbgetentities&ids=${ids.join('%7C')}&props=claims&format=json`
+  const c = await lireJson(client, urlClaims)
+  if (c.raison) return libelle(`libellé identique trouvé, identité non vérifiée (site officiel P856 non lu : ${c.raison})`)
+  const correspondants = ids.filter((id) => hotesSiteOfficiel(c.json?.entities?.[id]).includes(hote))
+  if (correspondants.length === 1) return { statut: 'trouve', ids: correspondants, url: urlClaims }
+  if (correspondants.length > 1) return { statut: 'ambigu', ids: correspondants, raison: `${correspondants.length} entrées déclarent ${hote} comme site officiel (P856)`, url }
+  return libelle(`libellé identique trouvé, identité non vérifiée (aucune entrée ne déclare ${hote} comme site officiel P856)`)
 }
 
 // --- entry point ----------------------------------------------------------------
 
-// analyserEntite(collecte, { marque?, client?, wikidata = false }) -> Promise<{ noms, types, sameAs, coordonnees, wikidata, constats }>
-// Never throws on a partial Collecte or odd JSON-LD.
-export async function analyserEntite(collecte, { marque, client, wikidata = false } = {}) {
+// analyserEntite(collecte, { marque?, client?, wikidata = false, apiWikidata? }) -> Promise<{ noms, types, sameAs, coordonnees, wikidata, constats }>
+// apiWikidata only exists for tests (a local server standing for the Wikidata API). Never throws on a partial Collecte or odd JSON-LD.
+export async function analyserEntite(collecte, { marque, client, wikidata = false, apiWikidata = API_WIKIDATA } = {}) {
   const pages = (Array.isArray(collecte?.pages) ? collecte.pages : []).filter((p) => p && typeof p.url === 'string')
     .sort((a, b) => triTexte(a.url, b.url))
 
@@ -241,10 +268,14 @@ export async function analyserEntite(collecte, { marque, client, wikidata = fals
     else if (!nom) wd = { statut: 'non_verifie', ids: [], raison: 'aucun nom d’entité à rechercher' }
     else {
       const lang = String(pages[0]?.lang ?? '').toLowerCase().startsWith('en') ? 'en' : 'fr'
-      const { url, ...res } = await chercherWikidata(nom, lang, client)
+      const racine = typeof collecte?.origine === 'string' ? collecte.origine : collecte?.site?.racine
+      let hote = null
+      try { hote = /^https?:\/\//i.test(racine ?? '') ? new URL(racine).host.toLowerCase() : null } catch { /* folder mode */ }
+      const { url, ...res } = await chercherWikidata(nom, lang, client, { hote, api: apiWikidata })
       wd = res
       if (res.statut === 'ambigu') {
-        constats.push(constat('GEO-ENTITE-WIKIDATA-AMBIGU', [], { type: 'http', url, detail: `${res.ids.length} entrées Wikidata de même libellé : ${res.ids.join(', ')} (curl -s '${url}')` }, `Wikidata contient ${res.ids.length} entrées homonymes : ${res.ids.join(', ')}.`))
+        const cmd = commandeCurl('-s', url)
+        constats.push(constat('GEO-ENTITE-WIKIDATA-AMBIGU', [], { type: 'http', url, detail: `${res.ids.length} entrées Wikidata candidates : ${res.ids.join(', ')}`, ...(cmd ? { commande: cmd } : {}) }, `Wikidata contient ${res.ids.length} entrées candidates : ${res.ids.join(', ')}.`))
       }
     }
   }

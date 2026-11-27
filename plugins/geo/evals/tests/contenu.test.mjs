@@ -159,25 +159,38 @@ test('page allemande : langue autre, non prise en charge, aucun constat de conte
 })
 
 test('constats : définition, source, auteur et passages dépendants', () => {
+  const URL_ART = 'https://ex.test/guides/kayak'
   const r = analyserContenu(page([
     h('A'), p('Il y a des choses à savoir pour les gens de la ville.'),
     h('B'), p('Elle est belle pour les gens de la ville et la maison.'),
     h('C'), p('Ce texte est court pour les gens de la ville et la maison.'),
-  ], { auteur: null }))
+  ], { auteur: null, url: URL_ART }))
   assert.deepEqual(ids(r).sort(), ['GEO-CONTENU-AUCUNE-DEFINITION', 'GEO-CONTENU-AUTEUR-ABSENT', 'GEO-CONTENU-PASSAGES-DEPENDANTS', 'GEO-CONTENU-SANS-SOURCE'])
   for (const c of r.constats) {
     assert.equal(c.severite, 'mineur')
     assert.equal(c.classe, 'heuristique')
     assert.equal(c.categorie, 'contenu')
-    assert.deepEqual(c.pages, [URL_P])
+    assert.deepEqual(c.pages, [URL_ART])
     assert.equal(c.preuve.type, 'html')
-    assert.equal(c.preuve.url, URL_P)
+    assert.equal(c.preuve.url, URL_ART)
   }
   const bon = analyserContenu(page([h('Le kayak'), p(FR_DEF)]))
   assert.deepEqual(bon.constats, [])
   // Exactly 50 % dependent does not trigger the finding (strictly more than 50 %).
   const moitie = analyserContenu(page([h('A'), p('Il y a des choses à savoir pour les gens de la ville.'), h('B'), p('Le kayak est une embarcation de mer selon la fédération de 4 m.')]))
   assert.ok(!ids(moitie).includes('GEO-CONTENU-PASSAGES-DEPENDANTS'))
+})
+
+test('auteur absent : seulement sur une page d’article ou de documentation (même règle que GEO-DATE-ABSENTE)', () => {
+  const blocs = [h('Le kayak'), p(FR_DEF)]
+  // /contact, /tarifs, home page: no author expected.
+  for (const url of ['https://ex.test/', 'https://ex.test/contact', 'https://ex.test/tarifs']) {
+    assert.ok(!ids(analyserContenu(page(blocs, { url, auteur: null }))).includes('GEO-CONTENU-AUTEUR-ABSENT'), url)
+  }
+  // Article path, or Article JSON-LD on any path: the finding applies.
+  assert.ok(ids(analyserContenu(page(blocs, { url: 'https://ex.test/blog/kayak', auteur: null }))).includes('GEO-CONTENU-AUTEUR-ABSENT'))
+  const ld = [{ brut: '{}', objet: { '@type': 'BlogPosting', headline: 'Kayak' }, erreur: null }]
+  assert.ok(ids(analyserContenu(page(blocs, { url: 'https://ex.test/kayak', auteur: null, jsonld: ld }))).includes('GEO-CONTENU-AUTEUR-ABSENT'))
 })
 
 test('catalogue : les quatre ids de contenu sont enregistrés (mineur, heuristique)', () => {

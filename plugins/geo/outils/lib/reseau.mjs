@@ -53,10 +53,14 @@ export function estAdresseInterdite(ip) {
   const zeros5 = g.slice(0, 5).every((x) => x === 0)
   if (zeros5 && g[5] === 0xffff) return interditV4(v4) // IPv4-mapped ::ffff:a.b.c.d
   if (zeros5 && g[5] === 0) return true // unspecified, loopback, deprecated IPv4-compatible
+  if (g.slice(0, 4).every((x) => x === 0) && g[4] === 0xffff && g[5] === 0) return true // ::ffff:0:0:0/96 IPv4-translated (SIIT)
   if (g[0] === 0x64 && g[1] === 0xff9b && g.slice(2, 6).every((x) => x === 0)) return interditV4(v4) // NAT64
+  if (g[0] === 0x64 && g[1] === 0xff9b && g[2] === 1) return true // 64:ff9b:1::/48 local-use NAT64 (RFC 8215)
+  if (g[0] === 0x2001 && g[1] === 0) return true // 2001::/32 Teredo: the real endpoint is hidden in the address
   if (g[0] === 0x2002) return interditV4([g[1] >> 8, g[1] & 255, g[2] >> 8, g[2] & 255]) // 6to4
   return (g[0] & 0xfe00) === 0xfc00 // fc00::/7 unique-local (fd00::/8 included)
     || (g[0] & 0xffc0) === 0xfe80 // fe80::/10 link-local
+    || (g[0] & 0xffc0) === 0xfec0 // fec0::/10 site-local (deprecated, still routed internally)
     || (g[0] & 0xff00) === 0xff00 // multicast
 }
 
@@ -179,22 +183,32 @@ export function creerClient({
     return Buffer.concat(morceaux)
   }
 
+  // `cache` is a directory (disk cache, entries expired only when read) or a Map (memory cache, lives as long as the client).
   // The key covers what shapes the stored answer: URL, requested media types, local-network mode.
-  function chemin(url, accept) {
-    return cache ? path.join(cache, createHash('sha256').update(`${url}
+  const enMemoire = cache instanceof Map
+  function cleCache(url, accept) {
+    return createHash('sha256').update(`${url}
 ${accept}
-${autoriserLocal ? 'local' : ''}`).digest('hex') + '.json') : null
+${autoriserLocal ? 'local' : ''}`).digest('hex')
+  }
+  function chemin(url, accept) {
+    return cache && !enMemoire ? path.join(cache, cleCache(url, accept) + '.json') : null
   }
   function lireCache(url, accept) {
-    const f = chemin(url, accept)
     try {
-      if (!f || !existsSync(f)) return null
-      const e = JSON.parse(readFileSync(f, 'utf8'))
-      if (!(Date.now() - e.ts < maxAgeMs)) return null
+      let e
+      if (enMemoire) e = cache.get(cleCache(url, accept))
+      else {
+        const f = chemin(url, accept)
+        if (!f || !existsSync(f)) return null
+        e = JSON.parse(readFileSync(f, 'utf8'))
+      }
+      if (!e || !(Date.now() - e.ts < maxAgeMs)) return null
       return { ...e.reponse, depuisCache: true }
     } catch { return null }
   }
   function ecrireCache(url, accept, reponse) {
+    if (enMemoire) { cache.set(cleCache(url, accept), { ts: Date.now(), reponse }); return }
     const f = chemin(url, accept)
     if (!f) return
     try {

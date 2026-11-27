@@ -25,6 +25,30 @@ export function extrait(texte, max = 280) {
   return { extrait: propre.slice(0, max), non_fiable: true }
 }
 
+// Reproducible command written by the tool (never page text): `curl <options> '<url>'`.
+// Every character of the URL outside the unreserved/reserved URL set (quotes, spaces, backticks, non-ASCII...)
+// is percent-encoded, so the single-quoted argument is inert in a shell and the command replays as is.
+// Returns null when the command would exceed MAX_COMMANDE or the URL is not http(s).
+export const MAX_COMMANDE = 512
+const HORS_URL = /[^A-Za-z0-9\-._~:/?#[\]@!$&()*+,;=%]/gu
+export const MOTIF_COMMANDE = /^curl(?: -[A-Za-z]+)+ '[A-Za-z0-9\-._~:/?#[\]@!$&()*+,;=%]+'$/
+export function commandeCurl(options, url) {
+  const u = String(url ?? '')
+  if (!/^https?:\/\//i.test(u) || !/^-[A-Za-z]+(?: -[A-Za-z]+)*$/.test(options)) return null
+  const sure = u.replace(HORS_URL, (c) => [...Buffer.from(c, 'utf8')].map((b) => '%' + b.toString(16).toUpperCase().padStart(2, '0')).join(''))
+  const cmd = `curl ${options} '${sure}'`
+  return cmd.length <= MAX_COMMANDE ? cmd : null
+}
+
+// node:sqlite loads without a flag from Node 22.13 on.
+export const NODE_MINIMUM = '22.13.0'
+export function versionNodeSuffisante(version = process.versions.node, minimum = NODE_MINIMUM) {
+  const a = String(version).replace(/^v/, '').split('.').map((x) => parseInt(x, 10) || 0)
+  const b = minimum.split('.').map(Number)
+  for (let i = 0; i < 3; i++) if ((a[i] ?? 0) !== b[i]) return (a[i] ?? 0) > b[i]
+  return true
+}
+
 export function ecrireJson(obj) {
   process.stdout.write(JSON.stringify(obj, null, 2) + '\n')
 }

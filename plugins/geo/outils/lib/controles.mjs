@@ -1,7 +1,7 @@
 // Deterministic technical and AI-access controls over a Collecte.
 // CATALOGUE is the single registry of every constat id of the plugin: later tasks (entity, content)
 // append one `def(...)` line here and one section in references/constats.md; the parity test checks both.
-import { extrait } from './sortie.mjs'
+import { commandeCurl, extrait } from './sortie.mjs'
 import { analyserRobots, evaluerRobotsIa } from './robots.mjs'
 import { lireSitemap, normaliser } from './collecter.mjs'
 
@@ -11,7 +11,8 @@ export const CATALOGUE = [
   // indexation
   def('GEO-NOINDEX', 'bloquant', 'indexation', 'Page exclue de l’index par une directive noindex (balise meta robots ou en-tête X-Robots-Tag). Portée : page de départ et pages listées dans le sitemap ; les autres pages en noindex relèvent du choix du propriétaire et ne sont pas signalées.'),
   def('GEO-ROBOTSTXT-BLOQUE-TOUT', 'bloquant', 'indexation', 'Le robots.txt interdit tout le site à tous les robots (User-agent: * et Disallow: /).'),
-  def('GEO-SITEMAP-ABSENT', 'important', 'indexation', 'Aucun sitemap trouvé (ni déclaré dans robots.txt, ni à /sitemap.xml).'),
+  def('GEO-ROBOTSTXT-INACCESSIBLE', 'bloquant', 'indexation', 'robots.txt répond par une erreur serveur (5xx) ou ne répond pas (erreur réseau, délai) : selon RFC 9309, tout le site est alors considéré interdit, et l’audit n’a lu aucune page.'),
+  def('GEO-SITEMAP-ABSENT', 'important', 'indexation', 'Aucun sitemap trouvé (ni déclaré dans robots.txt, ni à /sitemap.xml). Non signalé quand les sitemaps n’ont pas pu être lus (interdits par robots.txt ou robots.txt inaccessible).'),
   def('GEO-SITEMAP-INCOHERENT', 'mineur', 'indexation', 'Le sitemap liste des URL inutilisables : en erreur, en noindex, canoniques ailleurs, d’un autre hôte, ou sitemap illisible.'),
   def('GEO-CANONICAL-ABSENT', 'mineur', 'indexation', 'Page sans balise link rel=canonical.'),
   def('GEO-CANONICAL-AUTRE-HOTE', 'important', 'indexation', 'La balise canonical pointe vers un autre hôte que celui de la page.'),
@@ -26,7 +27,7 @@ export const CATALOGUE = [
   def('GEO-ROBOTS-ENTRAINEMENT-POLITIQUE', 'information', 'robots-ia', 'Politique observée dans robots.txt pour les robots d’entraînement documentés, sans recommandation.'),
   def('GEO-WAF-DEFI', 'bloquant', 'robots-ia', 'Un défi CDN / WAF bloque l’accès automatisé : les pages défiées ne sont pas analysées.'),
   def('GEO-NOSNIPPET', 'important', 'robots-ia', 'nosnippet ou max-snippet:0 empêche l’affichage d’extraits, donc la citation.'),
-  def('GEO-LLMSTXT', 'information', 'robots-ia', 'Présence ou absence de /llms.txt (information seulement, poids nul dans tout score).'),
+  def('GEO-LLMSTXT', 'information', 'robots-ia', 'Présence ou absence de /llms.txt, ou « non vérifié » quand la requête a échoué ou était interdite (information seulement, poids nul dans tout score).'),
   def('GEO-CONTENT-SIGNAL', 'information', 'robots-ia', 'Directive Content-Signal relevée dans robots.txt (valeur brute, non évaluée).'),
   // rendu
   def('GEO-HTML-VIDE', 'bloquant', 'rendu', 'Le HTML reçu n’a quasiment pas de texte (page rendue côté client ou coquille vide), hors défi WAF.'),
@@ -50,7 +51,7 @@ export const CATALOGUE = [
   // contenu (produits par outils/lib/contenu.mjs)
   def('GEO-CONTENU-AUCUNE-DEFINITION', 'mineur', 'contenu', 'Aucun passage de la page ne s’ouvre sur une définition (motif « X est un… » / « X is a… » dans les deux premières phrases).', 'heuristique'),
   def('GEO-CONTENU-SANS-SOURCE', 'mineur', 'contenu', 'Aucun passage de la page ne cite de source (lien externe dans le passage ou formule « selon… » / « according to… »).', 'heuristique'),
-  def('GEO-CONTENU-AUTEUR-ABSENT', 'mineur', 'contenu', 'Aucun auteur déclaré sur une page dont le contenu a été analysé.', 'heuristique'),
+  def('GEO-CONTENU-AUTEUR-ABSENT', 'mineur', 'contenu', 'Aucun auteur déclaré sur une page d’article ou de documentation dont le contenu a été analysé (même règle de page que GEO-DATE-ABSENTE).', 'heuristique'),
   def('GEO-CONTENU-PASSAGES-DEPENDANTS', 'mineur', 'contenu', 'Plus de la moitié des passages commencent par un pronom ou un connecteur qui renvoie au texte précédent (non autonomes).', 'heuristique'),
   // entité (produits par outils/lib/entites.mjs)
   def('GEO-ENTITE-SANS-ORGANIZATION', 'important', 'entite', 'Aucun JSON-LD d’organisation (Organization, LocalBusiness, Corporation ou sous-type) sur les pages explorées.'),
@@ -58,7 +59,7 @@ export const CATALOGUE = [
   def('GEO-ENTITE-COORDONNEES-CONTRADICTOIRES', 'important', 'entite', 'Deux téléphones ou deux adresses différents dans les JSON-LD d’organisation du site.'),
   def('GEO-ENTITE-SAMEAS-ABSENT', 'mineur', 'entite', 'Une organisation est déclarée en JSON-LD sans aucun sameAs vers ses profils officiels.'),
   def('GEO-ENTITE-PRODUIT-SANS-SCHEMA', 'mineur', 'entite', 'Page dont le h1 reprend le nom d’un produit ou service balisé sur une autre page, sans balisage Product, SoftwareApplication ou Service sur elle-même.', 'heuristique'),
-  def('GEO-ENTITE-WIKIDATA-AMBIGU', 'information', 'entite', 'Plusieurs entrées Wikidata portent le même libellé que l’entité : à désambiguïser par le propriétaire (vérification optionnelle).'),
+  def('GEO-ENTITE-WIKIDATA-AMBIGU', 'information', 'entite', 'Plusieurs entrées Wikidata portent le même libellé que l’entité (ou déclarent toutes l’hôte audité comme site officiel P856) : à désambiguïser par le propriétaire (vérification optionnelle).'),
 ]
 
 const PAR_ID = new Map(CATALOGUE.map((e, i) => [e.id, { ...e, rang: i }]))
@@ -79,6 +80,20 @@ function cleChemin(u, hote) {
 }
 
 const raisonErreur = (e) => texte(e?.raison ?? e?.erreur)
+
+// Reproducible check: a curl command on a live site (preuve.commande), the file to open in folder mode.
+// `ctx.dossier` is true when the collection has no origin (static folder).
+function commande(ctx, options, url) {
+  return ctx.dossier ? undefined : (commandeCurl(options, url) ?? undefined)
+}
+// Folder-mode file of a page URL ('/' -> index.html, '/a/' -> a/index.html).
+function fichierDe(pages, url) {
+  const p = pages.find((x) => x.url === url)
+  if (p && typeof p.fichier === 'string') return p.fichier
+  const rel = String(url ?? '').replace(/^\//, '')
+  return !rel || rel.endsWith('/') ? rel + 'index.html' : rel
+}
+const avecCommande = (preuve, cmd) => (cmd ? { ...preuve, commande: cmd } : preuve)
 
 // JSON-LD nodes (object, array members, @graph members), bounded depth.
 export function noeuds(jsonld) {
@@ -117,16 +132,26 @@ function controlesIndexation(c, ctx) {
     const parts = []
     if (meta.length) parts.push(`balise meta robots : ${meta.length} page(s)`)
     if (entete.length) parts.push(`en-tête x-robots-tag : ${entete.length} page(s)`)
+    const ou = ctx.dossier ? ` ; mode dossier : fichier ${fichierDe(pages, tous[0])}` : ' ; vérifier l’en-tête X-Robots-Tag (commande) et la balise <meta name="robots">'
     sortie.push({ id: 'GEO-NOINDEX', pages: tous,
-      preuve: { type: meta.length ? 'html' : 'http', url: tous[0], detail: `directive noindex (${parts.join(' ; ')}). Vérifier : curl -sI <url> et la balise <meta name="robots">.` },
+      preuve: avecCommande({ type: meta.length ? 'html' : 'http', url: tous[0], detail: `directive noindex (${parts.join(' ; ')})${ou}` }, commande(ctx, '-sI', tous[0])),
       detail: `Directive noindex sur ${tous.length} page(s) (${parts.join(' ; ')}).` })
   }
 
   // robots.txt blocking everything
   if (typeof site.robotsTxt === 'string' && !analyserRobots(site.robotsTxt).autorise('*', '/')) {
     sortie.push({ id: 'GEO-ROBOTSTXT-BLOQUE-TOUT', pages: [],
-      preuve: { type: 'robots', url: ctx.racine + '/robots.txt', detail: 'Le groupe User-agent: * interdit « / » (évaluation RFC 9309).' },
+      preuve: avecCommande({ type: 'robots', url: ctx.racine + '/robots.txt', detail: `Le groupe User-agent: * interdit « / » (évaluation RFC 9309)${ctx.dossier ? ' ; mode dossier : fichier robots.txt' : ''}.` }, commande(ctx, '-s', ctx.racine + '/robots.txt')),
       detail: 'Le robots.txt interdit tout le site aux robots sans règle propre.' })
+  }
+
+  // robots.txt unreachable (5xx or no answer): RFC 9309 treats the whole site as disallowed; nothing was read.
+  const statutRobots = site.robotsStatut
+  if (!ctx.dossier && Number.isInteger(statutRobots) && (statutRobots === 0 || statutRobots >= 500)) {
+    const quoi = statutRobots === 0 ? 'aucune réponse (erreur réseau ou délai dépassé)' : `statut ${statutRobots}`
+    sortie.push({ id: 'GEO-ROBOTSTXT-INACCESSIBLE', pages: [],
+      preuve: avecCommande({ type: 'robots', url: ctx.racine + '/robots.txt', detail: `robots.txt : ${quoi} ; selon RFC 9309, tout le site est considéré interdit tant que robots.txt n’est pas lisible.` }, commande(ctx, '-sI', ctx.racine + '/robots.txt')),
+      detail: `robots.txt inaccessible (${quoi}) : les robots qui suivent RFC 9309 considèrent tout le site interdit ; aucune page n’a été lue par l’audit.` })
   }
 
   // sitemaps
@@ -134,7 +159,9 @@ function controlesIndexation(c, ctx) {
   const urlsSitemap = [...sitemaps.flatMap((s) => s.urls ?? [])]
   if (typeof site.sitemapXml === 'string') urlsSitemap.push(...lireSitemap(site.sitemapXml).locs)
   const aSitemap = sitemaps.length > 0 || typeof site.sitemapXml === 'string'
-  if (!aSitemap && !site.waf?.detecte) {
+  // Sitemaps never read (refused by robots.txt, or robots.txt inaccessible) prove nothing: no absence is concluded.
+  const sitemapsNonLus = Number(site.sitemapsNonVerifies) > 0
+  if (!aSitemap && !site.waf?.detecte && !sitemapsNonLus) {
     sortie.push({ id: 'GEO-SITEMAP-ABSENT', pages: [],
       preuve: { type: 'sitemap', url: ctx.racine + '/sitemap.xml', detail: 'Aucun sitemap déclaré dans robots.txt ni présent à /sitemap.xml.' },
       detail: 'Aucun sitemap n’a été trouvé.' })
@@ -153,7 +180,7 @@ function controlesIndexation(c, ctx) {
   if (enErreur.size) {
     const liste = tri([...enErreur.keys()])
     sortie.push({ id: 'GEO-HTTP-ERREUR', pages: liste,
-      preuve: { type: 'http', url: liste[0], detail: `statut ${enErreur.get(liste[0])} (curl -sI ${liste[0]})` },
+      preuve: avecCommande({ type: 'http', url: liste[0], detail: `statut ${enErreur.get(liste[0])}` }, commande(ctx, '-sI', liste[0])),
       detail: `${liste.length} URL en erreur HTTP.` })
   }
 
@@ -199,7 +226,7 @@ function controlesIndexation(c, ctx) {
   if (chaines.length) {
     const l = tri(chaines.map((p) => p.url))
     const n = Math.max(...chaines.map((p) => p.redirections.length))
-    sortie.push({ id: 'GEO-REDIRECTION-CHAINE', pages: l, preuve: { type: 'http', url: l[0], detail: `jusqu’à ${n} redirections (curl -sIL ${l[0]})` }, detail: `${l.length} page(s) atteintes après plus de 2 redirections.` })
+    sortie.push({ id: 'GEO-REDIRECTION-CHAINE', pages: l, preuve: avecCommande({ type: 'http', url: l[0], detail: `jusqu’à ${n} redirections` }, commande(ctx, '-sIL', l[0])), detail: `${l.length} page(s) atteintes après plus de 2 redirections.` })
   }
   const profondes = pages.filter((p) => p.profondeur > 3)
   if (profondes.length) {
@@ -312,7 +339,7 @@ function controlesRobotsIa(c, ctx, registre) {
     const pr = site.waf.preuve ?? {}
     const url = pr.url ?? racine + '/'
     sortie.push({ id: 'GEO-WAF-DEFI', pages: [url],
-      preuve: { type: 'http', url, detail: `statut ${pr.statut ?? '?'} : ${pr.detail ?? 'défi détecté'} (curl -sI ${url})` },
+      preuve: avecCommande({ type: 'http', url, detail: `statut ${pr.statut ?? '?'} : ${pr.detail ?? 'défi détecté'}` }, commande(ctx, '-sI', url)),
       detail: `Un défi CDN / WAF a été détecté (${pr.detail ?? 'marqueur de défi'}) : la page n’est pas analysée comme contenu.` })
   }
 
@@ -325,11 +352,14 @@ function controlesRobotsIa(c, ctx, registre) {
       detail: `${l.length} page(s) interdisent les extraits (nosnippet / max-snippet:0).` })
   }
 
+  // present: true / false = observed; null = not verified (refused by robots.txt, network failure, server error).
   const llms = site.llmsTxt
-  if (llms && typeof llms.present === 'boolean') {
+  if (llms && (typeof llms.present === 'boolean' || llms.present === null)) {
+    const etat = llms.present === null ? 'non vérifié' : llms.present ? 'présent' : 'absent'
+    const ou = ctx.dossier ? 'mode dossier : fichier llms.txt' : `statut ${llms.statut ?? 'inconnu'}`
     sortie.push({ id: 'GEO-LLMSTXT', pages: [],
-      preuve: { type: 'http', url: racine + '/llms.txt', detail: `statut ${llms.statut ?? 'inconnu'} (curl -sI ${racine}/llms.txt)` },
-      detail: `/llms.txt ${llms.present ? 'présent' : 'absent'} : information seulement, sans effet démontré sur la visibilité ; Google déclare ne pas l'utiliser.` })
+      preuve: avecCommande({ type: 'http', url: racine + '/llms.txt', detail: llms.present === null && !ctx.dossier ? `${ou} : présence non vérifiée (requête interdite ou en échec)` : ou }, commande(ctx, '-sI', racine + '/llms.txt')),
+      detail: `/llms.txt ${etat} : information seulement, sans effet démontré sur la visibilité ; Google déclare ne pas l'utiliser.` })
   }
   return sortie
 }
@@ -490,7 +520,7 @@ export function controler(collecte, registre) {
   const racine = texte(collecte?.origine) || texte(c.site.racine) || ''
   let hote = null
   try { hote = racine ? new URL(racine).host : null } catch { /* relative folder collection */ }
-  const ctx = { racine, hote }
+  const ctx = { racine, hote, dossier: !/^https?:\/\//i.test(racine) }
 
   const bruts = [
     ...controlesIndexation(c, ctx),

@@ -199,6 +199,12 @@ export async function ouvrirBase(fichier = path.join(cheminDonnees(), 'geo.sqlit
       return Object.values(db.prepare(`PRAGMA ${nom}`).get() ?? {})[0] ?? null
     },
 
+    // Latest frozen scenario set of an origin (highest id), with its scenarios; null when the origin has none.
+    dernierJeu(origine) {
+      const l = db.prepare('SELECT j.empreinte FROM jeu j JOIN site s ON s.id = j.site_id WHERE s.origine = ? ORDER BY j.id DESC LIMIT 1').get(String(origine ?? ''))
+      return l ? this.jeu(l.empreinte) : null
+    },
+
     jeu(empreinte) {
       const l = db.prepare('SELECT j.*, s.origine FROM jeu j JOIN site s ON s.id = j.site_id WHERE j.empreinte = ?').get(empreinte)
       if (!l) return null

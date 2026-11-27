@@ -151,25 +151,65 @@ test('wikidata sans client → non_verifie', async () => {
   assert.equal(r.wikidata.statut, 'non_verifie')
 })
 
-test('wikidata: deux homonymes → ambigu + constat information', async () => {
+// Fake Wikidata API: search results, then P856 (official website) claims per id.
+const apiWikidata = (resultats, sitesOfficiels = {}, appels = []) => ({
+  demander: async (url, opts) => {
+    appels.push({ url, opts })
+    if (url.includes('action=wbgetentities')) {
+      const ids = new URL(url).searchParams.get('ids').split('|')
+      return reponse({ entities: Object.fromEntries(ids.map((id) => [id, { id, claims: sitesOfficiels[id] ? { P856: [{ mainsnak: { datavalue: { value: sitesOfficiels[id] } } }] } : {} }])) })
+    }
+    return reponse({ search: resultats })
+  },
+})
+
+test('wikidata: deux homonymes sans site officiel sur l’hôte audité → ambigu + constat information', async () => {
   const appels = []
-  const client = { demander: async (url) => { appels.push(url); return reponse({ search: [{ id: 'Q1', label: 'Atelier Nord' }, { id: 'Q2', label: 'Atelier Nord' }, { id: 'Q3', label: 'Autre' }] }) } }
+  const client = apiWikidata([{ id: 'Q1', label: 'Atelier Nord' }, { id: 'Q2', label: 'Atelier Nord' }, { id: 'Q3', label: 'Autre' }], { Q1: 'https://autre.example/' }, appels)
   const r = await analyserEntite(collecte([page('/', { jsonld: [ld(org())] })]), { wikidata: true, client })
   assert.equal(r.wikidata.statut, 'ambigu')
   assert.deepEqual(r.wikidata.ids, ['Q1', 'Q2'])
   const c = trouver(r, 'GEO-ENTITE-WIKIDATA-AMBIGU')
   assert.equal(c.severite, 'information')
   assert.equal(c.preuve.type, 'http')
-  assert.equal(appels.length, 1)
-  assert.equal(appels[0], 'https://www.wikidata.org/w/api.php?action=wbsearchentities&search=Atelier%20Nord&language=fr&format=json&limit=5')
+  assert.equal(appels.length, 2)
+  assert.equal(appels[0].url, 'https://www.wikidata.org/w/api.php?action=wbsearchentities&search=Atelier%20Nord&language=fr&format=json&limit=5')
+  assert.equal(appels[1].url, 'https://www.wikidata.org/w/api.php?action=wbgetentities&ids=Q1%7CQ2&props=claims&format=json')
+  // Every Wikidata request asks for JSON (the default HTML Accept would be refused by the network layer).
+  for (const a of appels) assert.equal(a.opts?.accept, 'application/json')
 })
 
-test('wikidata: un résultat → trouve ; aucun → absent', async () => {
-  const un = await analyserEntite(collecte([page('/', { jsonld: [ld(org())] })]), { wikidata: true, client: { demander: async () => reponse({ search: [{ id: 'Q7', label: 'Atelier Nord' }] }) } })
+test('wikidata: identité vérifiée par le site officiel (P856) ; libellé seul → libelle_identique ; aucun → absent', async () => {
+  const un = await analyserEntite(collecte([page('/', { jsonld: [ld(org())] })]), { wikidata: true, client: apiWikidata([{ id: 'Q7', label: 'Atelier Nord' }], { Q7: 'https://www.atelier.example/accueil' }) })
   assert.equal(un.wikidata.statut, 'trouve')
   assert.deepEqual(un.wikidata.ids, ['Q7'])
-  const zero = await analyserEntite(collecte([page('/', { jsonld: [ld(org())] })]), { wikidata: true, client: { demander: async () => reponse({ search: [] }) } })
+  // Same label, official website elsewhere (or none): identity not verified, never "trouve".
+  for (const site of ['https://atelier-nord.example/', undefined]) {
+    const homonyme = await analyserEntite(collecte([page('/', { jsonld: [ld(org())] })]), { wikidata: true, client: apiWikidata([{ id: 'Q7', label: 'Atelier Nord' }], site ? { Q7: site } : {}) })
+    assert.equal(homonyme.wikidata.statut, 'libelle_identique')
+    assert.match(homonyme.wikidata.raison, /libellé identique trouvé, identité non vérifiée/)
+  }
+  // Two homonyms, one of them on the audited host: that one is the entity.
+  const deux = await analyserEntite(collecte([page('/', { jsonld: [ld(org())] })]), { wikidata: true, client: apiWikidata([{ id: 'Q1', label: 'Atelier Nord' }, { id: 'Q2', label: 'Atelier Nord' }], { Q2: 'https://www.atelier.example/' }) })
+  assert.equal(deux.wikidata.statut, 'trouve')
+  assert.deepEqual(deux.wikidata.ids, ['Q2'])
+  assert.equal(trouver(deux, 'GEO-ENTITE-WIKIDATA-AMBIGU'), undefined)
+  // Folder mode: no audited host to compare with.
+  const dossier = await analyserEntite({ pages: [page('/', { jsonld: [ld(org())] })], site: { racine: null } }, { wikidata: true, client: apiWikidata([{ id: 'Q7', label: 'Atelier Nord' }], { Q7: 'https://www.atelier.example/' }) })
+  assert.equal(dossier.wikidata.statut, 'libelle_identique')
+  const zero = await analyserEntite(collecte([page('/', { jsonld: [ld(org())] })]), { wikidata: true, client: apiWikidata([]) })
   assert.equal(zero.wikidata.statut, 'absent')
+})
+
+test('wikidata : commande curl de la preuve rejouable et intacte après assainissement et dans le Markdown', async () => {
+  const { assainirConstat, rapportMarkdown } = await import('../../outils/lib/rapports.mjs')
+  const r = await analyserEntite(collecte([page('/', { jsonld: [ld(org({ name: "Atelier Nord & Fils l'ancien" }))] })]), { wikidata: true, client: apiWikidata([{ id: 'Q1', label: "Atelier Nord & Fils l'ancien" }, { id: 'Q2', label: "Atelier Nord & Fils l'ancien" }]) })
+  const c = assainirConstat(trouver(r, 'GEO-ENTITE-WIKIDATA-AMBIGU'))
+  const attendu = "curl -s 'https://www.wikidata.org/w/api.php?action=wbsearchentities&search=Atelier%20Nord%20%26%20Fils%20l%27ancien&language=fr&format=json&limit=5'"
+  assert.equal(c.preuve.commande, attendu)
+  assert.ok(!c.preuve.commande.includes('&amp;'))
+  const md = rapportMarkdown({ origine: O, constats: [{ ...c, severite: 'important' }] })
+  assert.ok(md.includes('`' + attendu + '`'), 'commande rendue telle quelle dans un bloc de code')
 })
 
 test('wikidata: hôte non autorisé (code 3) ou réponse illisible → non_verifie avec raison', async () => {
@@ -229,6 +269,35 @@ test('plusieurs téléphones dans un même nœud : pas de contradiction ; formes
     page('/c', { jsonld: [ld(org({ telephone: '04 11 22 33 44' }))] }),
   ]))
   assert.ok(trouver(c, 'GEO-ENTITE-COORDONNEES-CONTRADICTOIRES'))
+})
+
+test('wikidata, intégration : vrai client réseau et serveur local répondant en application/json', async () => {
+  const http = await import('node:http')
+  const { creerClient } = await import('../../outils/lib/reseau.mjs')
+  const accepts = []
+  const srv = http.createServer((req, res) => {
+    accepts.push(req.headers.accept)
+    const u = new URL(req.url, 'http://x')
+    const corps = u.searchParams.get('action') === 'wbgetentities'
+      ? { entities: { Q42: { id: 'Q42', claims: { P856: [{ mainsnak: { datavalue: { value: 'https://www.atelier.example/' } } }] } } } }
+      : { search: [{ id: 'Q42', label: 'Atelier Nord' }] }
+    res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
+    res.end(JSON.stringify(corps))
+  })
+  await new Promise((ok) => srv.listen(0, '127.0.0.1', ok))
+  try {
+    const client = creerClient({ hotes: new Set(['127.0.0.1']), autoriserLocal: true, delaiMs: 0 })
+    const r = await analyserEntite(collecte([page('/', { jsonld: [ld(org())] })]), { wikidata: true, client, apiWikidata: `http://127.0.0.1:${srv.address().port}/w/api.php` })
+    assert.equal(r.wikidata.statut, 'trouve', JSON.stringify(r.wikidata))
+    assert.deepEqual(r.wikidata.ids, ['Q42'])
+    assert.deepEqual(accepts, ['application/json', 'application/json'])
+  } finally { srv.closeAllConnections?.(); srv.close() }
+})
+
+test('C1 : zéro page (robots.txt interdit tout ou inaccessible) : aucun constat d’entité, rien à créditer', async () => {
+  const r = await analyserEntite({ origine: O, pages: [], site: { racine: O }, erreurs: [] })
+  assert.deepEqual(r.constats, [])
+  assert.deepEqual(r.noms, [])
 })
 
 test('wikidata : nom de recherche = nom d’organisation, puis og:site_name, jamais le title', async () => {

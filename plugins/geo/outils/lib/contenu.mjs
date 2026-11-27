@@ -2,7 +2,7 @@
 // Six boolean criteria per passage; they describe ease of extraction, never a probability of being cited.
 // analyserContenu(faits) never throws and uses no randomness: same input, same output.
 import { readFileSync } from 'node:fs'
-import { CATALOGUE } from './controles.mjs'
+import { CATALOGUE, estPageArticle } from './controles.mjs'
 import { extrait } from './sortie.mjs'
 
 const CRITERES = ['definition', 'chiffre', 'source', 'autonome', 'question_titre', 'structure']
@@ -163,7 +163,8 @@ export function analyserContenu(page) {
     const n = passages.length
     if (!passages.some((x) => x.criteres.definition)) constats.push(constat('GEO-CONTENU-AUCUNE-DEFINITION', url, `Aucun des ${n} passage(s) ne s’ouvre sur une définition (motif « X est un… » dans les deux premières phrases).`))
     if (!passages.some((x) => x.criteres.source)) constats.push(constat('GEO-CONTENU-SANS-SOURCE', url, `Aucun des ${n} passage(s) ne cite de source (lien externe ou formule « selon… »).`))
-    if (!(typeof p.auteur === 'string' && p.auteur.trim())) constats.push(constat('GEO-CONTENU-AUTEUR-ABSENT', url, 'Aucun auteur déclaré (meta author, rel="author" ou JSON-LD).'))
+    // Author only matters on article and documentation pages (same rule as GEO-DATE-ABSENTE and the score).
+    if (estPageArticle(p) && !(typeof p.auteur === 'string' && p.auteur.trim())) constats.push(constat('GEO-CONTENU-AUTEUR-ABSENT', url, 'Aucun auteur déclaré (meta author, rel="author" ou JSON-LD).'))
     const dependants = passages.filter((x) => !x.criteres.autonome).length
     if (dependants / n > 0.5) constats.push(constat('GEO-CONTENU-PASSAGES-DEPENDANTS', url, `${dependants} passage(s) sur ${n} commencent par un pronom ou un connecteur qui renvoie au texte précédent.`))
   }

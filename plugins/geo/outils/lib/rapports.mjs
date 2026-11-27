@@ -1,6 +1,6 @@
 // Audit report rendering (Markdown and JSON) and full-passage extraction for the read-only content agent.
 // Pure functions: no network, no file access. Page text only appears as capped `extrait` objects.
-import { extrait } from './sortie.mjs'
+import { extrait, MAX_COMMANDE, MOTIF_COMMANDE } from './sortie.mjs'
 
 export const SECTIONS = [
   'Résumé',
@@ -24,15 +24,18 @@ export const PLATEFORMES = [
 ]
 
 export const PASSAGES_PAR_LOT = 20
+// Same list as STATUTS_WIKIDATA in entites.mjs (a test checks both are equal).
+export const STATUTS_WIKIDATA = ['non_verifie', 'absent', 'libelle_identique', 'ambigu', 'trouve']
 const MAX_TEXTE_PASSAGE = 5000
 
 const ROLES = {
   entrainement: 'Entraînement',
   indexation: 'Indexation (recherche)',
   'consultation-utilisateur': 'Consultation à la demande de l\'utilisateur',
-  autre: 'Autre',
+  controle: 'Jetons de contrôle',
+  autre: 'Autres robots',
 }
-const ORDRE_ROLES = ['indexation', 'consultation-utilisateur', 'entrainement', 'autre']
+const ORDRE_ROLES = ['indexation', 'consultation-utilisateur', 'entrainement', 'controle', 'autre']
 
 // One table cell / list item: single line, no pipe.
 const cellule = (v) => String(v ?? '').replace(/[\r\n\t]+/g, ' ').replace(/\|/g, '\\|').trim()
@@ -57,6 +60,8 @@ function ligneConstat(c) {
   const morceaux = [`- **${cellule(c.id)}** (${cellule(c.severite)}) : ${md(c.detail)}`]
   if (nb) morceaux[0] += ` (${nb} page${nb > 1 ? 's' : ''})`
   if (p.detail || p.url) morceaux.push(`  - Preuve (${cellule(p.type)}) : ${code(p.url)} ${md(p.detail)}`.trimEnd())
+  // Tool-written command (shape checked again here): replayable as is, shown in a code span.
+  if (typeof p.commande === 'string' && MOTIF_COMMANDE.test(p.commande)) morceaux.push(`  - Commande : ${code(p.commande)}`)
   const ex = obj(c.extrait)
   if (typeof ex.extrait === 'string' && ex.extrait) morceaux.push(`  - Extrait non fiable : « ${md(ex.extrait)} »`)
   return morceaux.join('\n')
@@ -130,6 +135,14 @@ function sectionScores(scores) {
     + '\n\nUn score de potentiel mesure ce que l\'audit peut vérifier sur le site ; il ne prédit aucune citation.'
 }
 
+const LIBELLES_WIKIDATA = {
+  non_verifie: 'non vérifié',
+  absent: 'aucune entrée de même libellé',
+  libelle_identique: 'libellé identique trouvé, identité non vérifiée',
+  ambigu: 'plusieurs entrées candidates',
+  trouve: 'entrée trouvée, site officiel (P856) sur l\'hôte audité',
+}
+
 function sectionEntite(entite) {
   const e = obj(entite)
   if (!Object.keys(e).length) return 'Entité non analysée.'
@@ -140,7 +153,7 @@ function sectionEntite(entite) {
     `- Profils sameAs : ${tab(e.sameAs).length}.`,
   ]
   const w = obj(e.wikidata)
-  if (w.statut) lignes.push(`- Wikidata : ${md(w.statut)}${w.raison ? ' (' + md(w.raison) + ')' : ''}.`)
+  if (w.statut) lignes.push(`- Wikidata : ${LIBELLES_WIKIDATA[w.statut] ?? md(w.statut)}${tab(w.ids).length ? ' : ' + tab(w.ids).map(md).join(', ') : ''}${w.raison ? ' (' + md(w.raison) + ')' : ''}.`)
   if (tab(e.constats).length) lignes.push('- Constats d\'entité : ' + tab(e.constats).map((c) => cellule(c.id)).join(', ') + '.')
   return lignes.join('\n')
 }
@@ -270,7 +283,7 @@ export function resumerEntite(entite) {
     },
     // Third-party answer: only the status word and well-formed ids stay raw; the reason is an excerpt.
     wikidata: {
-      statut: ['non_verifie', 'absent', 'trouve', 'ambigu'].includes(w.statut) ? w.statut : 'non_verifie',
+      statut: STATUTS_WIKIDATA.includes(w.statut) ? w.statut : 'non_verifie',
       ids: tab(w.ids).filter((i) => /^Q\d{1,12}$/.test(String(i))).map(String),
       // Already escaped at the source (entites.mjs wraps the external parts in extrait): capped, flagged, not escaped twice.
       ...(w.raison ? { raison: { extrait: String(w.raison).slice(0, 280), non_fiable: true } } : {}),
@@ -284,12 +297,18 @@ const capUrl = (u) => (typeof u === 'string' ? u.slice(0, MAX_URL) : u)
 const dejaExtrait = (v) => v && typeof v === 'object' && typeof v.extrait === 'string'
 
 // The one sanitiser at the output and storage boundary, applied to every constat of every module:
-// `detail` and `preuve.detail` become capped, escaped extrait objects; URLs stay raw strings capped at 2048 characters.
+// `detail` and `preuve.detail` become capped, escaped extrait objects; URLs stay raw strings capped at 2048 characters;
+// `preuve.commande` (tool-written, page-derived parts percent-encoded) stays raw only with the exact
+// curl -x '<url>' shape and at most MAX_COMMANDE characters; anything else is dropped.
 export function assainirConstat(c) {
   const p = obj(c?.preuve)
   const sur = (v) => (dejaExtrait(v) ? v : extrait(v ?? ''))
   const sortie = { ...c, detail: sur(c?.detail) }
   if (Array.isArray(c?.pages)) sortie.pages = c.pages.map(capUrl)
-  if (c?.preuve && typeof c.preuve === 'object') sortie.preuve = { ...p, ...(p.url !== undefined ? { url: capUrl(p.url) } : {}), detail: sur(p.detail) }
+  if (c?.preuve && typeof c.preuve === 'object') {
+    const { commande, ...reste } = p
+    const sure = typeof commande === 'string' && commande.length <= MAX_COMMANDE && MOTIF_COMMANDE.test(commande)
+    sortie.preuve = { ...reste, ...(p.url !== undefined ? { url: capUrl(p.url) } : {}), detail: sur(p.detail), ...(sure ? { commande } : {}) }
+  }
   return sortie
 }

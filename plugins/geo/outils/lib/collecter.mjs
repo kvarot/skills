@@ -5,7 +5,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { extraire } from './extraire.mjs'
 import { analyserRobots } from './robots.mjs'
-import { extrait } from './sortie.mjs'
+import { ErreurGeo, extrait } from './sortie.mjs'
 
 const JETON_ROBOTS = 'geo-audit'
 const MAX_URLS_SITEMAP = 50000
@@ -147,7 +147,8 @@ export async function collecterUrl(url, { client, maxPages = 50 } = {}) {
         hoteChange = true
         hote = suite.host; origine = suite.origin
         try { await chargerRobots() } catch (e) { // robots.txt and sitemaps follow the new host
-          if (e?.code === 3) { erreur(cible, e.message); return { vide: true } }
+          // The start page itself lives on a host the user has not agreed to: stop and name it (consent is asked for it).
+          if (e?.code === 3) throw new ErreurGeo(`La page de départ redirige vers ${suite.host}, hôte non autorisé : demandez l'accord de l'utilisateur pour cet hôte, puis ajoutez-le avec « autoriser ${suite.host} » et relancez l'audit.`, 3)
           throw e
         }
       }
@@ -204,34 +205,41 @@ export async function collecterUrl(url, { client, maxPages = 50 } = {}) {
   if (waf && pages.length === 0) {
     return {
       pages: [],
-      site: { racine: origine, robotsTxt, robotsStatut: statutRobots, sitemaps: [], llmsTxt: null, llmsFullTxt: null, waf, urlsConnues: [] },
+      site: { racine: origine, robotsTxt, robotsStatut: statutRobots, sitemaps: [], sitemapsNonVerifies: 0, llmsTxt: null, llmsFullTxt: null, waf, urlsConnues: [] },
       erreurs,
       exploration: { pages: 0, limite_atteinte: false },
     }
   }
 
-  const sitemaps = await collecterSitemaps({ client, origine, hote, robots, permis, refus, erreur })
+  const { sitemaps, nonVerifies: sitemapsNonVerifies } = await collecterSitemaps({ client, origine, hote, robots, permis, refus, erreur })
   const llmsTxt = await presence(client, origine + '/llms.txt', permis, erreur)
   const llmsFullTxt = await presence(client, origine + '/llms-full.txt', permis, erreur)
 
   return {
     pages,
-    site: { racine: origine, robotsTxt, robotsStatut: statutRobots, sitemaps, llmsTxt, llmsFullTxt, waf, urlsConnues: pages.map((p) => p.url) },
+    site: { racine: origine, robotsTxt, robotsStatut: statutRobots, sitemaps, sitemapsNonVerifies, llmsTxt, llmsFullTxt, waf, urlsConnues: pages.map((p) => p.url) },
     erreurs,
     exploration: { pages: pages.length, limite_atteinte: limiteAtteinte },
   }
 }
 
 // Presence and status only: the body is never kept. HTML answers are soft-404s, not an llms file.
+// present: null = unknown (refused by robots.txt, network failure or server error), never "absent".
 async function presence(client, cible, permis, erreur) {
   if (!permis(cible)) { erreur(cible, 'interdit par robots.txt : présence non vérifiée'); return { present: null, statut: null } }
   const r = await client.demander(cible, { accept: 'text/plain,text/markdown,*/*;q=0.1' })
+  if (r.statut === 0 || r.statut >= 500) {
+    erreur(cible, `${r.statut === 0 ? r.raison ?? 'réponse inutilisable' : 'statut ' + r.statut} : présence non vérifiée`)
+    return { present: null, statut: r.statut || null }
+  }
   const ctype = entete(r.entetes, 'content-type') ?? ''
   const ok = r.statut >= 200 && r.statut < 300 && !/html/i.test(ctype)
   return { present: ok, statut: r.statut, content_type: ctype || null }
 }
 
 // robots.txt `Sitemap:` lines (same host only), else /sitemap.xml; indexes followed to MAX_NIVEAU_SITEMAP levels.
+// Returns { sitemaps, nonVerifies }: nonVerifies counts candidates that could not be asked (refused by robots.txt,
+// or robots.txt inaccessible), so "no sitemap" is never concluded from sitemaps that were never read.
 async function collecterSitemaps({ client, origine, hote, robots, permis, refus, erreur }) {
   const declares = []
   for (const s of robots?.sitemaps ?? []) {
@@ -243,12 +251,12 @@ async function collecterSitemaps({ client, origine, hote, robots, permis, refus,
   const aLire = [...new Set(declares.length ? declares : [origine + '/sitemap.xml'])].map((u) => ({ url: u, niveau: 0 }))
   const sortie = []
   const vus = new Set(aLire.map((s) => s.url))
-  let total = 0, tete = 0
+  let total = 0, tete = 0, nonVerifies = 0
   while (tete < aLire.length) {
     const { url: u, niveau } = aLire[tete++]
     if (sortie.length >= MAX_SITEMAPS) { erreur(u, `plus de ${MAX_SITEMAPS} sitemaps : lecture arrêtée`); break }
     if (/\.gz$/i.test(new URL(u).pathname)) { erreur(u, 'sitemap compressé (.gz) : non pris en charge'); continue }
-    if (!permis(u)) { refus(u); continue }
+    if (!permis(u)) { refus(u); nonVerifies++; continue }
     const r = await client.demander(u, { accept: 'application/xml,text/xml,text/plain,*/*;q=0.1' })
     if (r.statut === 0) { erreur(u, r.raison ?? 'réponse inutilisable'); continue }
     if (r.statut < 200 || r.statut >= 300) {
@@ -275,7 +283,7 @@ async function collecterSitemaps({ client, origine, hote, robots, permis, refus,
     }
     sortie.push(entree)
   }
-  return sortie
+  return { sitemaps: sortie, nonVerifies }
 }
 
 // --- local folder -------------------------------------------------------------
@@ -293,14 +301,16 @@ function listerHtml(racine, dir = racine, sortie = []) {
 const lireOuNull = (f) => (existsSync(f) && statSync(f).isFile() ? readFileSync(f, 'utf8') : null)
 
 // Static site folder (.html files); `profondeur` is the path depth since there is no crawl.
-export function collecterDossier(dir) {
+// maxPages keeps the shallowest pages first (then URL order) and sets limite_atteinte when files were left out.
+export function collecterDossier(dir, { maxPages = Infinity } = {}) {
   if (!existsSync(dir) || !statSync(dir).isDirectory()) throw new Error('Dossier introuvable : ' + dir)
-  const pages = listerHtml(dir).map((f) => {
+  const toutes = listerHtml(dir).map((f) => {
     const rel = path.relative(dir, f).split(path.sep).join('/')
     const url = '/' + rel.replace(/(^|\/)index\.html$/i, '$1')
     const faits = extraire(readFileSync(f, 'utf8'), url)
     return {
       ...faits,
+      fichier: rel,
       statut: 200,
       entetes: { x_robots_tag: null, content_type: null, last_modified: null },
       profondeur: url.split('/').filter(Boolean).length,
@@ -308,6 +318,7 @@ export function collecterDossier(dir) {
       empreinte_texte: empreinte(faits.blocs),
     }
   }).sort((a, b) => (a.profondeur - b.profondeur) || (a.url < b.url ? -1 : a.url > b.url ? 1 : 0))
+  const pages = toutes.slice(0, maxPages)
   const presenceFichier = (n) => ({ present: existsSync(path.join(dir, n)), statut: null })
   return {
     pages,
@@ -322,6 +333,6 @@ export function collecterDossier(dir) {
       urlsConnues: pages.map((p) => p.url),
     },
     erreurs: [],
-    exploration: { pages: pages.length, limite_atteinte: false },
+    exploration: { pages: pages.length, limite_atteinte: toutes.length > pages.length },
   }
 }

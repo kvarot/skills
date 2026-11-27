@@ -290,14 +290,54 @@ test('la page de départ peut changer d\'hôte une fois : cet hôte devient celu
   assert.equal(c.site.racine, cible.base)
 })
 
-test('départ redirigé vers un hôte non autorisé : pas d\'exception, rien collecté', async () => {
+test('départ redirigé vers un hôte non autorisé : ErreurGeo code 3 nommant l’hôte, rien demandé à cet hôte', async () => {
   const s = await site({
     '/': (_q, res) => { res.writeHead(302, { location: 'http://hors-liste.example/' }); res.end() },
   })
+  await assert.rejects(collecterUrl(s.base + '/', { client: client() }), (e) => e.code === 3 && /hors-liste\.example/.test(e.message) && /accord/.test(e.message))
+})
+
+test('robots.txt 5xx : sitemaps et llms.txt non vérifiés, jamais demandés', async () => {
+  const s = await site({ '/': html('Accueil'), '/robots.txt': texte('boom', 503), '/sitemap.xml': xmlAvec(() => '<urlset/>'), '/llms.txt': texte('x') })
   const c = await collecterUrl(s.base + '/', { client: client() })
-  assert.deepEqual(c.pages, [])
-  assert.ok(c.erreurs.some((e) => /hors-liste\.example/.test(e.raison)))
-  assert.equal(c.site.racine, s.base, 'crawl stays bound to the original host')
+  assert.equal(c.site.robotsStatut, 503)
+  assert.deepEqual(c.site.sitemaps, [])
+  assert.equal(c.site.sitemapsNonVerifies, 1)
+  assert.equal(c.site.llmsTxt.present, null)
+  assert.equal(compteur.get(s.base + '/sitemap.xml'), undefined)
+  assert.equal(compteur.get(s.base + '/llms.txt'), undefined)
+})
+
+test('Disallow: / avec Sitemap: déclaré : le sitemap n’est pas lu et compte comme non vérifié', async () => {
+  const s = await site({ '/': html('Accueil'), '/robots.txt': (_q, res, b) => texte(`User-agent: *\nDisallow: /\nSitemap: ${b}/plan.xml\n`)(_q, res), '/plan.xml': xmlAvec(() => '<urlset/>') })
+  const c = await collecterUrl(s.base + '/', { client: client() })
+  assert.equal(c.pages.length, 0)
+  assert.equal(c.site.sitemapsNonVerifies, 1)
+  assert.equal(compteur.get(s.base + '/plan.xml'), undefined)
+})
+
+test('llms.txt : connexion coupée ou 5xx → présence inconnue (null), pas « absent »', async () => {
+  const a = await site({ '/': html('Accueil'), '/llms.txt': (req) => req.socket.destroy(), '/llms-full.txt': texte('boom', 502) })
+  const c = await collecterUrl(a.base + '/', { client: client() })
+  assert.equal(c.site.llmsTxt.present, null)
+  assert.equal(c.site.llmsFullTxt.present, null)
+  assert.ok(c.erreurs.some((e) => e.url === a.base + '/llms.txt' && /non vérifiée/.test(e.raison)))
+})
+
+test('collecterDossier : --max-pages respecté, pages les moins profondes d’abord', () => {
+  const d = mkdtempSync(path.join(tmpdir(), 'geo-dossier-max-'))
+  try {
+    for (const f of ['index.html', 'a.html', 'b.html', 'c.html']) writeFileSync(path.join(d, f), `<title>${f}</title>`)
+    mkdirSync(path.join(d, 'sous'))
+    writeFileSync(path.join(d, 'sous', 'z.html'), '<title>z</title>')
+    const c = collecterDossier(d, { maxPages: 2 })
+    assert.equal(c.pages.length, 2)
+    assert.equal(c.exploration.limite_atteinte, true)
+    assert.equal(c.pages[0].url, '/')
+    assert.equal(c.pages[0].fichier, 'index.html')
+    assert.equal(collecterDossier(d).exploration.limite_atteinte, false)
+    assert.equal(collecterDossier(d).pages.length, 5)
+  } finally { rmSync(d, { recursive: true, force: true }) }
 })
 
 test('boucle de redirections, plafond de 10 sauts, Location relative', async () => {

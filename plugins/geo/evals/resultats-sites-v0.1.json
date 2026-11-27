@@ -60,7 +60,6 @@
       "rappel": 1,
       "tolere": [
         "GEO-CONTENU-AUCUNE-DEFINITION",
-        "GEO-CONTENU-AUTEUR-ABSENT",
         "GEO-CONTENU-SANS-SOURCE",
         "GEO-DESC-ABSENT",
         "GEO-LLMSTXT",
@@ -68,7 +67,6 @@
       ],
       "trouves": [
         "GEO-CONTENU-AUCUNE-DEFINITION",
-        "GEO-CONTENU-AUTEUR-ABSENT",
         "GEO-CONTENU-SANS-SOURCE",
         "GEO-DESC-ABSENT",
         "GEO-LLMSTXT",

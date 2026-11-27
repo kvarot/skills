@@ -255,7 +255,12 @@ test('robots-ia : GEO-LLMSTXT présence et absence, phrase fixe, aucune recomman
     assert.doesNotMatch(c.detail, /ajout|créez|recommand|améliore/i)
     assert.deepEqual(ids(cs), ['GEO-LLMSTXT'])
   }
-  assert.ok(!ids(ctl(collecte({ site: { llmsTxt: { present: null, statut: null } } }))).includes('GEO-LLMSTXT'))
+  // present: null (refused, network failure, server error) = unknown: said as « non vérifié », never « absent ».
+  const inconnu = trouver(ctl(collecte({ site: { llmsTxt: { present: null, statut: null } } })), 'GEO-LLMSTXT')
+  assert.ok(inconnu)
+  assert.match(inconnu.detail, /non vérifié/)
+  assert.doesNotMatch(inconnu.detail, /absent/)
+  assert.ok(!ids(ctl(collecte({ site: { llmsTxt: null } }))).includes('GEO-LLMSTXT'))
 })
 
 test('robots-ia : GEO-CONTENT-SIGNAL (valeur brute en extrait)', () => {
@@ -475,4 +480,49 @@ test('rendu : une page courte en noindex n’est pas un HTML vide', () => {
     page('/a', { corpsVide: true, mots: 6, liens: LIEN_ACCUEIL }),
   ] }))
   assert.ok(ids(indexee).includes('GEO-HTML-VIDE'))
+})
+
+// --- final review ---
+test('I1 : robots.txt 5xx ou sans réponse : GEO-ROBOTSTXT-INACCESSIBLE bloquant, pas de faux GEO-SITEMAP-ABSENT', () => {
+  for (const statut of [503, 500, 0]) {
+    const cs = ctl(collecte({ pages: [], site: { robotsTxt: null, robotsStatut: statut, sitemaps: [], sitemapsNonVerifies: 1, llmsTxt: { present: null, statut: null } } }))
+    const c = attendu(cs, 'GEO-ROBOTSTXT-INACCESSIBLE', { type: 'robots', severite: 'bloquant' })
+    assert.deepEqual(c.pages, [])
+    assert.match(c.preuve.detail, /RFC 9309/)
+    assert.equal(c.preuve.commande, `curl -sI '${O}/robots.txt'`)
+    assert.ok(!ids(cs).includes('GEO-SITEMAP-ABSENT'), `statut ${statut}`)
+    assert.match(trouver(cs, 'GEO-LLMSTXT').detail, /non vérifié/)
+  }
+  // 404 = no restriction, 200 = rules read: never inaccessible.
+  for (const statut of [404, 200]) assert.ok(!ids(ctl(collecte({ site: { robotsStatut: statut } }))).includes('GEO-ROBOTSTXT-INACCESSIBLE'))
+  // Folder mode: no HTTP status, never inaccessible.
+  assert.ok(!ids(ctl({ pages: [], site: { racine: null, robotsStatut: 0 } })).includes('GEO-ROBOTSTXT-INACCESSIBLE'))
+})
+
+test('I1 : Disallow: / avec un Sitemap: déclaré mais non lu : BLOQUE-TOUT, pas de GEO-SITEMAP-ABSENT', () => {
+  const cs = ctl(collecte({ pages: [], site: { robotsTxt: 'User-agent: *\nDisallow: /\nSitemap: /plan.xml\n', robotsStatut: 200, sitemaps: [], sitemapsNonVerifies: 1 } }))
+  assert.ok(ids(cs).includes('GEO-ROBOTSTXT-BLOQUE-TOUT'))
+  assert.ok(!ids(cs).includes('GEO-SITEMAP-ABSENT'))
+  // Sitemaps really absent (asked, not found): still reported.
+  assert.ok(ids(ctl(collecte({ site: { sitemaps: [], sitemapsNonVerifies: 0 } }))).includes('GEO-SITEMAP-ABSENT'))
+})
+
+test('preuve.commande : curl -sI rejouable, URL de page encodée, detail sans commande', () => {
+  const url = `${O}/a'b$(id)` + '`x`'
+  const cs = ctl(collecte({ pages: [page('/', { profondeur: 0 })], erreurs: [{ url, raison: 'statut 404' }] }))
+  const c = trouver(cs, 'GEO-HTTP-ERREUR')
+  assert.equal(c.preuve.commande, `curl -sI '${O}/a%27b$(id)%60x%60'`)
+  assert.doesNotMatch(c.preuve.detail, /curl/)
+  const waf = trouver(ctl(collecte({ site: { waf: { detecte: true, preuve: { url: O + '/', statut: 403, detail: 'cf' } } } })), 'GEO-WAF-DEFI')
+  assert.equal(waf.preuve.commande, `curl -sI '${O}/'`)
+})
+
+test('M5 : mode dossier : aucune commande sans origine, la preuve nomme le fichier', () => {
+  const p1 = page('/', { profondeur: 0, robots: 'noindex', fichier: 'index.html' })
+  p1.url = '/'
+  const cs = controler({ pages: [p1], site: { racine: null, robotsTxt: null, sitemaps: [], llmsTxt: { present: false, statut: null } }, erreurs: [] }, registre)
+  for (const c of cs) assert.equal(c.preuve.commande, undefined, c.id)
+  assert.match(trouver(cs, 'GEO-NOINDEX').preuve.detail, /mode dossier : fichier index\.html/)
+  assert.match(trouver(cs, 'GEO-LLMSTXT').preuve.detail, /mode dossier : fichier llms\.txt/)
+  assert.ok(!JSON.stringify(cs).includes('curl'))
 })

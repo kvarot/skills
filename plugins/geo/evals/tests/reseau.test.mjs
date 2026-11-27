@@ -282,3 +282,23 @@ test('suivre: false ne sert pas un cache dont l\'URL finale diffère', async () 
     assert.equal(r.depuisCache, false)
   } finally { s.closeAllConnections?.(); s.close(); rmSync(d, { recursive: true, force: true }) }
 })
+
+test('estAdresseInterdite : NAT64 local, site-local, Teredo et IPv4 traduite refusés', () => {
+  for (const ip of ['64:ff9b:1::1', '64:ff9b:1:abcd::5db8:d822', 'fec0::1', 'feff::1', '2001::1', '2001:0:4136:e378:8000:63bf:3fff:fdd2', '::ffff:0:7f00:1', '::ffff:0:5db8:d822'])
+    assert.equal(estAdresseInterdite(ip), true, ip)
+  // Neighbours stay allowed: well-known NAT64 of a public IPv4, global unicast outside 2001::/32, IPv4-mapped public.
+  for (const ip of ['64:ff9b::5db8:d822', '2001:4860:4860::8888', '2a00:1450::1', '::ffff:93.184.216.34'])
+    assert.equal(estAdresseInterdite(ip), false, ip)
+})
+
+test('cache en mémoire (Map) : servi dans le même client, jamais écrit sur disque, nouveau client = nouvelle lecture', async () => {
+  const memoire = new Map()
+  const c = client({ cache: memoire })
+  const avant = traces.length
+  assert.equal((await c.demander(base + '/ok?memoire')).depuisCache, false)
+  assert.equal((await c.demander(base + '/ok?memoire')).depuisCache, true)
+  assert.equal(traces.length - avant, 1)
+  assert.equal(memoire.size, 1)
+  assert.equal((await client({ cache: new Map() }).demander(base + '/ok?memoire')).depuisCache, false)
+  assert.equal(traces.length - avant, 2)
+})

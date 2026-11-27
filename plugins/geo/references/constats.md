@@ -4,7 +4,7 @@ Ce fichier documente chaque identifiant de constat du plugin. Il est la contrepa
 
 Format (à respecter pour tout nouvel identifiant) : un titre `### GEO-XXX`, puis une ligne `**Gravité** : <bloquant|important|mineur|information>`, puis description, preuve attendue, correction type et, quand il en existe une, la source officielle (seulement celles du benchmark, sections 2.1 à 2.6).
 
-Chaque constat porte une preuve `{ type, url, detail }` reproductible. Les extraits de pages sont limités, échappés et marqués `non_fiable`.
+Chaque constat porte une preuve `{ type, url, detail }` reproductible. Quand une commande permet de rejouer la vérification sur un site en ligne, elle est dans un champ séparé `preuve.commande` : texte écrit par l'outil (jamais du texte de page), de la forme `curl -sI '<url>'`, 512 caractères au plus, les parties issues de la page (URL, nom recherché) encodées en pourcentage ; le rapport Markdown l'affiche dans un bloc de code, à copier telle quelle. `detail` reste un extrait. En mode dossier, aucune commande n'est écrite : la preuve indique « mode dossier : fichier <chemin> ». Les extraits de pages sont limités, échappés et marqués `non_fiable`.
 
 ## indexation
 
@@ -14,7 +14,7 @@ Chaque constat porte une preuve `{ type, url, detail }` reproductible. Les extra
 
 - Catégorie : indexation ; classe : deterministe
 - Description : Page exclue de l’index par une directive noindex (balise meta robots ou en-tête X-Robots-Tag). Portée : page de départ et pages listées dans le sitemap ; les autres pages en noindex relèvent du choix du propriétaire et ne sont pas signalées.
-- Preuve attendue : http ou html : valeur de `x-robots-tag` (`curl -sI <url>`) ou balise `<meta name="robots">`.
+- Preuve attendue : http ou html : valeur de `x-robots-tag` (`preuve.commande` : `curl -sI '<url>'`) ou balise `<meta name="robots">` ; en mode dossier, le fichier à ouvrir.
 - Correction type : Retirer `noindex` des pages qui doivent apparaître dans la recherche ; le conserver seulement sur les pages volontairement privées.
 - Source officielle : https://developers.google.com/search/docs/appearance/ai-features
 
@@ -28,12 +28,22 @@ Chaque constat porte une preuve `{ type, url, detail }` reproductible. Les extra
 - Correction type : Supprimer ou restreindre la règle `Disallow: /` (par exemple limiter à `/admin/`), sauf si le site est volontairement fermé.
 - Source officielle : aucune dans le dossier de référence
 
+### GEO-ROBOTSTXT-INACCESSIBLE
+
+**Gravité** : bloquant
+
+- Catégorie : indexation ; classe : deterministe
+- Description : robots.txt répond par une erreur serveur (5xx) ou ne répond pas (erreur réseau, délai) : selon RFC 9309, tout le site est alors considéré interdit, et l’audit n’a lu aucune page.
+- Preuve attendue : robots : statut de `/robots.txt` (5xx, ou 0 pour une absence de réponse) ; `preuve.commande` : `curl -sI '<origine>/robots.txt'`. Même cause, dans les scores, que GEO-ROBOTSTXT-BLOQUE-TOUT (critères `robots-txt-ouvert` et `recherche-non-bloquee`). Les sitemaps et `/llms.txt` ne sont alors pas lus : GEO-SITEMAP-ABSENT n'est pas émis et GEO-LLMSTXT dit « non vérifié ».
+- Correction type : Faire répondre `/robots.txt` en 200 (fichier, même vide) ou en 404 s'il n'y a rien à interdire ; une erreur 5xx durable ferme le site aux robots qui suivent la norme.
+- Source officielle : aucune dans le dossier de référence (la règle vient de RFC 9309)
+
 ### GEO-SITEMAP-ABSENT
 
 **Gravité** : important
 
 - Catégorie : indexation ; classe : deterministe
-- Description : Aucun sitemap trouvé (ni déclaré dans robots.txt, ni à /sitemap.xml).
+- Description : Aucun sitemap trouvé (ni déclaré dans robots.txt, ni à /sitemap.xml). Non signalé quand les sitemaps n’ont pas pu être lus (interdits par robots.txt ou robots.txt inaccessible) : leur absence n'est alors pas établie, et le critère `sitemap-present` n'est pas calculé.
 - Preuve attendue : sitemap : aucune ligne `Sitemap:` dans robots.txt et pas de fichier à `/sitemap.xml`.
 - Correction type : Publier un sitemap XML des pages indexables et le déclarer dans robots.txt.
 - Source officielle : aucune dans le dossier de référence
@@ -74,7 +84,7 @@ Chaque constat porte une preuve `{ type, url, detail }` reproductible. Les extra
 
 - Catégorie : indexation ; classe : deterministe
 - Description : URL du site répondant par une erreur HTTP 4xx ou 5xx.
-- Preuve attendue : http : statut 4xx ou 5xx (`curl -sI <url>`).
+- Preuve attendue : http : statut 4xx ou 5xx (`preuve.commande` : `curl -sI '<url>'`).
 - Correction type : Réparer la page, rediriger vers un équivalent ou retirer les liens qui y mènent.
 - Source officielle : aucune dans le dossier de référence
 
@@ -84,7 +94,7 @@ Chaque constat porte une preuve `{ type, url, detail }` reproductible. Les extra
 
 - Catégorie : indexation ; classe : deterministe
 - Description : Chaîne de plus de 2 redirections avant la page finale.
-- Preuve attendue : http : chaîne de plus de 2 redirections (`curl -sIL <url>`).
+- Preuve attendue : http : chaîne de plus de 2 redirections (`preuve.commande` : `curl -sIL '<url>'`).
 - Correction type : Rediriger directement vers l’URL finale en un seul saut.
 - Source officielle : aucune dans le dossier de référence
 
@@ -175,7 +185,7 @@ Chaque constat porte une preuve `{ type, url, detail }` reproductible. Les extra
 **Gravité** : information
 
 - Catégorie : robots-ia ; classe : deterministe
-- Description : Présence ou absence de /llms.txt (information seulement, poids nul dans tout score).
+- Description : Présence ou absence de /llms.txt, ou « non vérifié » quand la requête a échoué (erreur réseau, 5xx) ou était interdite par robots.txt (information seulement, poids nul dans tout score).
 - Preuve attendue : http : statut de `/llms.txt`. Constat d’information, poids nul dans tout score : sans effet démontré sur la visibilité ; Google déclare ne pas l’utiliser.
 - Correction type : Aucune correction attendue ; ne pas présenter ce fichier comme un levier de visibilité.
 - Source officielle : https://developers.google.com/search/docs/fundamentals/ai-optimization-guide
@@ -365,7 +375,7 @@ Chaque constat porte une preuve `{ type, url, detail }` reproductible. Les extra
 **Gravité** : mineur
 
 - Catégorie : contenu ; classe : heuristique
-- Description : Aucun auteur déclaré (meta author, lien rel="author" ou JSON-LD) sur une page dont au moins un passage a été analysé.
+- Description : Aucun auteur déclaré (meta author, lien rel="author" ou JSON-LD) sur une page d’article ou de documentation (même règle de page que GEO-DATE-ABSENTE : JSON-LD Article / BlogPosting, ou chemin de type `/blog/…`, `/docs/…`, `/guide/…`) dont au moins un passage a été analysé. Les pages d’accueil, de contact ou de tarifs ne sont pas concernées.
 - Preuve attendue : html : absence de meta author, de lien rel="author" et d’auteur JSON-LD.
 - Correction type : Afficher et baliser l’auteur réel quand la page est signée ; ne pas en inventer.
 - Source officielle : aucune dans le dossier de référence
@@ -439,7 +449,7 @@ Ces constats sont produits par `outils/lib/entites.mjs`. Les valeurs relevées v
 **Gravité** : information
 
 - Catégorie : entite ; classe : deterministe
-- Description : Plusieurs entrées Wikidata portent le même libellé que l’entité. Vérification optionnelle (`wikidata: true`), seulement si `www.wikidata.org` est un hôte autorisé ; sinon le statut reste `non_verifie`.
-- Preuve attendue : http : requête `wbsearchentities` et identifiants Q retournés.
+- Description : Plusieurs entrées Wikidata portent le même libellé que l’entité, et aucune (ou plusieurs) ne déclare l’hôte audité comme site officiel (propriété P856). Vérification optionnelle (`--wikidata`), seulement si `www.wikidata.org` est un hôte autorisé ; sinon le statut reste `non_verifie`. Statuts possibles : `non_verifie`, `absent`, `libelle_identique` (une entrée de même libellé dont le site officiel n'est pas l'hôte audité : « libellé identique trouvé, identité non vérifiée », non crédité), `ambigu`, `trouve` (une entrée dont le site officiel P856 est sur l'hôte audité, seul cas crédité).
+- Preuve attendue : http : requête `wbsearchentities` (`preuve.commande` : `curl -s '<url>'`), identifiants Q retournés, puis requête `wbgetentities&props=claims` pour lire le site officiel P856 de chaque candidat.
 - Correction type : Aucune action automatique : le propriétaire vérifie quelle entrée le désigne, si elle existe (vérification manuelle).
 - Source officielle : aucune dans le dossier de référence
