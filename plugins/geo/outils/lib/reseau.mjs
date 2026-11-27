@@ -246,7 +246,8 @@ ${autoriserLocal ? 'local' : ''}`).digest('hex') + '.json') : null
       if (premier) { // cache is read only after the host and address checks passed
         premier = false
         const mis = lireCache(demande, accept)
-        if (mis) return mis
+        // With suivre:false only an entry for exactly this URL (no redirection behind it) may be served.
+        if (mis && (suivre || (mis.url === demande && !mis.redirections?.length))) return mis
       }
       await attendre(nomHote(courante))
       let r

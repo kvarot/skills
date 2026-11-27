@@ -91,8 +91,8 @@ export async function collecterUrl(url, { client, maxPages = 50 } = {}) {
   // robots.txt (RFC 9309): 4xx = allow all; 5xx or network failure = disallow all for us.
   let robots = null, robotsTxt = null, toutInterdit = false, statutRobots = null
   async function chargerRobots() {
+    const rr = await client.demander(origine + '/robots.txt', { accept: 'text/plain,*/*;q=0.1' }) // may throw ErreurGeo 3 before any state change
     robots = null; robotsTxt = null; toutInterdit = false
-    const rr = await client.demander(origine + '/robots.txt', { accept: 'text/plain,*/*;q=0.1' })
     statutRobots = rr.statut
     if (rr.statut >= 200 && rr.statut < 300 && typeof rr.corps === 'string') { robotsTxt = rr.corps; robots = analyserRobots(rr.corps) }
     else if (rr.statut === 0 || rr.statut >= 500) { toutInterdit = true; erreur(origine + '/robots.txt', `robots.txt inaccessible (${rr.statut === 0 ? rr.raison : 'statut ' + rr.statut}) : exploration interdite par précaution (RFC 9309)`) }
@@ -116,6 +116,13 @@ export async function collecterUrl(url, { client, maxPages = 50 } = {}) {
   // BEFORE it is requested. Only the start URL may change host (once); its final host becomes the crawl host.
   // Returns { rep, redirections } or { vide: true } when nothing is left to collect (errors already listed).
   async function recuperer(cible, premier) {
+    const avant = { hote, origine, robots, robotsTxt, toutInterdit, statutRobots }
+    const r = await recupererSauts(cible, premier)
+    // A failed start hop must not leave the crawl bound to the host it was redirected to.
+    if (r.vide && hote !== avant.hote) ({ hote, origine, robots, robotsTxt, toutInterdit, statutRobots } = avant)
+    return r
+  }
+  async function recupererSauts(cible, premier) {
     const redirections = []
     const chaine = new Set([cible])
     let courante = cible
@@ -138,7 +145,10 @@ export async function collecterUrl(url, { client, maxPages = 50 } = {}) {
         if (!(premier && !hoteChange)) { erreur(cible, `redirection vers un autre hôte (${suite.host}) : non collecté`); return { vide: true } }
         hoteChange = true
         hote = suite.host; origine = suite.origin
-        await chargerRobots() // robots.txt and sitemaps follow the new host
+        try { await chargerRobots() } catch (e) { // robots.txt and sitemaps follow the new host
+          if (e?.code === 3) { erreur(cible, e.message); return { vide: true } }
+          throw e
+        }
       }
       if (chaine.has(cle)) { erreur(cible, 'boucle de redirections'); return { vide: true } }
       if (!permis(cle)) { refus(cle); return { vide: true } }

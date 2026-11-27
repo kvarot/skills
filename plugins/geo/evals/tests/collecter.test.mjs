@@ -289,3 +289,32 @@ test('la page de départ peut changer d\'hôte une fois : cet hôte devient celu
   assert.deepEqual(chemins(c).sort(), ['/', '/b'])
   assert.equal(c.site.racine, cible.base)
 })
+
+test('départ redirigé vers un hôte non autorisé : pas d\'exception, rien collecté', async () => {
+  const s = await site({
+    '/': (_q, res) => { res.writeHead(302, { location: 'http://hors-liste.example/' }); res.end() },
+  })
+  const c = await collecterUrl(s.base + '/', { client: client() })
+  assert.deepEqual(c.pages, [])
+  assert.ok(c.erreurs.some((e) => /hors-liste\.example/.test(e.raison)))
+  assert.equal(c.site.racine, s.base, 'crawl stays bound to the original host')
+})
+
+test('boucle de redirections, plafond de 10 sauts, Location relative', async () => {
+  const saut = (vers) => (_q, res) => { res.writeHead(302, { location: vers }); res.end() }
+  const routes = {
+    '/': html('Accueil', ['/l1', '/h0', '/g0', '/rel/a']),
+    '/l1': saut('/l2'), '/l2': saut('/l1'),
+    '/h10': html('H10'),
+    '/rel/a': saut('../final-rel'), '/final-rel': html('Final'),
+  }
+  for (let i = 0; i < 10; i++) routes['/h' + i] = saut('/h' + (i + 1))
+  for (let i = 0; i < 11; i++) routes['/g' + i] = saut('/g' + (i + 1))
+  routes['/g11'] = html('G11')
+  const s = await site(routes)
+  const c = await collecterUrl(s.base + '/', { client: client() })
+  assert.deepEqual(chemins(c).sort(), ['/', '/final-rel', '/h10'])
+  assert.equal(c.pages.find((p) => p.url.endsWith('/h10')).redirections.length, 10)
+  assert.ok(c.erreurs.some((e) => e.url === s.base + '/l1' && /boucle/.test(e.raison)))
+  assert.ok(c.erreurs.some((e) => e.url === s.base + '/g0' && /trop de redirections/.test(e.raison)))
+})

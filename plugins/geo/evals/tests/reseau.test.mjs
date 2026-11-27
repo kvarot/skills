@@ -266,3 +266,19 @@ test('suivre: false renvoie la 3xx sans la suivre', async () => {
     await assert.rejects(creerClient({ hotes: new Set(['autre.example']), delaiMs: 0 }).demander(u + '/a', { suivre: false }), { code: 3 })
   } finally { s.closeAllConnections?.(); s.close() }
 })
+
+test('suivre: false ne sert pas un cache dont l\'URL finale diffère', async () => {
+  const s = http.createServer((req, res) => {
+    if (req.url === '/r') { res.writeHead(302, { location: '/final' }); res.end() } else { res.writeHead(200, { 'content-type': 'text/html' }); res.end('fin') }
+  })
+  await new Promise((r) => s.listen(0, '127.0.0.1', r))
+  const d = mkdtempSync(path.join(tmpdir(), 'geo-cache-'))
+  try {
+    const u = `http://127.0.0.1:${s.address().port}`
+    const c = creerClient({ hotes: new Set(['127.0.0.1']), autoriserLocal: true, delaiMs: 0, cache: d })
+    assert.equal((await c.demander(u + '/r')).statut, 200)
+    const r = await c.demander(u + '/r', { suivre: false })
+    assert.equal(r.statut, 302)
+    assert.equal(r.depuisCache, false)
+  } finally { s.closeAllConnections?.(); s.close(); rmSync(d, { recursive: true, force: true }) }
+})
