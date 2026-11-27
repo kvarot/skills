@@ -78,6 +78,46 @@ function detecterWaf(rep) {
   return detail ? { url: rep.url, statut: rep.statut, detail } : null
 }
 
+// --- robots.txt ---------------------------------------------------------------
+
+const MAX_SAUTS_ROBOTS = 5 // RFC 9309 §2.3.1.2: follow at least five consecutive redirects
+
+// Fetches <origine>/robots.txt following redirects by hand (RFC 9309 §2.3.1.2), each hop allowlist- and SSRF-checked
+// by the client. A hop to a host that is not allowlisted is never requested: ErreurGeo code 3 naming that host
+// (`hoteRedirection` set), so the user can be asked for consent, exactly like a start page redirected elsewhere.
+// More than five hops, a loop or an unusable Location: robots.txt is "unavailable" (§2.3.1.2), i.e. the last 3xx
+// answer is returned as is (no body: treated like a 4xx, no restriction). Network failures keep statut 0.
+// Returns the client's answer for the final hop, plus `redirections` (the URLs followed).
+export async function lireRobotsTxt(client, origine) {
+  const debut = origine + '/robots.txt'
+  const hoteDebut = new URL(debut).host
+  const redirections = []
+  const chaine = new Set([debut])
+  let courante = debut
+  for (;;) {
+    let rr
+    try { rr = await client.demander(courante, { accept: 'text/plain,*/*;q=0.1', suivre: false }) } catch (e) {
+      if (e?.code === 3 && redirections.length) {
+        const h = new URL(courante).host
+        throw Object.assign(new ErreurGeo(`Le robots.txt de ${hoteDebut} redirige vers ${h}, hôte non autorisé : demandez l'accord de l'utilisateur pour cet hôte, puis ajoutez-le avec « autoriser ${new URL(courante).hostname} » et relancez.`, 3), { hoteRedirection: h })
+      }
+      throw e
+    }
+    const lieu = rr.statut >= 300 && rr.statut < 400 ? rr.entetes?.location : null
+    if (!lieu) return { ...rr, redirections }
+    const indisponible = (raison) => ({ ...rr, corps: null, redirections, raison: `robots.txt : ${raison} : considéré indisponible (RFC 9309), aucune restriction`, indisponible: true })
+    if (redirections.length >= MAX_SAUTS_ROBOTS) return indisponible(`plus de ${MAX_SAUTS_ROBOTS} redirections`)
+    let suite
+    try { suite = new URL(lieu, courante) } catch { return indisponible('redirection invalide') }
+    suite.hash = ''
+    if (!/^https?:$/.test(suite.protocol)) return indisponible(`redirection vers un protocole non pris en charge (${suite.protocol})`)
+    if (chaine.has(suite.href)) return indisponible('boucle de redirections')
+    chaine.add(suite.href)
+    redirections.push(suite.href)
+    courante = suite.href
+  }
+}
+
 // --- live site ----------------------------------------------------------------
 
 // Collecte = { pages, site, erreurs, exploration }. Never throws except ErreurGeo (code 3) from the client
@@ -92,11 +132,12 @@ export async function collecterUrl(url, { client, maxPages = 50 } = {}) {
   // robots.txt (RFC 9309): 4xx = allow all; 5xx or network failure = disallow all for us.
   let robots = null, robotsTxt = null, toutInterdit = false, statutRobots = null
   async function chargerRobots() {
-    const rr = await client.demander(origine + '/robots.txt', { accept: 'text/plain,*/*;q=0.1' }) // may throw ErreurGeo 3 before any state change
+    const rr = await lireRobotsTxt(client, origine) // may throw ErreurGeo 3 before any state change
     robots = null; robotsTxt = null; toutInterdit = false
     statutRobots = rr.statut
     if (rr.statut >= 200 && rr.statut < 300 && typeof rr.corps === 'string') { robotsTxt = rr.corps; robots = analyserRobots(rr.corps) }
     else if (rr.statut === 0 || rr.statut >= 500) { toutInterdit = true; erreur(origine + '/robots.txt', `robots.txt inaccessible (${rr.statut === 0 ? rr.raison : 'statut ' + rr.statut}) : exploration interdite par précaution (RFC 9309)`) }
+    else if (rr.indisponible) erreur(origine + '/robots.txt', rr.raison)
   }
   await chargerRobots()
   const permis = (u) => !toutInterdit && (!robots || robots.autorise(JETON_ROBOTS, chemin(u)))
@@ -148,7 +189,8 @@ export async function collecterUrl(url, { client, maxPages = 50 } = {}) {
         hote = suite.host; origine = suite.origin
         try { await chargerRobots() } catch (e) { // robots.txt and sitemaps follow the new host
           // The start page itself lives on a host the user has not agreed to: stop and name it (consent is asked for it).
-          if (e?.code === 3) throw new ErreurGeo(`La page de départ redirige vers ${suite.host}, hôte non autorisé : demandez l'accord de l'utilisateur pour cet hôte, puis ajoutez-le avec « autoriser ${suite.host} » et relancez l'audit.`, 3)
+          // (A robots.txt of an allowed host redirected to a non-allowed one already names that host: kept as is.)
+          if (e?.code === 3 && !e.hoteRedirection) throw new ErreurGeo(`La page de départ redirige vers ${suite.host}, hôte non autorisé : demandez l'accord de l'utilisateur pour cet hôte, puis ajoutez-le avec « autoriser ${suite.host} » et relancez l'audit.`, 3)
           throw e
         }
       }

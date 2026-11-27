@@ -297,6 +297,47 @@ test('départ redirigé vers un hôte non autorisé : ErreurGeo code 3 nommant l
   await assert.rejects(collecterUrl(s.base + '/', { client: client() }), (e) => e.code === 3 && /hors-liste\.example/.test(e.message) && /accord/.test(e.message))
 })
 
+test('robots.txt redirigé vers un hôte non autorisé : ErreurGeo code 3 nommant l’hôte, aucune page demandée', async () => {
+  const s = await site({
+    '/': html('Accueil'),
+    '/robots.txt': (_q, res) => { res.writeHead(301, { location: 'https://www.hors-liste.example/robots.txt' }); res.end() },
+  })
+  await assert.rejects(collecterUrl(s.base + '/', { client: client() }),
+    (e) => e.code === 3 && /www\.hors-liste\.example/.test(e.message) && /accord/.test(e.message) && !/inaccessible/.test(e.message))
+  assert.equal(compteur.get(s.base + '/'), undefined)
+})
+
+test('robots.txt redirigé vers un hôte autorisé : redirection suivie, règles appliquées au site audité', async () => {
+  const cible = await site({ '/robots.txt': texte('User-agent: *\nDisallow: /prive\n') })
+  const s = await site({
+    '/': html('Accueil', ['/prive', '/public']),
+    '/public': html('Public'),
+    '/prive': html('Privé'),
+    '/robots.txt': (_q, res) => { res.writeHead(301, { location: cible.base + '/robots.txt' }); res.end() },
+  })
+  const c = await collecterUrl(s.base + '/', { client: client() })
+  assert.equal(c.site.robotsStatut, 200)
+  assert.match(c.site.robotsTxt, /Disallow: \/prive/)
+  assert.deepEqual(chemins(c).sort(), ['/', '/public'])
+  assert.equal(compteur.get(s.base + '/prive'), undefined)
+})
+
+test('robots.txt : plus de 5 redirections ou boucle → indisponible (RFC 9309), pas inaccessible', async () => {
+  const routes = { '/': html('Accueil') }
+  for (let i = 0; i < 7; i++) routes[i ? `/r${i}` : '/robots.txt'] = (_q, res) => { res.writeHead(302, { location: `/r${i + 1}` }); res.end() }
+  const s = await site(routes)
+  const c = await collecterUrl(s.base + '/', { client: client() })
+  assert.equal(c.site.robotsStatut, 302)
+  assert.equal(c.site.robotsTxt, null)
+  assert.deepEqual(chemins(c), ['/'])
+  assert.equal(compteur.get(s.base + '/r6'), undefined, 'cinq sauts au plus')
+  assert.ok(c.erreurs.some((e) => /plus de 5 redirections/.test(e.raison)))
+  const boucle = await site({ '/': html('Accueil'), '/robots.txt': (_q, res) => { res.writeHead(302, { location: '/robots.txt' }); res.end() } })
+  const b = await collecterUrl(boucle.base + '/', { client: client() })
+  assert.deepEqual(chemins(b), ['/'])
+  assert.ok(b.erreurs.some((e) => /boucle/.test(e.raison)))
+})
+
 test('robots.txt 5xx : sitemaps et llms.txt non vérifiés, jamais demandés', async () => {
   const s = await site({ '/': html('Accueil'), '/robots.txt': texte('boom', 503), '/sitemap.xml': xmlAvec(() => '<urlset/>'), '/llms.txt': texte('x') })
   const c = await collecterUrl(s.base + '/', { client: client() })

@@ -32,7 +32,8 @@ Le rôle `autre` regroupe les robots qui ne rentrent pas dans ces catégories (p
 - Règle la plus longue gagne ; à égalité, `Allow` gagne. `*` et `$` sont pris en charge. `Disallow:` vide n'interdit rien. Les lignes avant le premier `User-agent` sont ignorées. Les lignes `Sitemap:` sont globales.
 - Repli : `Applebot` suit les règles de `Googlebot` quand aucun groupe ne le nomme (champ `repli` du registre, `groupe: 'repli'`), avant le groupe `*`.
 - Absence de robots.txt (réponse 4xx) : tout est autorisé (`groupe: 'aucun'`).
-- robots.txt en erreur serveur (5xx) ou sans réponse (erreur réseau, délai) : tout le site est considéré interdit ; l'audit ne lit aucune page, ni sitemap, ni `/llms.txt`, et émet le constat bloquant `GEO-ROBOTSTXT-INACCESSIBLE` (même cause que `GEO-ROBOTSTXT-BLOQUE-TOUT` dans les scores).
+- Redirections de robots.txt (RFC 9309 §2.3.1.2) : suivies saut par saut, cinq au plus, chacune vérifiée par la couche réseau ; les règles obtenues s'appliquent au site audité. Une redirection vers un hôte **non autorisé** n'est jamais suivie : l'audit (et `robots`) s'arrête en code 3 en nommant cet hôte, sans constat ni enregistrement, et le skill demande l'accord pour lui. Plus de cinq redirections, une boucle ou une redirection inutilisable : robots.txt « indisponible », traité comme un 4xx (aucune restriction, raison listée dans `erreurs`).
+- robots.txt en erreur serveur (5xx) ou sans réponse (erreur réseau, délai), et seulement dans ce cas : tout le site est considéré interdit ; l'audit ne lit aucune page, ni sitemap, ni `/llms.txt`, et émet le constat bloquant `GEO-ROBOTSTXT-INACCESSIBLE` (même cause que `GEO-ROBOTSTXT-BLOQUE-TOUT` dans les scores).
 
 ## Sources
 

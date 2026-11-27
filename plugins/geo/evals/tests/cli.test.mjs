@@ -755,6 +755,43 @@ test('M6 : page de départ redirigée vers un hôte non autorisé : code 3 nomma
   })
 })
 
+test('0.1.1 : robots.txt redirigé vers un hôte non autorisé : code 3 nommant cet hôte, aucun constat, rien enregistré', async () => {
+  const home = await homeAutorise()
+  const redirige = { statut: 301, entetes: { location: 'https://www.site.example/robots.txt' } }
+  await serveurVariable({ routes: { '/': { statut: 301, entetes: { location: 'https://www.site.example/' } }, '/robots.txt': redirige } }, async (b) => {
+    for (const cmd of [['auditer', '--url', b, '--autoriser-local'], ['robots', '--url', b, '--autoriser-local']]) {
+      const r = await geo(cmd, home)
+      assert.equal(r.code, 3, cmd[0])
+      assert.equal(r.stdout, '')
+      assert.match(r.stderr, /www\.site\.example/)
+      assert.match(r.stderr, /accord/)
+      assert.doesNotMatch(r.stderr, /inaccessible|GEO-ROBOTSTXT/)
+    }
+  })
+  assert.ok(!fs.existsSync(path.join(home, 'tmp')) || fs.readdirSync(path.join(home, 'tmp')).length === 0, 'aucun audit enregistré')
+  const rapport = await geo(['rapport', '--audit', '1', '--format', 'json'], home)
+  assert.equal(rapport.code, 1)
+  assert.match(rapport.stderr, /Audit introuvable/)
+})
+
+test('0.1.1 : robots.txt redirigé vers un hôte autorisé : suivi, etat present ; un vrai 503 reste GEO-ROBOTSTXT-INACCESSIBLE', async () => {
+  const home = await homeAutorise()
+  await serveurVariable({ routes: { '/robots.txt': { type: 'text/plain', corps: 'User-agent: *\nAllow: /\n' } } }, async (cible) => {
+    await serveurVariable({ routes: { '/': { corps: pageBonne() }, '/robots.txt': { statut: 301, entetes: { location: cible + '/robots.txt' } } } }, async (b) => {
+      const s = json(await geo(['auditer', '--url', b, '--autoriser-local'], home))
+      assert.equal(s.robots_txt.etat, 'present')
+      assert.equal(s.robots_txt.statut, 200)
+      assert.ok(!idsDe(s).includes('GEO-ROBOTSTXT-INACCESSIBLE'))
+      assert.equal(s.exploration.pages, 1)
+    })
+  })
+  await serveurVariable({ routes: { '/': { corps: pageBonne() }, '/robots.txt': { statut: 503, type: 'text/plain', corps: 'boom' } } }, async (b) => {
+    const s = json(await geo(['auditer', '--url', b, '--autoriser-local'], home))
+    assert.ok(idsDe(s).includes('GEO-ROBOTSTXT-INACCESSIBLE'))
+    assert.equal(s.robots_txt.etat, 'inaccessible')
+  })
+})
+
 test('preuve.commande : curl -sI rejouable sur stdout et dans le Markdown (non échappée)', async () => {
   const home = await homeAutorise()
   sites['/liens/'] = pageBonne().replace('</body>', '<a href="/casse?a=1&b=2">x</a></body>')

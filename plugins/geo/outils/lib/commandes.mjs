@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { ErreurGeo, cheminDonnees, ecrireJson, extrait } from './sortie.mjs'
 import { creerClient, hotesAutorises } from './reseau.mjs'
-import { collecterUrl, collecterDossier } from './collecter.mjs'
+import { collecterUrl, collecterDossier, lireRobotsTxt } from './collecter.mjs'
 import { evaluerRobotsIa } from './robots.mjs'
 import { controler } from './controles.mjs'
 import { analyserEntite } from './entites.mjs'
@@ -265,7 +265,7 @@ async function cmdRobots(args) {
   let u
   try { u = new URL(o.url) } catch { throw new ErreurGeo(`URL invalide : ${o.url}`) }
   const { client } = clientReseau(o)
-  const rep = await client.demander(u.origin + '/robots.txt', { accept: 'text/plain,*/*;q=0.1' })
+  const rep = await lireRobotsTxt(client, u.origin) // same redirect rules as auditer (code 3 on a non-allowlisted hop)
   const ok = rep.statut >= 200 && rep.statut < 300 && typeof rep.corps === 'string'
   const reg = registre()
   const lignes = evaluerRobotsIa(ok ? rep.corps : '', ['/'], reg)
