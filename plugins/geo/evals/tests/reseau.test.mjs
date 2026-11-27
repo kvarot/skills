@@ -4,6 +4,7 @@ import http from 'node:http'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { Readable } from 'node:stream'
 import { estAdresseInterdite, hotesAutorises, creerClient } from '../../outils/lib/reseau.mjs'
 
 const traces = []
@@ -34,6 +35,8 @@ await new Promise((r) => serveur.listen(0, '127.0.0.1', r))
 const base = `http://127.0.0.1:${serveur.address().port}`
 const hotes = new Set(['127.0.0.1'])
 const client = (extra = {}) => creerClient({ hotes, autoriserLocal: true, delaiMs: 0, ...extra })
+// Minimal injectable transport answer.
+const rep = (status, entetes = {}, corps = '') => ({ status, headers: new Headers(entetes), body: Readable.from(corps ? [Buffer.from(corps)] : []), cancel() {} })
 const publique = async () => [{ address: '93.184.216.34', family: 4 }]
 after(() => { serveur.closeAllConnections?.(); serveur.close() })
 
@@ -70,13 +73,13 @@ test('hôte non autorisé : ErreurGeo code 3 citant l hôte', async () => {
 
 test('redirection interne : refusée, second hôte jamais contacté', async () => {
   const appels = []
-  const fetchImpl = async (url) => {
+  const transport = async (url) => {
     appels.push(String(url))
-    if (String(url).startsWith('http://site.test')) return new Response(null, { status: 302, headers: { location: 'http://interne.test/' } })
+    if (url.hostname === 'site.test') return rep(302, { location: 'http://interne.test/' })
     throw new Error('ne devrait pas être contacté')
   }
   const resolveur = async (h) => [{ address: h === 'site.test' ? '93.184.216.34' : '169.254.169.254', family: 4 }]
-  const c = creerClient({ hotes: new Set(['site.test', 'interne.test']), delaiMs: 0, resolveur, fetchImpl })
+  const c = creerClient({ hotes: new Set(['site.test', 'interne.test']), delaiMs: 0, resolveur, transport })
   const r = await c.demander('http://site.test/')
   assert.equal(r.statut, 0); assert.match(r.raison, /adresse interdite/)
   assert.deepEqual(appels, ['http://site.test/'])
@@ -84,7 +87,7 @@ test('redirection interne : refusée, second hôte jamais contacté', async () =
 
 test('DNS à plusieurs adresses : refusé si une seule est interdite', async () => {
   const resolveur = async () => [{ address: '93.184.216.34', family: 4 }, { address: '10.0.0.5', family: 4 }]
-  const c = creerClient({ hotes: new Set(['multi.test']), delaiMs: 0, resolveur, fetchImpl: async () => { throw new Error('contacté') } })
+  const c = creerClient({ hotes: new Set(['multi.test']), delaiMs: 0, resolveur, transport: async () => { throw new Error('contacté') } })
   const r = await c.demander('http://multi.test/')
   assert.equal(r.statut, 0); assert.match(r.raison, /adresse interdite/)
 })
@@ -110,17 +113,15 @@ test('redirections : 11 sauts refusés, limite configurable', async () => {
 })
 
 test('redirection suivie vers une page finale', async () => {
-  const fetchImpl = async (url) => String(url).endsWith('/a')
-    ? new Response(null, { status: 301, headers: { location: '/b' } })
-    : new Response('fin', { status: 200, headers: { 'content-type': 'text/html' } })
-  const c = creerClient({ hotes: new Set(['site.test']), delaiMs: 0, resolveur: publique, fetchImpl })
+  const transport = async (url) => url.pathname === '/a' ? rep(301, { location: '/b' }) : rep(200, { 'content-type': 'text/html' }, 'fin')
+  const c = creerClient({ hotes: new Set(['site.test']), delaiMs: 0, resolveur: publique, transport })
   const r = await c.demander('http://site.test/a')
   assert.equal(r.statut, 200); assert.equal(r.url, 'http://site.test/b'); assert.deepEqual(r.redirections, ['http://site.test/b'])
 })
 
 test('redirection vers un hôte non autorisé : refusée', async () => {
-  const fetchImpl = async () => new Response(null, { status: 302, headers: { location: 'http://autre.test/' } })
-  const c = creerClient({ hotes: new Set(['site.test']), delaiMs: 0, resolveur: publique, fetchImpl })
+  const transport = async () => rep(302, { location: 'http://autre.test/' })
+  const c = creerClient({ hotes: new Set(['site.test']), delaiMs: 0, resolveur: publique, transport })
   const r = await c.demander('http://site.test/')
   assert.equal(r.statut, 0); assert.match(r.raison, /autre\.test/)
 })
@@ -185,4 +186,43 @@ test('cache : deuxième appel depuisCache, serveur non rappelé ; expiration ; e
     await c.demander(base + '/nulle?cache')
     assert.equal((await c.demander(base + '/nulle?cache')).depuisCache, false)
   } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
+test('cache : type de contenu et mode local re-vérifiés (clé par accept et autoriserLocal)', async () => {
+  const d = mkdtempSync(path.join(tmpdir(), 'geo-cache-'))
+  try {
+    const large = await client({ cache: d }).demander(base + '/bin', { accept: '*/*' })
+    assert.equal(large.statut, 200)
+    const html = await client({ cache: d }).demander(base + '/bin')
+    assert.equal(html.corps, null); assert.match(html.raison, /type de contenu/); assert.equal(html.depuisCache, false)
+    await client({ cache: d }).demander(base + '/ok?local')
+    const avant = traces.length
+    const sans = await creerClient({ hotes, delaiMs: 0, cache: d }).demander(base + '/ok?local')
+    assert.equal(sans.statut, 0); assert.match(sans.raison, /adresse interdite/)
+    assert.equal(traces.length, avant)
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
+test('anti-rebinding : la connexion va à l adresse vérifiée, sans seconde résolution', async () => {
+  let appels = 0
+  const resolveur = async () => [{ address: ++appels === 1 ? '127.0.0.1' : '203.0.113.9', family: 4 }]
+  const r = await creerClient({ hotes: new Set(['rebind.test']), autoriserLocal: true, delaiMs: 0, resolveur })
+    .demander(`http://rebind.test:${serveur.address().port}/ok`)
+  assert.equal(r.statut, 200); assert.equal(r.corps, '<html>bonjour</html>'); assert.equal(appels, 1)
+})
+
+test('anti-rebinding : le lookup passé au transport rend l adresse vérifiée', async () => {
+  let lookup
+  const transport = async (_url, opts) => { lookup = opts.adresse; return rep(200, { 'content-type': 'text/html' }, 'x') }
+  let n = 0
+  const resolveur = async () => [{ address: ++n === 1 ? '93.184.216.34' : '10.0.0.1', family: 4 }]
+  await creerClient({ hotes: new Set(['site.test']), delaiMs: 0, resolveur, transport }).demander('http://site.test/')
+  assert.deepEqual(lookup, { address: '93.184.216.34', family: 4 })
+})
+
+test('réponse gzip décodée', async () => {
+  const { gzipSync } = await import('node:zlib')
+  const s2 = http.createServer((q, res) => { res.writeHead(200, { 'content-type': 'text/html', 'content-encoding': 'gzip' }); res.end(gzipSync('compressé')) })
+  await new Promise((r) => s2.listen(0, '127.0.0.1', r))
+  try { assert.equal((await client().demander(`http://127.0.0.1:${s2.address().port}/`)).corps, 'compressé') } finally { s2.closeAllConnections(); s2.close() }
 })

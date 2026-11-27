@@ -3,6 +3,9 @@
 import { createHash } from 'node:crypto'
 import { lookup } from 'node:dns/promises'
 import { isIPv4, isIPv6 } from 'node:net'
+import http from 'node:http'
+import https from 'node:https'
+import { createBrotliDecompress, createGunzip, createInflate } from 'node:zlib'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { ErreurGeo } from './sortie.mjs'
@@ -88,14 +91,45 @@ function typeAccepte(ctype, accept) {
   })
 }
 
+// --- transport -------------------------------------------------------------
+
+// Default transport on node:http(s). `adresse` ({ address, family }) is the already-checked IP:
+// the socket connects to it and nowhere else (no second DNS resolution), while the URL host still
+// drives the Host header, TLS SNI and certificate validation. Resolves to
+// { status, headers: Headers, body: async iterable of Buffer, cancel() } (content decoded).
+function transportNode(url, { headers, signal, adresse }) {
+  const module = url.protocol === 'https:' ? https : http
+  const options = { method: 'GET', headers, signal, agent: false }
+  if (adresse) {
+    options.lookup = (_hote, opts, cb) => (opts?.all ? cb(null, [{ address: adresse.address, family: adresse.family }]) : cb(null, adresse.address, adresse.family))
+  }
+  return new Promise((resolve, reject) => {
+    const req = module.request(url, options, (res) => {
+      const h = new Headers()
+      for (const [k, v] of Object.entries(res.headers)) h.set(k, Array.isArray(v) ? v.join(', ') : v)
+      const codage = String(res.headers['content-encoding'] ?? '').trim().toLowerCase()
+      const decodeur = codage === 'gzip' ? createGunzip() : codage === 'deflate' ? createInflate() : codage === 'br' ? createBrotliDecompress() : null
+      let corps = res
+      if (decodeur) {
+        res.on('error', (e) => decodeur.destroy(e))
+        corps = res.pipe(decodeur)
+        h.delete('content-length')
+      }
+      resolve({ status: res.statusCode, headers: h, body: corps, cancel: () => { res.destroy(); corps.destroy() } })
+    })
+    req.on('error', reject)
+    req.end()
+  })
+}
+
 // --- client -----------------------------------------------------------------
 
 export function creerClient({
   hotes, autoriserLocal = false, delaiMs = 1000, timeoutMs = 15000, maxOctets = 5242880, maxRedirections = 10,
-  maxAgeMs = 24 * 3600 * 1000, cache, resolveur, fetchImpl,
+  maxAgeMs = 24 * 3600 * 1000, cache, resolveur, transport,
 } = {}) {
   const resoudre = resolveur ?? ((h) => lookup(h, { all: true }))
-  const requeter = fetchImpl ?? globalThis.fetch
+  const requeter = transport ?? transportNode
   const prochainCreneau = new Map() // host -> earliest start of its next request
   const echec = (url, raison, redirections = []) => ({ url, statut: 0, entetes: {}, corps: null, redirections, raison, depuisCache: false })
 
@@ -106,29 +140,34 @@ export function creerClient({
     if (debut > Date.now()) await pause(debut - Date.now())
   }
 
-  // Null when the URL may be fetched, otherwise the French reason.
+  // Resolves the host once. Returns { raison } when it must not be fetched, else { adresse } to pin
+  // the connection to (null for an IP literal or when resolution is not needed). Every resolved
+  // address must be acceptable; autoriserLocal lifts the refusal but the pin still applies.
   async function verifier(u) {
-    if (autoriserLocal) return null
-    const hote = u.hostname.replace(/^\[|\]$/g, '')
-    let adresses
-    if (isIPv4(hote) || isIPv6(hote)) adresses = [{ address: hote }]
-    else {
-      try { adresses = await resoudre(hote) } catch (e) { return `résolution DNS impossible (${e.code ?? e.message})` }
+    const hote = u.hostname.replace(/^[|]$/g, '')
+    if (isIPv4(hote) || isIPv6(hote)) {
+      return !autoriserLocal && estAdresseInterdite(hote) ? { raison: `adresse interdite (${hote}) pour ${hote}` } : { adresse: null }
     }
-    if (!adresses?.length) return 'résolution DNS sans résultat'
-    const mauvaise = adresses.find((a) => estAdresseInterdite(a.address))
-    return mauvaise ? `adresse interdite (${mauvaise.address}) pour ${hote}` : null
+    let adresses
+    try { adresses = await resoudre(hote) } catch (e) { return { raison: `résolution DNS impossible (${e.code ?? e.message})` } }
+    if (!adresses?.length) return { raison: 'résolution DNS sans résultat' }
+    if (!autoriserLocal) {
+      const mauvaise = adresses.find((a) => estAdresseInterdite(a.address))
+      if (mauvaise) return { raison: `adresse interdite (${mauvaise.address}) pour ${hote}` }
+    }
+    const a = adresses[0]
+    return { adresse: { address: a.address, family: a.family ?? (isIPv6(a.address) ? 6 : 4) } }
   }
 
   async function lireCorps(res, signal) {
     const annonce = Number(res.headers.get('content-length') ?? 0)
-    if (annonce > maxOctets) { await res.body?.cancel().catch(() => {}); return null }
+    if (annonce > maxOctets) { res.cancel(); return null }
     const morceaux = []
     let total = 0
     if (res.body) {
       for await (const m of res.body) {
         total += m.length
-        if (total > maxOctets) { await res.body.cancel().catch(() => {}); return null }
+        if (total > maxOctets) { res.cancel(); return null }
         morceaux.push(m)
       }
     }
@@ -136,11 +175,14 @@ export function creerClient({
     return Buffer.concat(morceaux)
   }
 
-  function chemin(url) {
-    return cache ? path.join(cache, createHash('sha256').update(url).digest('hex') + '.json') : null
+  // The key covers what shapes the stored answer: URL, requested media types, local-network mode.
+  function chemin(url, accept) {
+    return cache ? path.join(cache, createHash('sha256').update(`${url}
+${accept}
+${autoriserLocal ? 'local' : ''}`).digest('hex') + '.json') : null
   }
-  function lireCache(url) {
-    const f = chemin(url)
+  function lireCache(url, accept) {
+    const f = chemin(url, accept)
     try {
       if (!f || !existsSync(f)) return null
       const e = JSON.parse(readFileSync(f, 'utf8'))
@@ -148,8 +190,8 @@ export function creerClient({
       return { ...e.reponse, depuisCache: true }
     } catch { return null }
   }
-  function ecrireCache(url, reponse) {
-    const f = chemin(url)
+  function ecrireCache(url, accept, reponse) {
+    const f = chemin(url, accept)
     if (!f) return
     try {
       mkdirSync(cache, { recursive: true })
@@ -158,25 +200,28 @@ export function creerClient({
   }
 
   // One hop: no automatic redirect; the timer covers headers and body and is always cleared.
-  async function saut(url, accept, agent) {
+  async function saut(url, accept, agent, adresse) {
     const ctl = new AbortController()
     const timer = setTimeout(() => ctl.abort(), timeoutMs)
     try {
-      const res = await requeter(url, { headers: { 'user-agent': agent, accept }, signal: ctl.signal, redirect: 'manual' })
+      const res = await requeter(new URL(url), { headers: { 'user-agent': agent, accept, 'accept-encoding': 'gzip, deflate, br' }, signal: ctl.signal, adresse })
       const entetes = Object.fromEntries(res.headers)
       const lieu = res.headers.get('location')
       if (res.status >= 300 && res.status < 400 && lieu) {
-        await res.body?.cancel().catch(() => {})
+        res.cancel()
         return { redirection: lieu, statut: res.status, entetes }
       }
       const ctype = res.headers.get('content-type') ?? ''
       if (res.status >= 200 && res.status < 300 && !typeAccepte(ctype, accept)) {
-        await res.body?.cancel().catch(() => {})
+        res.cancel()
         return { statut: res.status, entetes, corps: null, raison: `type de contenu inattendu (${ctype.split(';')[0].trim()})` }
       }
       const tampon = await lireCorps(res, ctl.signal)
       if (tampon === null) return { statut: res.status, entetes, corps: null, raison: `corps de plus de ${Math.round(maxOctets / 1048576)} Mo` }
       return { statut: res.status, entetes, corps: decoder(tampon, ctype) }
+    } catch (e) {
+      if (ctl.signal.aborted) throw Object.assign(new Error('timeout'), { name: 'AbortError' })
+      throw e
     } finally { clearTimeout(timer) }
   }
 
@@ -187,23 +232,26 @@ export function creerClient({
     if (!hotes?.has(courante.hostname.toLowerCase())) throw new ErreurGeo(`Hôte non autorisé : ${courante.hostname}. Ajoutez-le à hotes_autorises ou passez --hotes-autorises.`, 3)
 
     const demande = courante.href
-    const mis = lireCache(demande)
-    if (mis) return mis
-
+    let premier = true
     const redirections = []
     for (;;) {
-      const interdit = await verifier(courante)
-      if (interdit) return echec(courante.href, interdit, redirections)
+      const verdict = await verifier(courante)
+      if (verdict.raison) return echec(courante.href, verdict.raison, redirections)
+      if (premier) { // cache is read only after the host and address checks passed
+        premier = false
+        const mis = lireCache(demande, accept)
+        if (mis) return mis
+      }
       await attendre(courante.hostname.toLowerCase())
       let r
-      try { r = await saut(courante.href, accept, agent) } catch (e) {
+      try { r = await saut(courante.href, accept, agent, verdict.adresse) } catch (e) {
         const cause = e?.name === 'AbortError' || e?.name === 'TimeoutError' ? `délai de ${timeoutMs} ms dépassé` : `erreur réseau (${e?.cause?.code ?? e?.code ?? e?.message ?? 'inconnue'})`
         return echec(courante.href, cause, redirections)
       }
       if (r.redirection === undefined) {
         const reponse = { url: courante.href, statut: r.statut, entetes: r.entetes, corps: r.corps, redirections, depuisCache: false }
         if (r.raison) reponse.raison = r.raison
-        else if (r.statut === 200 && r.corps !== null) ecrireCache(demande, reponse)
+        else if (r.statut === 200 && r.corps !== null) ecrireCache(demande, accept, reponse)
         return reponse
       }
       if (redirections.length >= maxRedirections) return echec(courante.href, `trop de redirections (plus de ${maxRedirections})`, redirections)
