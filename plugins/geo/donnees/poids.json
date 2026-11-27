@@ -1,0 +1,244 @@
+{
+  "version": "0.1.0",
+  "scores": {
+    "seo-technique": {
+      "criteres": [
+        {
+          "id": "indexable",
+          "poids": 20,
+          "classe": "deterministe"
+        },
+        {
+          "id": "robots-txt-ouvert",
+          "poids": 15,
+          "classe": "deterministe"
+        },
+        {
+          "id": "reponses-http",
+          "poids": 12,
+          "classe": "deterministe"
+        },
+        {
+          "id": "titre-present",
+          "poids": 10,
+          "classe": "deterministe"
+        },
+        {
+          "id": "canonical-meme-hote",
+          "poids": 8,
+          "classe": "deterministe"
+        },
+        {
+          "id": "contenu-unique",
+          "poids": 8,
+          "classe": "deterministe"
+        },
+        {
+          "id": "h1-present",
+          "poids": 6,
+          "classe": "deterministe"
+        },
+        {
+          "id": "titres-uniques",
+          "poids": 6,
+          "classe": "deterministe"
+        },
+        {
+          "id": "langue-declaree",
+          "poids": 5,
+          "classe": "deterministe"
+        },
+        {
+          "id": "sitemap-present",
+          "poids": 5,
+          "classe": "deterministe"
+        },
+        {
+          "id": "donnees-structurees-valides",
+          "poids": 5,
+          "classe": "deterministe"
+        },
+        {
+          "id": "hreflang-reciproque",
+          "poids": 4,
+          "classe": "deterministe"
+        },
+        {
+          "id": "canonical-present",
+          "poids": 3,
+          "classe": "deterministe"
+        },
+        {
+          "id": "description-presente",
+          "poids": 3,
+          "classe": "deterministe"
+        },
+        {
+          "id": "alt-presents",
+          "poids": 2,
+          "classe": "deterministe"
+        },
+        {
+          "id": "viewport-present",
+          "poids": 2,
+          "classe": "deterministe"
+        },
+        {
+          "id": "redirections-courtes",
+          "poids": 2,
+          "classe": "deterministe"
+        },
+        {
+          "id": "profondeur-faible",
+          "poids": 2,
+          "classe": "deterministe"
+        },
+        {
+          "id": "pages-non-orphelines",
+          "poids": 2,
+          "classe": "deterministe"
+        },
+        {
+          "id": "sitemap-coherent",
+          "poids": 2,
+          "classe": "deterministe"
+        },
+        {
+          "id": "hn-sans-saut",
+          "poids": 1,
+          "classe": "deterministe"
+        },
+        {
+          "id": "hreflang-xdefault",
+          "poids": 1,
+          "classe": "deterministe"
+        }
+      ]
+    },
+    "acces-ia": {
+      "criteres": [
+        {
+          "id": "recherche-non-bloquee",
+          "poids": 30,
+          "classe": "deterministe"
+        },
+        {
+          "id": "pas-de-defi-waf",
+          "poids": 25,
+          "classe": "deterministe"
+        },
+        {
+          "id": "html-lisible",
+          "poids": 25,
+          "classe": "deterministe"
+        },
+        {
+          "id": "consultation-non-bloquee",
+          "poids": 20,
+          "classe": "deterministe"
+        }
+      ]
+    },
+    "qualite-semantique": {
+      "criteres": [
+        {
+          "id": "definition-presente",
+          "poids": 25,
+          "classe": "heuristique"
+        },
+        {
+          "id": "sources-citees",
+          "poids": 25,
+          "classe": "heuristique"
+        },
+        {
+          "id": "passages-autonomes",
+          "poids": 25,
+          "classe": "heuristique"
+        },
+        {
+          "id": "chiffres-presents",
+          "poids": 15,
+          "classe": "heuristique"
+        },
+        {
+          "id": "structure-presente",
+          "poids": 10,
+          "classe": "heuristique"
+        }
+      ]
+    },
+    "potentiel-citation": {
+      "criteres": [
+        {
+          "id": "extraits-autorises",
+          "poids": 30,
+          "classe": "deterministe"
+        },
+        {
+          "id": "passages-citables",
+          "poids": 30,
+          "classe": "heuristique"
+        },
+        {
+          "id": "auteur-declare",
+          "poids": 15,
+          "classe": "heuristique"
+        },
+        {
+          "id": "date-presente",
+          "poids": 15,
+          "classe": "heuristique"
+        },
+        {
+          "id": "avis-visibles",
+          "poids": 10,
+          "classe": "heuristique"
+        }
+      ]
+    },
+    "identite-numerique": {
+      "criteres": [
+        {
+          "id": "organisation-declaree",
+          "poids": 25,
+          "classe": "deterministe"
+        },
+        {
+          "id": "nom-coherent",
+          "poids": 20,
+          "classe": "deterministe"
+        },
+        {
+          "id": "coordonnees-coherentes",
+          "poids": 20,
+          "classe": "deterministe"
+        },
+        {
+          "id": "sameas-present",
+          "poids": 15,
+          "classe": "deterministe"
+        },
+        {
+          "id": "wikidata",
+          "poids": 10,
+          "classe": "deterministe"
+        },
+        {
+          "id": "produits-balises",
+          "poids": 10,
+          "classe": "heuristique"
+        }
+      ]
+    },
+    "couverture-intentions": {
+      "criteres": [
+        {
+          "id": "intentions-couvertes",
+          "poids": 100,
+          "classe": "heuristique"
+        }
+      ]
+    }
+  }
+}
