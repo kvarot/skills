@@ -11,6 +11,8 @@ Plugin Claude Code qui audite le SEO d'un site web et corrige les défauts **dan
 
 Prérequis : Node 18.3 ou plus pour les outils (`outils/*.mjs`, zéro dépendance npm). Sans Node, les skills continuent en lecture du code et le disent.
 
+Version 0.1.1 : les descriptions des skills confient désormais les questions de visibilité dans les moteurs de réponse IA (ChatGPT, Perplexity, AI Overviews…) au plugin [`geo`](../geo/README.md) ; le plugin `seo` reste centré sur le SEO classique et les corrections dans le code.
+
 Optionnel, jamais requis :
 
 - les outils MCP Chrome DevTools, pour vérifier les corrections sur le rendu réel (HTML rendu, Lighthouse, JSON-LD) ;

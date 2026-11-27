@@ -1,6 +1,6 @@
 {
   "name": "seo",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Audit SEO d'un site web puis corrections écrites dans le code du projet, lot par lot, après validation du développeur ; outils déterministes en Node.",
   "author": { "name": "kvarot" },
   "license": "MIT"
