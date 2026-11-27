@@ -5,6 +5,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { extraire } from './extraire.mjs'
 import { analyserRobots } from './robots.mjs'
+import { extrait } from './sortie.mjs'
 
 const JETON_ROBOTS = 'geo-audit'
 const MAX_URLS_SITEMAP = 50000
@@ -70,7 +71,7 @@ function detecterWaf(rep) {
   const corps = typeof rep.corps === 'string' ? rep.corps : ''
   const titre = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(corps)?.[1] ?? ''
   let detail = null
-  if (e['cf-mitigated']) detail = `en-tête cf-mitigated: ${e['cf-mitigated']}`
+  if (e['cf-mitigated']) detail = `en-tête cf-mitigated: ${extrait(e['cf-mitigated'], 80).extrait}`
   else if (/cloudflare/i.test(e.server ?? '') && /just a moment/i.test(titre)) detail = 'server: cloudflare et titre « Just a moment »'
   else if (/challenge-platform/i.test(corps)) detail = 'marqueur challenge-platform dans la page'
   else if (/captcha/i.test(corps)) detail = 'marqueur captcha dans la page'

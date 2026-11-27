@@ -7,7 +7,9 @@ import os from 'node:os'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import { rapportMarkdown, rapportJson, SECTIONS, PLATEFORMES, PHRASE_LIMITE, passagesComplets } from '../../outils/lib/rapports.mjs'
+import { rapportMarkdown, rapportJson, SECTIONS, PLATEFORMES, PHRASE_LIMITE, passagesComplets, assainirConstat, resumerEntite } from '../../outils/lib/rapports.mjs'
+import { analyserEntite } from '../../outils/lib/entites.mjs'
+import { trouverIdeesFausses } from '../../outils/lib/idees.mjs'
 
 const GEO = fileURLToPath(new URL('../../outils/geo.mjs', import.meta.url))
 const RACINE_GEO = fileURLToPath(new URL('../..', import.meta.url))
@@ -375,7 +377,7 @@ const REFUTATIONS = {
   'longueur-ideale': ["Il n'y a pas de longueur idéale.", 'There is no ideal length.', 'Aucune longueur idéale n’est documentée.'],
   'google-extended-ai-overviews': ['Bloquer Google-Extended ne retire pas d’AI Overviews.', 'Blocking Google-Extended does not remove you from AI Overviews.'],
   'robots-txt-bloque-tout': ['robots.txt ne bloque pas tous les robots IA.', 'robots.txt does not block all AI bots.'],
-  'rang-chatgpt': ['Ne dites jamais : votre marque est n° 3 dans ChatGPT.', 'Never say your brand is ranked 2 in ChatGPT.'],
+  'rang-chatgpt': ['Ne dites jamais que votre marque est n° 3 dans ChatGPT.', 'Never say your brand is ranked 2 in ChatGPT.'],
   'api-egale-interface': ['Les réponses API ne sont pas celles que voient les utilisateurs.', 'API responses are not the same as what users see.'],
   'robots-non-documentes': ['GrokBot n’est pas un robot documenté.', 'GrokBot is not a documented crawler.'],
   'mentions-web-citations': ['Les mentions sur le web ne provoquent pas de citations.', 'Web mentions do not cause AI citations.'],
@@ -388,13 +390,13 @@ test('idees-fausses : chaque motif détecte l’affirmation énoncée comme un f
   for (const i of registre) {
     const phrases = POSITIFS[i.id]
     assert.ok(phrases, `phrases d’essai manquantes pour ${i.id}`)
-    for (const ph of phrases) assert.ok(i.motifs.some((m) => new RegExp(m, 'iu').test(ph)), `${i.id} ne détecte pas : ${ph}`)
+    for (const ph of phrases) assert.ok(trouverIdeesFausses(ph, [i]).length > 0, `${i.id} ne détecte pas : ${ph}`)
   }
 })
 
 test('idees-fausses : une réfutation par entrée, FR et EN, jamais détectée', () => {
   assert.deepEqual(Object.keys(REFUTATIONS).sort(), registre.map((i) => i.id).sort())
-  for (const ph of NEGATIFS) for (const i of registre) for (const m of i.motifs) assert.ok(!new RegExp(m, 'iu').test(ph), `${i.id} détecte à tort : ${ph}`)
+  for (const ph of NEGATIFS) assert.deepEqual(trouverIdeesFausses(ph, registre), [], ph)
 })
 
 function fichiersMd(dir) {
@@ -405,15 +407,9 @@ function fichiersMd(dir) {
   })
 }
 
-// Lines starting with "> Idée fausse :" may quote a claim in order to refute it.
-function trouvaillesIdees(texte) {
-  const trouves = []
-  for (const ligne of texte.split('\n')) {
-    if (/^\s*>\s*Idée fausse :/.test(ligne)) continue
-    for (const i of registre) for (const m of i.motifs) if (new RegExp(m, 'iu').test(ligne)) trouves.push(`${i.id} : ${ligne.trim().slice(0, 120)}`)
-  }
-  return trouves
-}
+// Lines starting with "> Idée fausse :" may quote a claim in order to refute it (handled by trouverIdeesFausses).
+
+const trouvaillesIdees = (texte) => trouverIdeesFausses(texte, registre)
 
 test('idees-fausses : le modèle de rapport et les .md des skills et références ne reprennent aucune affirmation', () => {
   const modele = rapportMarkdown({ origine: 'https://x.example' }) + rapportMarkdown({ origine: 'https://x.example', constats: [], exploration: { pages: 3 } })
@@ -556,4 +552,63 @@ test('idees-fausses : sources alignées sur les affirmations réfutées', () => 
   assert.ok(src('llms-txt-visibilite').includes('https://ahrefs.com/blog/llmstxt-study/'))
   assert.ok(src('robots-non-documentes').length >= 3)
   assert.ok(!src('robots-non-documentes').some((u) => u.includes('google.com')))
+})
+
+// --- boundary sanitiser and clause-level negation --------------------------------------
+
+test('constats : detail et preuve.detail sont des extraits sur stdout et dans la base ; URL bornées', async () => {
+  const hostile = '<img src=x onerror=alert(1)>Evil'
+  sites['/hostile/'] = pageBonne().replace('</head>', `<meta property="og:site_name" content="${hostile.replace(/"/g, '')}"><script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@type': 'Organization', name: 'Autre Nom', sameAs: ['https://ok.example/p'] })}</script></head>`)
+  try {
+    const home = await homeAutorise()
+    const r = await geo(['auditer', '--url', base + '/hostile/', '--autoriser-local'], home)
+    assert.equal(r.code, 0, r.stderr)
+    assert.ok(!r.stdout.includes('<img'))
+    const s = json(r)
+    assert.ok(s.constats.length > 0)
+    const verifier = (constats) => {
+      for (const c of constats) {
+        assert.equal(c.detail.non_fiable, true, c.id)
+        assert.ok(c.detail.extrait.length <= 280)
+        assert.equal(c.preuve.detail.non_fiable, true, c.id)
+        assert.ok(c.preuve.detail.extrait.length <= 280)
+        for (const u of [c.preuve.url, ...c.pages]) assert.ok(typeof u === 'string' && u.length <= 2048)
+      }
+    }
+    verifier(s.constats)
+    verifier(s.entite.constats)
+    // the stored row is the same: the JSON report reads it back
+    const relu = json(await geo(['rapport', '--audit', String(s.audit_id), '--format', 'json'], home))
+    assert.deepEqual(relu.constats, s.constats)
+    assert.ok(!JSON.stringify(relu).includes('<img'))
+    const md = (await geo(['rapport', '--audit', String(s.audit_id), '--format', 'md'], home)).stdout
+    assert.doesNotMatch(md, /\[object Object\]/)
+  } finally { delete sites['/hostile/'] }
+})
+
+test('assainirConstat : extraits, URL bornées, idempotent ; Wikidata : identifiants Q seulement', async () => {
+  const c = { id: 'X', severite: 'important', pages: ['https://x.example/' + 'a'.repeat(3000)], preuve: { type: 'http', url: 'https://x.example/' + 'b'.repeat(3000), detail: '<b>' + 'z'.repeat(500) }, detail: '<i>d</i>' }
+  const a = assainirConstat(c)
+  assert.equal(a.detail.extrait, '&lt;i&gt;d&lt;/i&gt;')
+  assert.equal(a.preuve.detail.extrait.length, 280)
+  assert.equal(a.pages[0].length, 2048)
+  assert.equal(a.preuve.url.length, 2048)
+  assert.deepEqual(assainirConstat(a), a)
+  const client = { demander: async () => ({ statut: 200, corps: JSON.stringify({ search: [{ id: 'Q1', label: 'Lumivia' }, { id: 'Q2', label: 'Lumivia' }, { id: '<img src=x>', label: 'Lumivia' }, { id: 'Q3x', label: 'Lumivia' }] }) }) }
+  const collecte = { pages: [{ url: 'https://x.example/', lang: 'fr', jsonld: [], blocs: [] }], site: {}, erreurs: [] }
+  const e = await analyserEntite(collecte, { marque: 'Lumivia', client, wikidata: true })
+  assert.deepEqual(e.wikidata.ids, ['Q1', 'Q2'])
+  const refus = { demander: async () => ({ statut: 500, corps: null, raison: '<script>mauvais</script>' }) }
+  const e2 = await analyserEntite(collecte, { marque: 'Lumivia', client: refus, wikidata: true })
+  assert.ok(!e2.wikidata.raison.includes('<script>'))
+  assert.ok(!JSON.stringify(resumerEntite(e2)).includes('<script>'))
+})
+
+test('idees-fausses : la négation est évaluée par proposition, pas par ligne', () => {
+  for (const ph of [
+    'Le GEO augmente la visibilité de 40 %, ne le manquez pas.',
+    'Ne vous fiez pas à ce mythe. Le balisage schema fait citer votre site.',
+    'Your brand is no. 3 in ChatGPT.',
+  ]) assert.ok(trouverIdeesFausses(ph, registre).length >= 1, ph)
+  assert.deepEqual(trouverIdeesFausses('Ne vous fiez pas à ce mythe : llms.txt n’améliore pas la visibilité.', registre), [])
 })

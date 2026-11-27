@@ -109,12 +109,12 @@ function constat(id, pages, preuve, detail, extra = {}) {
 async function chercherWikidata(nom, lang, client) {
   const url = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(nom)}&language=${lang}&format=json&limit=5`
   let rep
-  try { rep = await client.demander(url) } catch (e) { return { statut: 'non_verifie', ids: [], raison: String(e?.message ?? e), url } }
-  if (!rep || rep.statut !== 200 || typeof rep.corps !== 'string') return { statut: 'non_verifie', ids: [], raison: `réponse inexploitable (statut ${rep?.statut ?? 'inconnu'})${rep?.raison ? ' : ' + rep.raison : ''}`, url }
+  try { rep = await client.demander(url) } catch (e) { return { statut: 'non_verifie', ids: [], raison: extrait(String(e?.message ?? e), 200).extrait, url } }
+  if (!rep || rep.statut !== 200 || typeof rep.corps !== 'string') return { statut: 'non_verifie', ids: [], raison: `réponse inexploitable (statut ${rep?.statut ?? 'inconnu'})${rep?.raison ? ' : ' + extrait(rep.raison, 200).extrait : ''}`, url }
   let json
   try { json = JSON.parse(rep.corps) } catch { return { statut: 'non_verifie', ids: [], raison: 'réponse Wikidata illisible (JSON invalide)', url } }
   const cible = normaliserNom(nom)
-  const exacts = (Array.isArray(json?.search) ? json.search : []).filter((r) => typeof r?.id === 'string' && normaliserNom(r.label) === cible).map((r) => r.id)
+  const exacts = (Array.isArray(json?.search) ? json.search : []).filter((r) => typeof r?.id === 'string' && /^Q[0-9]+$/.test(r.id) && normaliserNom(r.label) === cible).map((r) => r.id)
   const ids = unique(exacts)
   return { statut: ids.length === 0 ? 'absent' : ids.length === 1 ? 'trouve' : 'ambigu', ids, url }
 }

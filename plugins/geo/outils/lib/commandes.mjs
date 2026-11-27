@@ -12,7 +12,7 @@ import { analyserContenu } from './contenu.mjs'
 import { calculerScores, chargerPoids } from './scores.mjs'
 import { genererScenarios, figerJeu } from './scenarios.mjs'
 import { ouvrirBase } from './base.mjs'
-import { rapportMarkdown, rapportJson, passagesComplets, resumerEntite, PASSAGES_PAR_LOT } from './rapports.mjs'
+import { rapportMarkdown, rapportJson, passagesComplets, resumerEntite, assainirConstat, PASSAGES_PAR_LOT } from './rapports.mjs'
 
 export const VERSION = '0.1.0'
 const HOTE_WIKIDATA = 'www.wikidata.org'
@@ -204,6 +204,7 @@ async function cmdAuditer(args) {
   const scores = calculerScores({ constats: constatsTech, contenu: contenus, entite: entiteBrute, pages: collecte.pages, collecte }, poids)
 
   const constats = [...constatsTech, ...tab(entiteBrute.constats).map(({ rang, ...c }) => c), ...fusionnerConstatsContenu(contenus)]
+    .map(assainirConstat)
     .sort((a, b) => (RANG[a.severite] ?? 9) - (RANG[b.severite] ?? 9))
 
   const chemins = [...new Set(tab(collecte.pages).map((p) => { try { const u = new URL(p.url, 'http://x'); return u.pathname + u.search } catch { return null } }).filter(Boolean))].slice(0, 50)

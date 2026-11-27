@@ -103,7 +103,7 @@ function sectionRobots(robots, robotsTxt) {
   const bandeau = BANDEAU_ROBOTS[obj(robotsTxt).etat]?.(obj(robotsTxt))
   if (!liste.length) return bandeau ?? 'Accès des robots IA non évalué.'
   const parts = bandeau ? [bandeau] : []
-  const roles =[...new Set([...ORDRE_ROLES, ...liste.map((r) => r.role)])].filter((r) => liste.some((x) => x.role === r))
+  const roles = [...new Set([...ORDRE_ROLES, ...liste.map((r) => r.role)])].filter((r) => liste.some((x) => x.role === r))
   for (const role of roles) {
     const lignes = liste.filter((r) => r.role === role).map((r) => [
       r.jeton,
@@ -272,8 +272,24 @@ export function resumerEntite(entite) {
     wikidata: {
       statut: ['non_verifie', 'absent', 'trouve', 'ambigu'].includes(w.statut) ? w.statut : 'non_verifie',
       ids: tab(w.ids).filter((i) => /^Q\d{1,12}$/.test(String(i))).map(String),
-      ...(w.raison ? { raison: extrait(w.raison) } : {}),
+      // Already escaped at the source (entites.mjs wraps the external parts in extrait): capped, flagged, not escaped twice.
+      ...(w.raison ? { raison: { extrait: String(w.raison).slice(0, 280), non_fiable: true } } : {}),
     },
-    constats: tab(e.constats).map((c) => ({ ...c, detail: extrait(c.detail ?? '', 400).extrait })),
+    constats: tab(e.constats).map(assainirConstat),
   }
+}
+
+const MAX_URL = 2048
+const capUrl = (u) => (typeof u === 'string' ? u.slice(0, MAX_URL) : u)
+const dejaExtrait = (v) => v && typeof v === 'object' && typeof v.extrait === 'string'
+
+// The one sanitiser at the output and storage boundary, applied to every constat of every module:
+// `detail` and `preuve.detail` become capped, escaped extrait objects; URLs stay raw strings capped at 2048 characters.
+export function assainirConstat(c) {
+  const p = obj(c?.preuve)
+  const sur = (v) => (dejaExtrait(v) ? v : extrait(v ?? ''))
+  const sortie = { ...c, detail: sur(c?.detail) }
+  if (Array.isArray(c?.pages)) sortie.pages = c.pages.map(capUrl)
+  if (c?.preuve && typeof c.preuve === 'object') sortie.preuve = { ...p, ...(p.url !== undefined ? { url: capUrl(p.url) } : {}), detail: sur(p.detail) }
+  return sortie
 }

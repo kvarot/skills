@@ -10,8 +10,8 @@
         "https://ahrefs.com/blog/llmstxt-study/"
       ],
       "motifs": [
-        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*llms(-full)?\\.txt[^.\\n]{0,60}\\b(améliore|augmente|booste|favorise|est lu par|est utilisé par)",
-        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*llms(-full)?\\.txt[^.\\n]{0,60}\\b(improves|boosts|increases|is read by|is used by)"
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no(?!\\.? ?\\d)|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*llms(-full)?\\.txt[^.\\n]{0,60}\\b(améliore|augmente|booste|favorise|est lu par|est utilisé par)",
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no(?!\\.? ?\\d)|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*llms(-full)?\\.txt[^.\\n]{0,60}\\b(improves|boosts|increases|is read by|is used by)"
       ],
       "verifie_le": "2026-11-27"
     },
@@ -21,10 +21,10 @@
       "pourquoi": "Le chiffre vient d'une métrique de part de texte sur un moteur simulé (KDD 2024), non d'une mesure de visibilité réelle ; l'étude C-SEO Bench (NeurIPS 2025) n'a pas retrouvé ces gains.",
       "source": "https://arxiv.org/abs/2506.11097",
       "motifs": [
-        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*visibilité[^.\\n]{0,30}\\+? ?\\b40 ?%",
-        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*(augmente|augmentez|gagn\\w+|gain\\w*|boost\\w*|\\+ ?)[^.\\n]{0,40}\\b40 ?%[^.\\n]{0,30}visibilit",
-        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*(increases?|boosts?|raises?|gains?|gain(ed)?)[^.\\n]{0,40}\\b40 ?%[^.\\n]{0,30}visibility",
-        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*(increases?|boosts?|raises?)[^.\\n]{0,40}visibility[^.\\n]{0,30}\\b40 ?%"
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no(?!\\.? ?\\d)|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*visibilité[^.\\n]{0,30}\\+? ?\\b40 ?%",
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no(?!\\.? ?\\d)|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*(augmente|augmentez|gagn\\w+|gain\\w*|boost\\w*|\\+ ?)[^.\\n]{0,40}\\b40 ?%[^.\\n]{0,30}visibilit",
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no(?!\\.? ?\\d)|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*(increases?|boosts?|raises?|gains?|gain(ed)?)[^.\\n]{0,40}\\b40 ?%[^.\\n]{0,30}visibility",
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no(?!\\.? ?\\d)|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*(increases?|boosts?|raises?)[^.\\n]{0,40}visibility[^.\\n]{0,30}\\b40 ?%"
       ],
       "verifie_le": "2026-11-27"
     },
@@ -34,8 +34,8 @@
       "pourquoi": "Google précise que les données structurées ne sont pas requises pour la recherche générative et doivent seulement correspondre au contenu visible ; aucun effet chiffré n'est publié par Microsoft.",
       "source": "https://developers.google.com/search/docs/appearance/ai-features",
       "motifs": [
-        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*(schema|balisage|données structurées)[^.\\n]{0,50}\\b(fait|font|permet|permettent) (de )?(citer|d['’]être cité)",
-        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*(schema|structured data)[^.\\n]{0,40}\\b(gets?|makes?) (you |your (site|brand) )?cited"
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no(?!\\.? ?\\d)|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*(schema|balisage|données structurées)[^.\\n]{0,50}\\b(fait|font|permet|permettent) (de )?(citer|d['’]être cité)",
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no(?!\\.? ?\\d)|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*(schema|structured data)[^.\\n]{0,40}\\b(gets?|makes?) (you |your (site|brand) )?cited"
       ],
       "verifie_le": "2026-11-27"
     },
@@ -45,10 +45,10 @@
       "pourquoi": "Google écrit qu'il n'y a ni découpage en petits morceaux ni longueur idéale à viser pour la recherche générative.",
       "source": "https://developers.google.com/search/docs/appearance/ai-features",
       "motifs": [
-        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*longueur idéale",
-        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*découpage idéal",
-        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*ideal (length|chunk)",
-        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*\\b\\d+ (mots|words)\\b[^.\\n]{0,30}(idéal|ideal|optimal)"
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no(?!\\.? ?\\d)|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*longueur idéale",
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no(?!\\.? ?\\d)|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*découpage idéal",
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no(?!\\.? ?\\d)|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*ideal (length|chunk)",
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no(?!\\.? ?\\d)|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*\\b\\d+ (mots|words)\\b[^.\\n]{0,30}(idéal|ideal|optimal)"
       ],
       "verifie_le": "2026-11-27"
     },
@@ -58,8 +58,8 @@
       "pourquoi": "Google-Extended contrôle l'usage pour Gemini (entraînement et ancrage) ; AI Overviews et AI Mode relèvent de Googlebot, de nosnippet, data-nosnippet, max-snippet et noindex.",
       "source": "https://developers.google.com/crawling/docs/crawlers-fetchers/google-common-crawlers",
       "motifs": [
-        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*(bloquer|bloquez|blocage de) Google-Extended[^.\\n]{0,40}\\b(retire|supprime|sort|exclut)",
-        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*\\b(blocking|block|blocks) Google-Extended[^.\\n]{0,40}\\b(removes?|drops?|excludes?)"
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no(?!\\.? ?\\d)|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*(bloquer|bloquez|blocage de) Google-Extended[^.\\n]{0,40}\\b(retire|supprime|sort|exclut)",
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no(?!\\.? ?\\d)|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*\\b(blocking|block|blocks) Google-Extended[^.\\n]{0,40}\\b(removes?|drops?|excludes?)"
       ],
       "verifie_le": "2026-11-27"
     },
@@ -69,8 +69,8 @@
       "pourquoi": "Les robots de consultation à la demande de l'utilisateur peuvent ignorer robots.txt ; selon l'éditeur, il « peut ne pas s'appliquer » à ChatGPT-User.",
       "source": "https://developers.openai.com/api/docs/bots",
       "motifs": [
-        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*robots\\.txt[^.\\n]{0,40}\\b(bloque|empêche) (tout|tous|toute)[^.\\n]{0,20}(accès|robots IA|crawlers IA|\\bIA\\b)",
-        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*robots\\.txt[^.\\n]{0,40}\\b(blocks?|prevents?) (all|every)[^.\\n]{0,30}(AI|bots)"
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no(?!\\.? ?\\d)|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*robots\\.txt[^.\\n]{0,40}\\b(bloque|empêche) (tout|tous|toute)[^.\\n]{0,20}(accès|robots IA|crawlers IA|\\bIA\\b)",
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no(?!\\.? ?\\d)|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*robots\\.txt[^.\\n]{0,40}\\b(blocks?|prevents?) (all|every)[^.\\n]{0,30}(AI|bots)"
       ],
       "verifie_le": "2026-11-27"
     },
@@ -80,7 +80,7 @@
       "pourquoi": "Le rang varie d'une exécution à l'autre : moins d'une chance sur 100 d'obtenir deux fois la même liste de marques ; seul un taux de présence avec intervalle de confiance est publiable.",
       "source": "https://sparktoro.com/blog/new-research-ais-are-highly-inconsistent-when-recommending-brands-or-products-marketers-should-take-care-when-tracking-ai-visibility/",
       "motifs": [
-        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*(votre|ta|your) (marque|brand)[^.\\n]{0,30}(n°|#|no\\.|numéro|rang|rank(ed)?) ?\\d+[^.\\n]{0,30}(ChatGPT|Claude|Gemini|Perplexity|Copilot)"
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no(?!\\.? ?\\d)|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*(votre|ta|your) (marque|brand)[^.\\n]{0,30}(n°|#|no\\.|numéro|rang|rank(ed)?) ?\\d+[^.\\n]{0,30}(ChatGPT|Claude|Gemini|Perplexity|Copilot)"
       ],
       "verifie_le": "2026-11-27"
     },
@@ -90,8 +90,8 @@
       "pourquoi": "Perplexity écrit que les sorties peuvent différer entre API et interface, et le modèle aussi ; aucun éditeur ne déclare l'équivalence.",
       "source": "https://docs.perplexity.ai/docs/resources/faq.md",
       "motifs": [
-        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*les réponses (de l['’])?API sont (celles|identiques)",
-        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*API (answers|responses|outputs) (are|match) (the same as )?(what )?(users see|the consumer)"
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no(?!\\.? ?\\d)|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*les réponses (de l['’])?API sont (celles|identiques)",
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no(?!\\.? ?\\d)|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*API (answers|responses|outputs) (are|match) (the same as )?(what )?(users see|the consumer)"
       ],
       "verifie_le": "2026-11-27"
     },
@@ -106,8 +106,8 @@
         "https://docs.mistral.ai/robots"
       ],
       "motifs": [
-        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*\\b(DeepSeekBot|GrokBot|anthropic-ai)\\b[^.\\n]{0,50}\\b(est|sont) (un |des )?(robots? )?(officiels?|documentés?)",
-        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*\\b(DeepSeekBot|GrokBot|anthropic-ai)\\b[^.\\n]{0,50}\\b(is|are) (an? )?(official|documented)"
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no(?!\\.? ?\\d)|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*\\b(DeepSeekBot|GrokBot|anthropic-ai)\\b[^.\\n]{0,50}\\b(est|sont) (un |des )?(robots? )?(officiels?|documentés?)",
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no(?!\\.? ?\\d)|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*\\b(DeepSeekBot|GrokBot|anthropic-ai)\\b[^.\\n]{0,50}\\b(is|are) (an? )?(official|documented)"
       ],
       "verifie_le": "2026-11-27"
     },
@@ -117,8 +117,8 @@
       "pourquoi": "Corrélations d'éditeurs de mesure seulement ; la revue critique ne démontre aucun lien causal, et Google écrit que chercher des mentions inauthentiques n'aide pas.",
       "source": "https://arxiv.org/html/2607.14035v1",
       "motifs": [
-        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*mentions?[^.\\n]{0,30}(sur le web|web)[^.\\n]{0,40}\\b(provoquent|causent|déclenchent)[^.\\n]{0,30}citations?",
-        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*(web )?mentions?[^.\\n]{0,40}\\b(cause|drive|trigger)s?[^.\\n]{0,30}(AI )?citations?"
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no(?!\\.? ?\\d)|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*mentions?[^.\\n]{0,30}(sur le web|web)[^.\\n]{0,40}\\b(provoquent|causent|déclenchent)[^.\\n]{0,30}citations?",
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no(?!\\.? ?\\d)|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*(web )?mentions?[^.\\n]{0,40}\\b(cause|drive|trigger)s?[^.\\n]{0,30}(AI )?citations?"
       ],
       "verifie_le": "2026-11-27"
     },
@@ -128,8 +128,8 @@
       "pourquoi": "Il n'existe aucune API officielle pour AI Overviews, AI Mode ni Copilot grand public ; les outils tiers scrutent les interfaces, avec un contentieux en cours.",
       "source": "https://developers.google.com/search/docs/appearance/ai-features",
       "motifs": [
-        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*\\b(mesure|mesurent)[^.\\n]{0,30}(AI Overviews|Copilot)[^.\\n]{0,40}\\b(via|par|grâce à) (une |l['’])?API officielle",
-        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*\\b(measures?|tracks?)[^.\\n]{0,30}(AI Overviews|Copilot)[^.\\n]{0,40}\\b(via|through|using) (an? |the )?official API"
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no(?!\\.? ?\\d)|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*\\b(mesure|mesurent)[^.\\n]{0,30}(AI Overviews|Copilot)[^.\\n]{0,40}\\b(via|par|grâce à) (une |l['’])?API officielle",
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no(?!\\.? ?\\d)|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*\\b(measures?|tracks?)[^.\\n]{0,30}(AI Overviews|Copilot)[^.\\n]{0,40}\\b(via|through|using) (an? |the )?official API"
       ],
       "verifie_le": "2026-11-27"
     },
@@ -139,8 +139,8 @@
       "pourquoi": "Bing écrit qu'IndexNow garde l'information fraîche dans la recherche et les expériences IA ; il ne garantit aucune entrée dans les réponses de Copilot.",
       "source": "https://blogs.bing.com/webmaster/February-2026/Introducing-AI-Performance-in-Bing-Webmaster-Tools-Public-Preview",
       "motifs": [
-        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*IndexNow[^.\\n]{0,60}\\b(fait entrer|garantit|assure)[^.\\n]{0,40}Copilot",
-        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*IndexNow[^.\\n]{0,60}\\b(guarantees|ensures|gets you)[^.\\n]{0,40}Copilot"
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no(?!\\.? ?\\d)|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*IndexNow[^.\\n]{0,60}\\b(fait entrer|garantit|assure)[^.\\n]{0,40}Copilot",
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|nullement|ne|not|no(?!\\.? ?\\d)|never|nor|without|cannot)\\b|\\bn['’]|n['’]t\\b))[^\\n]*IndexNow[^.\\n]{0,60}\\b(guarantees|ensures|gets you)[^.\\n]{0,40}Copilot"
       ],
       "verifie_le": "2026-11-27"
     }
