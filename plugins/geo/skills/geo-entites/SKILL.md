@@ -20,8 +20,9 @@ Si ce n'est pas déjà fait dans cette session, lancer d'abord `node <base du sk
 ## Déroulé
 
 1. Il faut un audit avec la marque : `geo.mjs auditer --url <url> --marque <nom> [--wikidata]` lancé par le skill `geo` (profil, accord, niveau), ou `geo.mjs rapport --audit <id> --format json` s'il existe.
-2. Lire `entite` et les constats de catégorie entité : nom retenu, variantes, types schema.org, `sameAs`, contradictions, résultat Wikidata (ou « non vérifié »).
+2. Lire `entite` et les constats de catégorie entité : nom retenu, variantes, types schema.org, `sameAs`, contradictions, résultat Wikidata. Statuts Wikidata : `trouve` (une entrée dont le site officiel P856 est sur l'hôte audité : seule identité vérifiée), `libelle_identique` (« libellé identique trouvé, identité non vérifiée » : ne jamais dire que l'entité est sur Wikidata), `ambigu`, `absent`, `non_verifie`.
 3. Présenter : ce qui est cohérent, ce qui se contredit (avec la page et la preuve), ce qui manque ; le type schema.org adapté à l'activité (`entites.md`). Au niveau d'autonomie 1, aucune recommandation.
 4. Lister les vérifications **manuelles** que l'outil ne fait pas (profils externes, annuaires, fiche d'établissement) sans en présumer le résultat.
+5. Clore par `geo.mjs exporter-contenu --purger` si un audit a été lancé dans ce parcours (l'audit écrit le texte des passages dans `tmp/`).
 
 JSON-LD écrit dans le code : **prévu en 0.3** (`fix`).

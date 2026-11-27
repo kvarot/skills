@@ -6,14 +6,14 @@
 
 **Architecture :** plugin `plugins/geo/` exposé par le marketplace racine. Un CLI Node sans dépendance (`outils/geo.mjs`) appelle des modules purs (`outils/lib/*.mjs`) et lit des données versionnées (`donnees/*.json`). Cinq skills et un agent en lecture seule guident le modèle ; le modèle ne calcule aucun score. Les sites de référence à défauts semés prouvent la détection.
 
-**Tech Stack :** Node ≥ 22.5 (ESM `.mjs`, `fetch`, `node:sqlite`, `node:test`, `node:dns`, `node:crypto`, `node:http` pour les tests), aucun paquet npm, Claude Code CLI (`claude -p --plugin-dir`) pour l'éval de déclenchement.
+**Tech Stack :** Node ≥ 22.13 (ESM `.mjs`, `fetch`, `node:sqlite`, `node:test`, `node:dns`, `node:crypto`, `node:http` pour les tests), aucun paquet npm, Claude Code CLI (`claude -p --plugin-dir`) pour l'éval de déclenchement.
 
 **Spec :** `docs/geo/1-conception.md` (validée) et `docs/geo/0-benchmark.md`. Les lire avant toute tâche. Périmètre de ce plan = ligne **0.1** du §9.
 
 ## Global Constraints
 
 - Tout sous `plugins/geo/` ; licence **MIT** (`plugins/geo/LICENSE`, `"license": "MIT"` dans `plugin.json`), version `0.1.0`.
-- Node **≥ 22.5**, **zéro dépendance npm** ; sortie JSON sur stdout, erreurs sur stderr ; codes de sortie **0** ok, **1** erreur, **2** seuil de constat dépassé (`--echec-si bloquant|important`), **3** accord ou budget manquant.
+- Node **≥ 22.13** (relevé de 22.5 le 2026-11-27 : `node:sqlite` sans option à partir de 22.13 ; vérifié au lancement de `geo.mjs`), **zéro dépendance npm** ; sortie JSON sur stdout, erreurs sur stderr ; codes de sortie **0** ok, **1** erreur, **2** seuil de constat dépassé (`--echec-si bloquant|important`), **3** accord ou budget manquant.
 - L'avertissement `ExperimentalWarning` de SQLite ne doit jamais apparaître sur stderr.
 - **Aucun texte de page brut sur stdout** : extraits ≤ **280** caractères, échappés (`<`, `>`, `&`, guillemets, caractères de contrôle et invisibles retirés), dans un objet `{ extrait, non_fiable: true }`.
 - Réseau : `http`/`https` seulement ; adresses privées, bouclage, lien-local, `169.254.0.0/16`, `fd00::/8`, `fe80::/10`, `::1`, `0.0.0.0/8`, `100.64.0.0/10` refusées (sauf `--autoriser-local`) ; vérification **à chaque redirection**, **10** au plus ; corps ≤ **5 Mo** ; délai **15 s** ; **≥ 1000 ms** entre deux requêtes au même hôte ; agent utilisateur `geo-audit/0.1 (+https://github.com/kvarot/skills)`.

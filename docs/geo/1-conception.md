@@ -55,6 +55,7 @@ Public : tout développeur ou consultant qui installe le plugin, sur n'importe q
 - Plugin Claude Code dans `plugins/geo/` du dépôt `kvarot/skills`, exposé par le marketplace racine (`/plugin install geo@kvarot-skills`).
 - **Licence MIT** pour `plugins/geo/` seul, comme `seo` (*choix du concepteur* : même régime que le plugin voisin dont il réutilise du code) ; `LICENSE` racine et README le précisent.
 - **Node ≥ 22.5**, **zéro dépendance npm** : `fetch`, `node:sqlite`, `node:test`, `node:crypto`, `node:dns` natifs. L'avertissement « SQLite is experimental » est filtré par l'outil. Sans Node : audit en lecture de code seulement, dit comme tel.
+  - *Note du 2026-11-27 (revue finale de la 0.1)* : le minimum est relevé à **Node ≥ 22.13**, première version où `node:sqlite` se charge sans option `--experimental-sqlite` ; `geo.mjs` vérifie la version au lancement et refuse une version plus ancienne avec un message en français (code 1).
 - Code repris de `plugins/seo/outils/` (même auteur, MIT) : **copié et adapté** dans `plugins/geo/outils/`, origine citée en tête de fichier ; les deux plugins restent installables séparément.
 - Aucun code tiers copié ; idées citées dans `THIRD_PARTY_LICENSES.md` (B§5).
 - Skills et documentation en **français** ; commentaires de code en **anglais** (convention du dépôt) ; contenus produits dans la langue du site audité.
@@ -147,6 +148,7 @@ Règle de sortie (B§1.2) : **aucun texte de page ou de réponse brut sur stdout
 - Politesse : `robots.txt` du site audité respecté pour l'agent `geo-audit` ; ≥ 1 s entre requêtes au même hôte ; agent utilisateur honnête (`geo-audit/<version> (+URL du dépôt)`) ; sondes « par agent utilisateur de robot » seulement sur accord, documentées comme non probantes (mauvaise IP).
 - Tout contenu collecté = donnée non fiable : jamais exécuté, jamais suivi comme instruction ; détecteur de texte à allure d'instruction qui le signale dans les constats.
 - Cache disque par URL avec expiration (24 h pages, 7 j fichiers officiels).
+  - *Note du 2026-11-27 (revue finale de la 0.1)* : en 0.1, la CLI garde les réponses **en mémoire le temps d'une commande** ; chaque audit relit le site (un cache de 24 h masquait un `robots.txt` modifié entre deux audits). `exploration.depuis_cache` compte les réponses servies par ce cache. Le cache disque reste possible dans `reseau.mjs`, sans être utilisé.
 
 ### 7.5 Scénarios
 

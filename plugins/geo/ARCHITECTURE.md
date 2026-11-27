@@ -29,12 +29,12 @@ Le **code décide, le modèle interprète**. Tout chiffre (constat, score, couve
 1. `init` crée le dossier de données et vide la liste des hôtes autorisés.
 2. L'utilisateur donne son accord pour les hôtes ; `autoriser` les inscrit dans `session.json`.
 3. `auditer` : couche réseau gardée (`reseau.mjs`) → collecte polie (`collecter.mjs`, `robots.txt` du site respecté pour l'agent `geo-audit`) → extraction du HTML (`extraire.mjs`) → contrôles (`controles.mjs`), contenu (`contenu.mjs`), entités (`entites.mjs`) → scores (`scores.mjs`, poids de `donnees/poids.json`) → enregistrement dans SQLite.
-4. `exporter-contenu` écrit les passages à juger dans `tmp/`, par lots ; l'agent `lecteur-contenu` les lit et renvoie un JSON ; la session le valide avant usage ; `--purger` vide `tmp/`.
+4. `auditer` écrit le texte des passages dans `tmp/audit-<id>/` ; `exporter-contenu` en copie les passages à juger dans `tmp/lot-<n>/`, par lots ; l'agent `lecteur-contenu` les lit et renvoie un JSON ; la session le valide avant usage ; `--purger` vide `tmp/`.
 5. `rapport` produit le Markdown ou le JSON à partir de la base.
 
 ## Stockage
 
-Un dossier de données (`.claude/geo/` du dossier courant, ou `GEO_HOME`) : `session.json`, `geo.sqlite` (module `node:sqlite`, migrations versionnées), `cache/`, `tmp/`. Rien n'est écrit ailleurs. Voir [PRIVACY.md](PRIVACY.md).
+Un dossier de données (`.claude/geo/` du dossier courant, ou `GEO_HOME`) : `session.json`, `geo.sqlite` (module `node:sqlite`, migrations versionnées), `tmp/`. Les réponses HTTP sont gardées en mémoire le temps d'une commande seulement (chaque audit relit le site) ; aucun `cache/` n'est écrit par la CLI. Rien n'est écrit ailleurs. Voir [PRIVACY.md](PRIVACY.md).
 
 ## Sorties et données non fiables
 

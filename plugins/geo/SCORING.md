@@ -21,13 +21,14 @@ Chaque critère a un poids et un `acquis` entre 0 et 1, ou `null` s'il n'est pas
 ## Règles de critère
 
 - **Critère « absence d'un constat »** : `acquis = 1 − pages touchées / pages`. Les pages comptées sont les pages collectées ; pour les critères de contenu, les pages dont la langue est prise en charge et qui ont au moins un passage.
-- **Constat de site** (sans liste de pages, par exemple `GEO-SITEMAP-ABSENT` ou `GEO-ROBOTSTXT-BLOQUE-TOUT`) : il touche toutes les pages, donc `acquis = 0`, **quel que soit le nombre de pages collectées, même zéro**. Un `Disallow: /` ne produit aucune page : le critère vaut 0, il n'est pas « non calculé ». Dans ce cas seulement (zéro page et `GEO-ROBOTSTXT-BLOQUE-TOUT`), `html-lisible` vaut 0 aussi : aucune page n'est lisible par un robot.
+- **Constat de site** (sans liste de pages, par exemple `GEO-SITEMAP-ABSENT`, `GEO-ROBOTSTXT-BLOQUE-TOUT` ou `GEO-ROBOTSTXT-INACCESSIBLE`) : il touche toutes les pages, donc `acquis = 0`, **quel que soit le nombre de pages collectées, même zéro**. Un `Disallow: /` ou un `robots.txt` en erreur 5xx (ou sans réponse) ne produit aucune page : le critère vaut 0, il n'est pas « non calculé ». Dans ce cas seulement (zéro page et `GEO-ROBOTSTXT-BLOQUE-TOUT` ou `GEO-ROBOTSTXT-INACCESSIBLE`), `html-lisible` vaut 0 aussi : aucune page n'est lisible par un robot.
+- **Sitemaps non lus** : quand les sitemaps n'ont pas pu être demandés (interdits par `robots.txt`, ou `robots.txt` inaccessible), `GEO-SITEMAP-ABSENT` n'est pas émis et `sitemap-present` est **non calculé** (« sitemaps non lus ») : une absence non vérifiée n'est ni créditée ni pénalisée.
 - **Pages comptées** : les critères par page ne comptent que les URL touchées qui sont des **pages collectées** (comparaison après normalisation d'URL, comme le collecteur). Si un constat est présent mais ne touche que des URL hors pages collectées, il compte pour une page, jamais pour zéro.
 - **Critères fondés sur des URL** (`reponses-http`, `sitemap-coherent`, `pages-non-orphelines`, `pas-de-defi-waf`) : le dénominateur est l'ensemble des **URL connues** de l'audit (pages collectées, URL en erreur, URL du sitemap, URL défiées), et la preuve l'écrit (« n URL sur m URL connues »). Entrée optionnelle `collecte` pour fournir erreurs et sitemap ; sans elle, les URL connues sont les pages et les URL des constats. Avec zéro page collectée, un défi WAF donne 0 avec la preuve « défi WAF : aucune page analysable ».
 - **Pages d'article** : `auteur-declare` et `date-presente` ne comptent que les pages d'article ou de documentation (même règle que `GEO-DATE-ABSENTE`, fonction `estPageArticle` de `controles.mjs`) ; sans une telle page, le critère est non calculé, pas à 0. Pour `auteur-declare`, les pages d'article en langue non prise en charge (ou sans passage) sont ignorées : ni acquises ni touchées.
 - **Rattachement des constats de contenu** : chaque résultat de `analyserContenu` porte l'`url` de sa page ; les constats de contenu sont rapportés à ces URL (normalisées) et filtrés aux pages collectées. Une URL collectée mais écartée par un filtre (article, langue) ne compte pas ; seule une URL réellement hors pages collectées compte pour une page.
-- **Critères d'entité** : binaires (cause présente → 0, absente → 1), sauf `produits-balises` qui compte des pages.
-- **Une cause racine pèse une fois par score** : les constats qui partagent une cause forment un seul critère, acquis seulement si aucun n'est présent (les pages touchées sont réunies). Regroupement v0.1 : `GEO-ROBOTSTXT-BLOQUE-TOUT` + `GEO-ROBOTS-RECHERCHE-BLOQUE` → critère `recherche-non-bloquee` de `acces-ia` (« les robots de recherche ne peuvent pas lire le site »). Quand `GEO-ROBOTSTXT-BLOQUE-TOUT` est présent, `consultation-non-bloquee` est **non calculé** (« même cause que recherche-non-bloquee (robots.txt bloque tout) ») : le même `Disallow: /` ne pèse qu'une fois. Dans `seo-technique`, `GEO-ROBOTSTXT-BLOQUE-TOUT` a son propre critère `robots-txt-ouvert` (il bloque aussi les moteurs classiques) ; il ne compte qu'une fois dans ce score.
+- **Critères d'entité** : binaires (cause présente → 0, absente → 1), sauf `produits-balises` qui compte des pages. **Sans page collectée, aucun critère d'entité n'est calculé** : rien n'a été observé, rien n'est crédité (`identite-numerique` vaut alors `null`). `nom-coherent` n'est calculé que si un nom est déclaré (`og:site_name`, JSON-LD ou `--marque` ; le suffixe du title seul ne suffit pas) ; `coordonnees-coherentes` et `sameas-present` ne sont pas calculés sans organisation déclarée (`GEO-ENTITE-SANS-ORGANIZATION`, déjà compté une fois).
+- **Une cause racine pèse une fois par score** : les constats qui partagent une cause forment un seul critère, acquis seulement si aucun n'est présent (les pages touchées sont réunies). Regroupements v0.1 : `GEO-ROBOTSTXT-BLOQUE-TOUT` + `GEO-ROBOTSTXT-INACCESSIBLE` + `GEO-ROBOTS-RECHERCHE-BLOQUE` → critère `recherche-non-bloquee` de `acces-ia` (« les robots de recherche ne peuvent pas lire le site ») ; un `robots.txt` inaccessible est la même cause qu'un `Disallow: /` (RFC 9309 : tout est interdit). Quand `GEO-ROBOTSTXT-BLOQUE-TOUT` ou `GEO-ROBOTSTXT-INACCESSIBLE` est présent, `consultation-non-bloquee` est **non calculé** (« même cause que recherche-non-bloquee (robots.txt bloque tout ou est inaccessible) ») : la même interdiction ne pèse qu'une fois. Dans `seo-technique`, `GEO-ROBOTSTXT-BLOQUE-TOUT` + `GEO-ROBOTSTXT-INACCESSIBLE` forment le critère `robots-txt-ouvert` (ils bloquent aussi les moteurs classiques) ; la cause ne compte qu'une fois dans ce score.
 - **Langues** : les critères de contenu ne regardent que les pages en langue prise en charge (français ou anglais) ayant au moins un passage. Chacun contribue à la couverture pour `poids × part`, avec `part = pages dont la langue analysée est prise en charge / pages analysées` (son poids entier reste au dénominateur) ; la valeur le pondère de la même façon. Une page prise en charge sans passage compte comme prise en charge ; une page sans aucun texte visible est exclue du numérateur et du dénominateur ; un site entièrement en français garde donc `part = 1`. Sur 1 page française et 49 allemandes, `part = 0,02` : la couverture du score de contenu tombe à 0,02 et la valeur est `null`. La preuve indique le nombre de pages en langue non prise en charge, seulement s'il y en a. Aucun constat ni jugement n'est inventé.
 - **Sans page collectée** : tous les critères issus de pages sont non calculés.
 - Les constats de sévérité `information` n'affectent jamais un score. `GEO-LLMSTXT` et `GEO-CONTENT-SIGNAL` n'ont **aucun critère** (poids 0, jamais présentés comme un levier) ; `GEO-ROBOTS-ENTRAINEMENT-POLITIQUE` (politique observée, aucune recommandation) et `GEO-ENTITE-WIKIDATA-AMBIGU` (homonymie à désambiguïser par le propriétaire) n'ont pas de critère non plus.
@@ -38,7 +39,7 @@ Chaque critère a un poids et un `acquis` entre 0 et 1, ou `null` s'il n'est pas
 | Critère | Poids | Constat | Justification du poids |
 |---|---|---|---|
 | `indexable` | 20 | `GEO-NOINDEX` | une page exclue de l'index n'existe pas pour les moteurs |
-| `robots-txt-ouvert` | 15 | `GEO-ROBOTSTXT-BLOQUE-TOUT` | interdiction totale : même effet que l'absence du site |
+| `robots-txt-ouvert` | 15 | `GEO-ROBOTSTXT-BLOQUE-TOUT` + `GEO-ROBOTSTXT-INACCESSIBLE` (une seule cause) | interdiction totale : même effet que l'absence du site |
 | `reponses-http` | 12 | `GEO-HTTP-ERREUR` | une page en erreur ne peut être ni lue ni citée |
 | `titre-present` | 10 | `GEO-TITLE-ABSENT` | le title est le premier signal d'identification d'une page |
 | `canonical-meme-hote` | 8 | `GEO-CANONICAL-AUTRE-HOTE` | cède l'autorité de la page à un autre site |
@@ -46,7 +47,7 @@ Chaque critère a un poids et un `acquis` entre 0 et 1, ou `null` s'il n'est pas
 | `h1-present` | 6 | `GEO-H1-ABSENT` | structure de base du document |
 | `titres-uniques` | 6 | `GEO-TITLE-DOUBLON` | pages indiscernables dans les résultats |
 | `langue-declaree` | 5 | `GEO-LANG-ABSENT` | sert à l'appariement langue-requête |
-| `sitemap-present` | 5 | `GEO-SITEMAP-ABSENT` | aide à la découverte, sans bloquer l'exploration |
+| `sitemap-present` | 5 | `GEO-SITEMAP-ABSENT` ; non calculé si les sitemaps n'ont pas pu être lus | aide à la découverte, sans bloquer l'exploration |
 | `donnees-structurees-valides` | 5 | `GEO-JSONLD-INVALIDE` | un JSON-LD illisible est ignoré |
 | `hreflang-reciproque` | 4 | `GEO-HREFLANG-RECIPROQUE` | un hreflang non réciproque est ignoré |
 | `canonical-present` | 3 | `GEO-CANONICAL-ABSENT` | confort, les moteurs devinent souvent |
@@ -64,7 +65,7 @@ Chaque critère a un poids et un `acquis` entre 0 et 1, ou `null` s'il n'est pas
 
 | Critère | Poids | Constat(s) | Justification du poids |
 |---|---|---|---|
-| `recherche-non-bloquee` | 30 | `GEO-ROBOTSTXT-BLOQUE-TOUT` + `GEO-ROBOTS-RECHERCHE-BLOQUE` (une seule cause) | sans accès des robots de recherche, aucune citation n'est possible |
+| `recherche-non-bloquee` | 30 | `GEO-ROBOTSTXT-BLOQUE-TOUT` + `GEO-ROBOTSTXT-INACCESSIBLE` + `GEO-ROBOTS-RECHERCHE-BLOQUE` (une seule cause) | sans accès des robots de recherche, aucune citation n'est possible |
 | `pas-de-defi-waf` | 25 | `GEO-WAF-DEFI` | un défi CDN ferme l'accès automatisé, pages non analysables |
 | `html-lisible` | 25 | `GEO-HTML-VIDE` | les robots n'exécutent pas toujours le JavaScript : une coquille vide n'a rien à citer |
 | `consultation-non-bloquee` | 20 | `GEO-ROBOTS-CONSULTATION-BLOQUE` | bloque la lecture à la demande de l'utilisateur, moins que la recherche |
@@ -98,10 +99,10 @@ Les critères fondés sur le contenu (`passages-citables`, `auteur-declare`) ne 
 | Critère | Poids | Source | Justification du poids |
 |---|---|---|---|
 | `organisation-declaree` | 25 | `GEO-ENTITE-SANS-ORGANIZATION` | base de l'identification de l'entité |
-| `nom-coherent` | 20 | `GEO-ENTITE-NOM-INCOHERENT` | un nom écrit de plusieurs façons brouille l'entité |
-| `coordonnees-coherentes` | 20 | `GEO-ENTITE-COORDONNEES-CONTRADICTOIRES` | contradictions de téléphone ou d'adresse |
+| `nom-coherent` | 20 | `GEO-ENTITE-NOM-INCOHERENT` ; non calculé sans nom déclaré | un nom écrit de plusieurs façons brouille l'entité |
+| `coordonnees-coherentes` | 20 | `GEO-ENTITE-COORDONNEES-CONTRADICTOIRES` ; non calculé sans organisation déclarée | contradictions de téléphone ou d'adresse |
 | `sameas-present` | 15 | `GEO-ENTITE-SAMEAS-ABSENT` | liens vers les profils officiels ; non calculé sans organisation déclarée (déjà comptée) |
-| `wikidata` | 10 | `entite.wikidata.statut` | `trouve` = 1 ; `absent`, `ambigu` ou non vérifié = non calculé (l'absence est normale pour une petite structure et n'est pas pénalisée : la vérification facultative ne peut jamais faire baisser le score) |
+| `wikidata` | 10 | `entite.wikidata.statut` | `trouve` = 1, seulement quand l'entrée de même libellé déclare comme site officiel (propriété P856) l'hôte audité ; `libelle_identique` (« libellé identique trouvé, identité non vérifiée »), `absent`, `ambigu` ou non vérifié = non calculé (l'absence est normale pour une petite structure et n'est pas pénalisée : la vérification facultative ne peut jamais faire baisser le score) |
 | `produits-balises` | 10 | `GEO-ENTITE-PRODUIT-SANS-SCHEMA` (heuristique) | comptage de pages, règle étroite |
 
 La vérification Wikidata étant facultative, sans vérification Wikidata (option), la couverture de ce score est au plus de 0,9 ; les vérifications manuelles restent listées dans le rapport.
@@ -112,7 +113,7 @@ La vérification Wikidata étant facultative, sans vérification Wikidata (optio
 |---|---|---|---|
 | `intentions-couvertes` | 100 | jeu de scénarios et pages | critère unique |
 
-`acquis` = part des intentions du jeu pour lesquelles au moins une page a un `h1` ou un `title` qui partage au moins 2 mots non vides (3 lettres ou plus, hors mots vides, normalisés sans accents ni casse) avec un scénario de cette intention. Sans jeu de scénarios, le critère n'est pas calculé.
+`acquis` = part des intentions du jeu pour lesquelles au moins une page a un `h1` ou un `title` qui partage au moins 2 mots non vides (3 lettres ou plus, hors mots vides, normalisés sans accents ni casse) avec un scénario de cette intention. `auditer` lit le **dernier jeu figé** de l'origine auditée (`scenarios figer --origine`) et la preuve cite son numéro ; sans jeu figé pour ce site, le critère n'est pas calculé (« aucun jeu de scénarios figé pour ce site »).
 
 ## Scores mesurés (v0.2)
 

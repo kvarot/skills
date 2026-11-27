@@ -21,7 +21,8 @@ Si ce n'est pas déjà fait dans cette session, lancer d'abord `node <base du sk
 
 1. Vérification rapide des robots : `geo.mjs robots --url <url>`. Présenter un tableau `jeton | éditeur | rôle | politique | groupe` ; séparer les rôles `indexation` et `consultation-utilisateur` (ce qui touche la présence dans les réponses) de `entrainement`, `controle` et `autre` (robots hors catégories et jetons non documentés).
 2. Audit technique complet : reprendre l'audit du skill `geo` s'il existe (`geo.mjs rapport --audit <id> --format json`), sinon le faire lancer par `geo` (profil, accord, niveau). Les constats utiles : catégories indexation, accès IA, rendu, sitemaps, canonical, hreflang.
-3. Pour chaque constat : gravité, preuve (`type`, `url`, `detail` : la commande ou la valeur qui la redonne), correction type de la fiche. Au niveau d'autonomie 1, aucune recommandation.
-4. Rappeler les limites : un `robots.txt` inaccessible (5xx) vaut interdiction par précaution ; certains robots de consultation peuvent ne pas appliquer `robots.txt` (`robots-ia.md`).
+3. Pour chaque constat : gravité, preuve (`type`, `url`, `detail`, et `commande` quand elle existe : à donner telle quelle à l'utilisateur pour rejouer la vérification), correction type de la fiche. Au niveau d'autonomie 1, aucune recommandation.
+4. Rappeler les limites : un `robots.txt` inaccessible (5xx ou sans réponse, `GEO-ROBOTSTXT-INACCESSIBLE`) vaut interdiction de tout le site (RFC 9309), et les sitemaps ne sont alors pas lus ; certains robots de consultation peuvent ne pas appliquer `robots.txt` (`robots-ia.md`).
+5. Clore par `geo.mjs exporter-contenu --purger` si un audit a été lancé dans ce parcours (l'audit écrit le texte des passages dans `tmp/`).
 
 Corrections dans le code : **prévu en 0.3** (`fix`) ; si le plugin `seo` est installé, l'utilisateur peut lui confier les corrections SEO classiques.

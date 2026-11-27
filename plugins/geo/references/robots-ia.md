@@ -31,7 +31,8 @@ Le rôle `autre` regroupe les robots qui ne rentrent pas dans ces catégories (p
 - Un groupe nommant le robot l'emporte sur le groupe `*` (le groupe `*` ne s'applique que si aucun groupe spécifique ne correspond).
 - Règle la plus longue gagne ; à égalité, `Allow` gagne. `*` et `$` sont pris en charge. `Disallow:` vide n'interdit rien. Les lignes avant le premier `User-agent` sont ignorées. Les lignes `Sitemap:` sont globales.
 - Repli : `Applebot` suit les règles de `Googlebot` quand aucun groupe ne le nomme (champ `repli` du registre, `groupe: 'repli'`), avant le groupe `*`.
-- Absence de robots.txt : tout est autorisé (`groupe: 'aucun'`).
+- Absence de robots.txt (réponse 4xx) : tout est autorisé (`groupe: 'aucun'`).
+- robots.txt en erreur serveur (5xx) ou sans réponse (erreur réseau, délai) : tout le site est considéré interdit ; l'audit ne lit aucune page, ni sitemap, ni `/llms.txt`, et émet le constat bloquant `GEO-ROBOTSTXT-INACCESSIBLE` (même cause que `GEO-ROBOTSTXT-BLOQUE-TOUT` dans les scores).
 
 ## Sources
 

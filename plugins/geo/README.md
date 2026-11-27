@@ -11,7 +11,7 @@ Audit **GEO / AEO** d'un site web : ce que le site offre aux moteurs de réponse
 /plugin install geo@kvarot-skills
 ```
 
-Prérequis : **Node ≥ 22.5** (le module `node:sqlite` est requis), aucune dépendance npm. Aucune clé d'API : la version 0.1 n'appelle aucun service payant.
+Prérequis : **Node ≥ 22.13** (le module `node:sqlite` y est disponible sans option ; une version plus ancienne est refusée avec un message clair, code 1), aucune dépendance npm. Aucune clé d'API : la version 0.1 n'appelle aucun service payant.
 
 ## Utilisation
 
@@ -81,6 +81,8 @@ Chaque plateforme (ChatGPT, Claude, Gemini, Perplexity, Copilot, Google AI Overv
 - **Isolation du lecteur de contenu** : le texte des pages est lu par un agent sans Bash, écriture ni réseau, mais la session principale pourrait techniquement lire les fichiers exportés ; le skill le lui interdit (limite assumée, détaillée dans [SECURITY.md](SECURITY.md)).
 - **Détection des fausses idées par expressions régulières** : le contrôle qui empêche les documents du plugin de reprendre une affirmation réfutée (`donnees/idees-fausses.json`) raisonne par phrase, avec la négation avant la fin du motif ; il ne comprend pas le sens et peut manquer une reformulation.
 - Les contrôles portent sur le HTML reçu, sans exécuter de JavaScript.
+- Chaque audit relit le site (cache en mémoire le temps d'une commande seulement) : un audit relancé voit l'état actuel du site.
+- **Wikidata** : une entrée n'est reconnue comme celle de l'entité que si son site officiel (P856) est sur l'hôte audité ; un libellé identique seul est signalé « identité non vérifiée » et n'est pas crédité.
 - Le plugin ne prédit aucune citation ; les études sur l'effet de telle ou telle pratique sont partielles et contestées ([BENCHMARK.md](BENCHMARK.md)).
 
 ## Évaluation
@@ -89,7 +91,7 @@ Chaque plateforme (ChatGPT, Claude, Gemini, Perplexity, Copilot, Google AI Overv
 node --test "plugins/geo/evals/tests/*.test.mjs"
 ```
 
-Aucun test ne sort sur Internet. Les sites de référence à défauts semés (`evals/sites/`, tous fictifs) mesurent rappel et faux positifs (`evals/resultats-sites-v0.1.json`). L'évaluation de déclenchement (`evals/eval-declenchement.mjs`) lance `claude -p` et n'est pas dans la suite.
+Aucun test ne sort sur Internet. Les sites de référence à défauts semés (`evals/sites/`, tous fictifs) mesurent rappel et faux positifs (`evals/resultats-sites-v0.1.json`). Le chiffre de faux positifs (0) est mesuré sur les listes `interdits` et `absents` des **7 sites de référence**, écrites en même temps que les règles : il montre que ces cas connus ne se déclenchent pas, il ne se généralise pas à des sites réels. L'évaluation de déclenchement (`evals/eval-declenchement.mjs`) lance `claude -p` et n'est pas dans la suite.
 
 ## Documentation
 

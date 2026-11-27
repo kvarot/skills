@@ -30,7 +30,7 @@ Le `WebSite.name` et le `name` de l’organisation doivent employer la même gra
 - Coordonnées (téléphones, adresses) identiques dans tous les JSON-LD d’organisation ; les autres nœuds (`Person`, etc.) sont ignorés.
 - Présence de `sameAs` (URL `http` ou `https` seulement).
 - Heuristique étroite : une page dont le `h1` est exactement le nom d’un produit balisé ailleurs.
-- Option : recherche du nom sur Wikidata (`wbsearchentities`), seulement avec `wikidata: true` et si `www.wikidata.org` est un hôte autorisé ; sinon statut `non_verifie` avec la raison.
+- Option : recherche du nom sur Wikidata (`wbsearchentities`, puis `wbgetentities&props=claims` sur les candidats de même libellé, réponses JSON), seulement avec `--wikidata` et si `www.wikidata.org` est un hôte autorisé ; sinon statut `non_verifie` avec la raison. Une entrée n'est reconnue (`trouve`, seul cas crédité dans le score) que si son **site officiel (P856)** est sur l'hôte audité ; un libellé identique seul donne `libelle_identique` (« libellé identique trouvé, identité non vérifiée »), plusieurs candidats `ambigu`, aucun `absent`. En mode dossier, aucun hôte n'est audité : au mieux `libelle_identique`.
 
 ## Vérifications manuelles (non automatisées)
 

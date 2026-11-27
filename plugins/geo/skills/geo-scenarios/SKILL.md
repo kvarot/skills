@@ -25,9 +25,9 @@ Si ce n'est pas déjà fait dans cette session, lancer d'abord `node <base du sk
 
 ## Déroulé
 
-1. Construire le profil avec l'utilisateur et, si un audit existe, depuis sa sortie (`geo.mjs rapport --audit <id> --format json` : entité, pages) ; demander les zones et concurrents manquants plutôt que livrer un jeu réduit. L'écrire dans `.claude/geo/profil.json` (outil d'écriture) après confirmation.
-2. Générer : `geo.mjs scenarios generer --profil .claude/geo/profil.json --niveau <rapide|standard|approfondi|exhaustif> --graine <entier>`. Montrer un échantillon par intention, la taille et `manques` (dire pourquoi le jeu est plus petit si c'est le cas).
+1. Construire le profil avec l'utilisateur et, si un audit existe, depuis sa sortie (`geo.mjs rapport --audit <id> --format json` : entité, pages) ; demander les zones et concurrents manquants plutôt que livrer un jeu réduit. L'écrire après confirmation dans `profil.json` du dossier de données (`.claude/geo` ou `GEO_HOME` : le `dossier` renvoyé par `geo.mjs init`), avec l'outil d'écriture ; ci-dessous, `<profil>` = ce chemin.
+2. Générer : `geo.mjs scenarios generer --profil <profil> --niveau <rapide|standard|approfondi|exhaustif> --graine <entier>`. Montrer un échantillon par intention, la taille et `manques` (dire pourquoi le jeu est plus petit si c'est le cas).
 3. Corrections de l'utilisateur : modifier le profil, régénérer, remontrer.
-4. Sur validation explicite : `geo.mjs scenarios figer --profil .claude/geo/profil.json --niveau <n> --graine <g> --origine <url>`. Annoncer `jeu_id` et `empreinte`. `geo.mjs scenarios lister` montre les jeux figés.
+4. Sur validation explicite : `geo.mjs scenarios figer --profil <profil> --niveau <n> --graine <g> --origine <url>`, avec pour `<url>` l'`origine` de l'audit (le prochain `auditer` de ce site reprend le dernier jeu figé pour le score `couverture-intentions`). Annoncer `jeu_id` et `empreinte`. `geo.mjs scenarios lister` montre les jeux figés.
 
 Exécuter le jeu sur les moteurs (`visibility`) : **prévu en 0.2**, rien n'est simulé.
