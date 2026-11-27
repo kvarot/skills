@@ -339,3 +339,67 @@ Chaque constat porte une preuve `{ type, url, detail }` reproductible. Les extra
 - Preuve attendue : html : ni `datePublished` / `dateModified`, ni meta de date, ni `<time datetime>` sur une page d’article ou de documentation (heuristique : type Article ou chemin /blog/, /docs/, etc.).
 - Correction type : Afficher et baliser la date de publication et de mise à jour.
 - Source officielle : aucune dans le dossier de référence
+
+## entite
+
+Ces constats sont produits par `outils/lib/entites.mjs`. Les valeurs relevées viennent uniquement des pages : l’outil n’en invente aucune. Les vérifications manuelles (registre légal du pays, profils) sont décrites dans `references/entites.md`.
+
+### GEO-ENTITE-SANS-ORGANIZATION
+
+**Gravité** : important
+
+- Catégorie : entite ; classe : deterministe
+- Description : Aucun JSON-LD d’organisation (Organization, LocalBusiness, Corporation ou sous-type) sur les pages explorées.
+- Preuve attendue : jsonld : aucun nœud de type organisation sur les pages explorées (relire les blocs `application/ld+json`).
+- Correction type : Déclarer une organisation en JSON-LD (type adapté à l’activité, voir `references/entites.md`) avec des valeurs réellement présentes sur le site. Google indique qu’aucun balisage spécial n’est requis pour les fonctions d’IA : les données structurées doivent correspondre au contenu visible.
+- Source officielle : https://developers.google.com/search/docs/appearance/ai-features
+
+### GEO-ENTITE-NOM-INCOHERENT
+
+**Gravité** : important
+
+- Catégorie : entite ; classe : deterministe
+- Description : Le nom de l’entité s’écrit de plusieurs façons (og:site_name, JSON-LD, suffixe du title), même après normalisation (minuscules, sans accents, sans forme juridique ni ponctuation).
+- Preuve attendue : html : liste des champs et des URL où chaque variante apparaît (`og:site_name`, `name` JSON-LD, suffixe du title après le dernier `|`, `–`, `—` ou ` - `).
+- Correction type : Choisir une seule graphie du nom et l’employer partout ; si plusieurs noms sont légitimes (nom commercial et raison sociale), le dire explicitement sur le site.
+- Source officielle : aucune dans le dossier de référence
+
+### GEO-ENTITE-COORDONNEES-CONTRADICTOIRES
+
+**Gravité** : important
+
+- Catégorie : entite ; classe : deterministe
+- Description : Deux téléphones ou deux adresses différents dans les JSON-LD d’organisation du site (téléphones comparés sur les chiffres, adresses sur rue et code postal).
+- Preuve attendue : jsonld : valeurs différentes et pages où elles figurent.
+- Correction type : Aligner les coordonnées de tous les JSON-LD sur celles affichées sur le site ; pour un site à plusieurs établissements, décrire chacun comme un établissement distinct.
+- Source officielle : aucune dans le dossier de référence
+
+### GEO-ENTITE-SAMEAS-ABSENT
+
+**Gravité** : mineur
+
+- Catégorie : entite ; classe : deterministe
+- Description : Une organisation est déclarée en JSON-LD sans aucun sameAs vers ses profils officiels.
+- Preuve attendue : jsonld : propriété `sameAs` absente de tous les nœuds d’organisation.
+- Correction type : Ajouter dans `sameAs` les URL des profils officiels qui existent réellement ; ne rien ajouter si aucun profil n’existe.
+- Source officielle : aucune dans le dossier de référence
+
+### GEO-ENTITE-PRODUIT-SANS-SCHEMA
+
+**Gravité** : mineur
+
+- Catégorie : entite ; classe : heuristique
+- Description : Page dont le h1 reprend (comparaison exacte après normalisation) le nom d’un produit ou service balisé sur une autre page, sans balisage Product, SoftwareApplication ou Service sur elle-même.
+- Preuve attendue : html : h1 de la page et page où le produit est balisé. Heuristique : aucune correspondance approximative.
+- Correction type : Si la page décrit bien ce produit ou service, y ajouter le balisage correspondant avec des valeurs visibles sur la page ; sinon ignorer.
+- Source officielle : aucune dans le dossier de référence
+
+### GEO-ENTITE-WIKIDATA-AMBIGU
+
+**Gravité** : information
+
+- Catégorie : entite ; classe : deterministe
+- Description : Plusieurs entrées Wikidata portent le même libellé que l’entité. Vérification optionnelle (`wikidata: true`), seulement si `www.wikidata.org` est un hôte autorisé ; sinon le statut reste `non_verifie`.
+- Preuve attendue : http : requête `wbsearchentities` et identifiants Q retournés.
+- Correction type : Aucune action automatique : le propriétaire vérifie quelle entrée le désigne, si elle existe (vérification manuelle).
+- Source officielle : aucune dans le dossier de référence

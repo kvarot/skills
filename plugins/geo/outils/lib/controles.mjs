@@ -45,8 +45,14 @@ export const CATALOGUE = [
   // données structurées
   def('GEO-JSONLD-INVALIDE', 'important', 'donnees-structurees', 'Bloc JSON-LD illisible (JSON invalide).'),
   def('GEO-JSONLD-AVIS-NON-VISIBLES', 'important', 'donnees-structurees', 'AggregateRating dont la note n’apparaît pas dans le texte visible de la page (arrondie à une décimale).', 'heuristique'),
-  // fraîcheur
   def('GEO-DATE-ABSENTE', 'mineur', 'contenu', 'Aucune date de publication ni de modification sur une page d’article ou de documentation.', 'heuristique'),
+  // entité (produits par outils/lib/entites.mjs)
+  def('GEO-ENTITE-SANS-ORGANIZATION', 'important', 'entite', 'Aucun JSON-LD d’organisation (Organization, LocalBusiness, Corporation ou sous-type) sur les pages explorées.'),
+  def('GEO-ENTITE-NOM-INCOHERENT', 'important', 'entite', 'Le nom de l’entité s’écrit de plusieurs façons (og:site_name, JSON-LD, suffixe du title), même après normalisation.'),
+  def('GEO-ENTITE-COORDONNEES-CONTRADICTOIRES', 'important', 'entite', 'Deux téléphones ou deux adresses différents dans les JSON-LD d’organisation du site.'),
+  def('GEO-ENTITE-SAMEAS-ABSENT', 'mineur', 'entite', 'Une organisation est déclarée en JSON-LD sans aucun sameAs vers ses profils officiels.'),
+  def('GEO-ENTITE-PRODUIT-SANS-SCHEMA', 'mineur', 'entite', 'Page dont le h1 reprend le nom d’un produit ou service balisé sur une autre page, sans balisage Product, SoftwareApplication ou Service sur elle-même.', 'heuristique'),
+  def('GEO-ENTITE-WIKIDATA-AMBIGU', 'information', 'entite', 'Plusieurs entrées Wikidata portent le même libellé que l’entité : à désambiguïser par le propriétaire (vérification optionnelle).'),
 ]
 
 const PAR_ID = new Map(CATALOGUE.map((e, i) => [e.id, { ...e, rang: i }]))
@@ -69,7 +75,7 @@ function cleChemin(u, hote) {
 const raisonErreur = (e) => texte(e?.raison ?? e?.erreur)
 
 // JSON-LD nodes (object, array members, @graph members), bounded depth.
-function noeuds(jsonld) {
+export function noeuds(jsonld) {
   const out = []
   const visiter = (x, prof) => {
     if (prof > 6 || x === null || typeof x !== 'object') return
@@ -80,7 +86,7 @@ function noeuds(jsonld) {
   for (const j of jsonld ?? []) if (j?.objet) visiter(j.objet, 0)
   return out
 }
-const types = (n) => [].concat(n?.['@type'] ?? []).map(String)
+export const types = (n) => [].concat(n?.['@type'] ?? []).map(String)
 
 const MOTIF_NOINDEX = /(^|[\s,:])(noindex|none)(?=$|[\s,])/i
 const MOTIF_NOSNIPPET = /(^|[\s,:])nosnippet(?=$|[\s,])|max-snippet\s*:\s*0(?![\d.])/i
