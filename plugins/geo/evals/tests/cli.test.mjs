@@ -422,10 +422,11 @@ function fichiersMd(dir) {
 
 const trouvaillesIdees = (texte) => trouverIdeesFausses(texte, registre)
 
-test('idees-fausses : le modèle de rapport et les .md des skills, références, commandes et agents ne reprennent aucune affirmation', () => {
+test('idees-fausses : le modèle de rapport et les .md des skills, références, agents, docs et de la racine du plugin ne reprennent aucune affirmation', () => {
   const modele = rapportMarkdown({ origine: 'https://x.example' }) + rapportMarkdown({ origine: 'https://x.example', constats: [], exploration: { pages: 3 } })
   assert.deepEqual(trouvaillesIdees(modele), [])
-  for (const f of ['skills', 'references', 'commands', 'agents'].flatMap((d) => fichiersMd(path.join(RACINE_GEO, d)))) {
+  const racineMd = fs.readdirSync(RACINE_GEO).filter((n) => n.endsWith('.md')).map((n) => path.join(RACINE_GEO, n))
+  for (const f of [...['skills', 'references', 'commands', 'agents', 'docs'].flatMap((d) => fichiersMd(path.join(RACINE_GEO, d))), ...racineMd]) {
     assert.deepEqual(trouvaillesIdees(fs.readFileSync(f, 'utf8')), [], f)
   }
 })

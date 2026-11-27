@@ -7,6 +7,8 @@ description: Use when building the set of realistic search queries or prompts th
 
 Lire d'abord `<base du skill>/../../references/scenarios.md`. Outils : `node <base du skill>/../../outils/geo.mjs <commande>`, **une commande `node` seule par appel**, sans `cd` ni enchaînement.
 
+Si ce n'est pas déjà fait dans cette session, lancer d'abord `node <base du skill>/../../outils/geo.mjs init` (il efface tout accord réseau resté d'une session précédente).
+
 ## Règles qui ne plient pas
 
 1. **Le profil est confirmé par l'utilisateur** avant toute génération ; un profil deviné produit une mesure sans valeur.

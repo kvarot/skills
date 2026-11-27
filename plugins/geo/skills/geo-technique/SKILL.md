@@ -7,6 +7,8 @@ description: Use when the question is about how AI crawlers and answer engines c
 
 Lire d'abord `<base du skill>/../../references/robots-ia.md` et, pour chaque constat cité, sa fiche dans `<base du skill>/../../references/constats.md`. Outils : `node <base du skill>/../../outils/geo.mjs <commande>`, **une commande `node` seule par appel**, sans `cd` ni enchaînement.
 
+Si ce n'est pas déjà fait dans cette session, lancer d'abord `node <base du skill>/../../outils/geo.mjs init` (il efface tout accord réseau resté d'une session précédente).
+
 ## Règles qui ne plient pas
 
 1. **Aucune lecture du site hors de `geo.mjs`** : ni WebFetch, ni navigateur, ni `curl`. L'hôte doit avoir été accepté dans la session (skill `geo` : `init`, liste des hôtes, oui explicite, puis `geo.mjs autoriser <hôte>`). `--hotes-autorises` et `--autoriser-local` sont **interdites au modèle**. Code de sortie 3 = demander l'accord, jamais contourner.

@@ -7,6 +7,8 @@ description: Use when the question is about how AI assistants identify the brand
 
 Lire d'abord `<base du skill>/../../references/entites.md` et, pour chaque constat cité, `<base du skill>/../../references/constats.md`. Outils : `node <base du skill>/../../outils/geo.mjs <commande>`, **une commande `node` seule par appel**, sans `cd` ni enchaînement.
 
+Si ce n'est pas déjà fait dans cette session, lancer d'abord `node <base du skill>/../../outils/geo.mjs init` (il efface tout accord réseau resté d'une session précédente).
+
 ## Règles qui ne plient pas
 
 1. **Aucune valeur inventée** : ni téléphone, ni adresse, ni immatriculation, ni horaires, ni note, ni profil `sameAs` absents du site ou du profil officiel réel. Champ inconnu = absent, demandé au propriétaire.

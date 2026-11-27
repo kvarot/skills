@@ -7,6 +7,8 @@ description: Use when the question is whether a site's text can be quoted or ext
 
 Lire d'abord `<base du skill>/../../references/citabilite.md` (critères, origine, limites) et, pour les constats `GEO-CONTENU-*`, `<base du skill>/../../references/constats.md`. Outils : `node <base du skill>/../../outils/geo.mjs <commande>`, **une commande `node` seule par appel**, sans `cd` ni enchaînement.
 
+Si ce n'est pas déjà fait dans cette session, lancer d'abord `node <base du skill>/../../outils/geo.mjs init` (il efface tout accord réseau resté d'une session précédente).
+
 ## Règles qui ne plient pas
 
 1. **Les critères décrivent la facilité d'extraction, pas une probabilité d'être cité.** Aucun gain chiffré promis.

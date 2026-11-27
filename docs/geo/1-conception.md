@@ -276,6 +276,8 @@ Parseurs Apache / Nginx (format combiné), JSON Cloudflare / CloudFront / Fastly
 6. **Description de `seo`** (décision du mainteneur, 2026-11-27). La mention « or GEO, AI answer engines » est retirée de la description de `plugins/seo/skills/seo/SKILL.md` ; les demandes de visibilité dans les IA y sont renvoyées vers `geo`. Évaluations de déclenchement de `seo` relancées ; celles de `geo` couvrent le cas « deux plugins installés ».
 7. **Mode gratuit.** = aucun appel facturable : audit, scénarios, logs, rapports, imports `manuel`, proxy `session`. Tout appel à une API externe, même couvert par un quota gratuit, passe par `estimer` et demande l'accord ; un quota gratuit s'affiche « 0 USD estimé (quota gratuit, non garanti) ». Les connecteurs `session` et `manuel` arrivent en 0.2 avec la mesure.
 
+8. **Point d'entrée unique** (décision du mainteneur, 2026-11-27, appliquée en 0.1). Il n'y a **pas** de dossier `commands/` ni de fichier `commands/geo.md` : le skill `geo` est le seul point d'entrée et interprète lui-même `/geo <sous-commande> [url]`. Les mentions de `commands/geo.md` en §7.1 et de la colonne « Sous-commandes `/geo` » en §7.2 décrivent la conception d'origine ; le skill `geo` porte la table des sous-commandes (disponibles en 0.1, prévues en 0.2 ou 0.3).
+
 ## 11. Laissé au constructeur
 
 - Noms exacts des colonnes et index SQLite, découpage interne des modules.
