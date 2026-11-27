@@ -1,6 +1,6 @@
 {
   "name": "geo",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Audit GEO/AEO d'un site : ce qu'il offre aux moteurs de réponse IA (accès des robots, contenu citable, identité), avec des preuves rejouables ; outils déterministes en Node. Mesure de la visibilité prévue en 0.2.",
   "author": { "name": "kvarot" },
   "license": "MIT"

@@ -310,3 +310,84 @@ test('wikidata : nom de recherche = nom d’organisation, puis og:site_name, jam
   assert.match(appels[0], /search=Org%20Nom/)
   assert.match(appels[1], /search=Og%20Nom/)
 })
+
+// --- 0.1.1 : annuaires et places de marché : entités tierces listées par le site ---------------
+
+const fiche = (chemin, type, nom, telephone, rue) => page(chemin, {
+  title: `${nom} | Annuaire Santé`, hn: [{ niveau: 1, texte: nom }],
+  jsonld: [ld({ '@context': 'https://schema.org', '@type': type, name: nom, url: O + chemin, telephone, address: { '@type': 'PostalAddress', streetAddress: rue, postalCode: '75001' } })],
+})
+const annuaire = (extra = []) => collecte([
+  page('/', { ogSiteName: 'Annuaire Santé', jsonld: [ld(org({ name: 'Annuaire Santé', url: O + '/', telephone: '01 00 00 00 01', sameAs: ['https://profil.example/annuaire'] })), ld({ '@type': 'WebSite', name: 'Annuaire Santé' })] }),
+  fiche('/praticiens/jeanne-exemple', 'Physician', 'Jeanne Exemple', '01 11 11 11 11', '1 rue Une'),
+  fiche('/praticiens/paul-test', 'LocalBusiness', 'Cabinet Paul Test', '01 22 22 22 22', '2 rue Deux'),
+  fiche('/praticiens/lea-fictive', 'MedicalBusiness', 'Léa Fictive', '01 33 33 33 33', '3 rue Trois'),
+  ...extra,
+])
+
+test('annuaire : fiches Physician / LocalBusiness à url propre = entités tierces, aucune incohérence', async () => {
+  const r = await analyserEntite(annuaire())
+  assert.equal(trouver(r, 'GEO-ENTITE-NOM-INCOHERENT'), undefined)
+  assert.equal(trouver(r, 'GEO-ENTITE-COORDONNEES-CONTRADICTOIRES'), undefined)
+  assert.equal(trouver(r, 'GEO-ENTITE-SAMEAS-ABSENT'), undefined)
+  assert.equal(trouver(r, 'GEO-ENTITE-SANS-ORGANIZATION'), undefined)
+  assert.equal(r.entites_tierces, 3)
+  const c = trouver(r, 'GEO-ENTITE-ENTITES-TIERCES')
+  assert.equal(c.severite, 'information')
+  assert.equal(c.pages.length, 3)
+  assert.match(c.extrait.extrait, /Cabinet Paul Test/)
+  assert.deepEqual(r.noms.map((n) => n.valeur), ['Annuaire Santé'])
+  assert.deepEqual(r.types, ['Organization'])
+  assert.equal(r.coordonnees.telephones.length, 1)
+  // identite-numerique: the listed entities cost nothing (same value as the home page alone).
+  const { calculerScores } = await import('../../outils/lib/scores.mjs')
+  const identite = async (c) => calculerScores({ constats: [], contenu: [], entite: await analyserEntite(c), pages: c.pages, collecte: c }).find((x) => x.id === 'identite-numerique')
+  const avec = await identite(annuaire())
+  const seul = await identite(collecte(annuaire().pages.slice(0, 1)))
+  assert.equal(avec.valeur, seul.valeur)
+  for (const id of ['organisation-declaree', 'nom-coherent', 'coordonnees-coherentes', 'sameas-present']) assert.equal(avec.criteres.find((x) => x.id === id).acquis, 1, id)
+})
+
+test('annuaire : sans url, un nom repris par le h1 de la fiche suffit ; une fiche au nom du site reste comparée', async () => {
+  const sansUrl = (chemin, nom, tel) => page(chemin, { hn: [{ niveau: 1, texte: `Dr ${nom}, ostéopathe` }], jsonld: [ld({ '@type': 'Physician', name: nom, telephone: tel })] })
+  const r = await analyserEntite(annuaire([sansUrl('/p/a', 'Anne Exemple', '01 44 44 44 44')]))
+  assert.equal(r.entites_tierces, 4)
+  assert.equal(trouver(r, 'GEO-ENTITE-COORDONNEES-CONTRADICTOIRES'), undefined)
+  // A profile node named like the site (variant included) is about the site: its phone is compared.
+  const meme = await analyserEntite(annuaire([page('/contact', { jsonld: [ld(org({ name: 'Annuaire Santé SAS', url: O + '/contact', telephone: '01 99 99 99 99' }))] })]))
+  assert.ok(trouver(meme, 'GEO-ENTITE-COORDONNEES-CONTRADICTOIRES'))
+  assert.equal(meme.entites_tierces, 3)
+})
+
+test('site réellement incohérent : deux organisations du site (accueil, racine) aux noms ou téléphones différents restent signalées', async () => {
+  const r = await analyserEntite(collecte([
+    page('/', { ogSiteName: 'Atelier Nord', jsonld: [ld(org({ telephone: '01 23 45 67 89' }))] }),
+    page('/a-propos', { hn: [{ niveau: 1, texte: 'Atelier du Sud' }], jsonld: [ld(org({ name: 'Atelier du Sud', '@id': O + '/#organisation', telephone: '04 11 22 33 44' }))] }),
+  ]))
+  assert.ok(trouver(r, 'GEO-ENTITE-NOM-INCOHERENT'))
+  assert.ok(trouver(r, 'GEO-ENTITE-COORDONNEES-CONTRADICTOIRES'))
+  assert.equal(r.entites_tierces, 0)
+  assert.equal(trouver(r, 'GEO-ENTITE-ENTITES-TIERCES'), undefined)
+  // A node with no url, no h1 match and another name stays the site's (existing rule): still flagged.
+  const sansIndice = await analyserEntite(collecte([page('/', { ogSiteName: 'Atelier Nord' }), page('/contact', { jsonld: [ld(org({ name: 'Atelier du Nord SARL', url: '#x' }))] })]))
+  assert.ok(trouver(sansIndice, 'GEO-ENTITE-NOM-INCOHERENT'))
+})
+
+test('entités tierces : jamais sans nom du site connu ; seules tierces = pas d’organisation du site', async () => {
+  // No site name at all (no og:site_name, WebSite, --marque, home or root organisation): nothing is set aside.
+  const r = await analyserEntite(collecte([fiche('/p/a', 'Physician', 'Anne Exemple', '01 11 11 11 11', '1 rue Une'), fiche('/p/b', 'Physician', 'Bruno Test', '01 22 22 22 22', '2 rue Deux')]))
+  assert.equal(r.entites_tierces, 0)
+  assert.ok(trouver(r, 'GEO-ENTITE-COORDONNEES-CONTRADICTOIRES'))
+  // The site names itself, but only listed entities carry an organisation node.
+  const seules = await analyserEntite(collecte([page('/', { ogSiteName: 'Annuaire Santé' }), fiche('/p/a', 'Physician', 'Anne Exemple', '01 11 11 11 11', '1 rue Une')]))
+  assert.equal(seules.entites_tierces, 1)
+  assert.match(trouver(seules, 'GEO-ENTITE-SANS-ORGANIZATION').preuve.detail, /hors 1 entité\(s\) tierce\(s\)/)
+  assert.equal(trouver(seules, 'GEO-ENTITE-SAMEAS-ABSENT'), undefined)
+  // Mode dossier: page URLs are paths, the root is still recognised.
+  const dossier = await analyserEntite({ pages: [
+    { url: '/', lang: 'fr', ogSiteName: 'Annuaire Santé', hn: [], jsonld: [ld(org({ name: 'Annuaire Santé', telephone: '0100000001' }))], profondeur: 0 },
+    { url: '/p/a', lang: 'fr', hn: [{ niveau: 1, texte: 'Anne Exemple' }], jsonld: [ld({ '@type': 'Physician', name: 'Anne Exemple', url: '/p/a', telephone: '0111111111' })], profondeur: 2 },
+  ], site: { racine: null } })
+  assert.equal(dossier.entites_tierces, 1)
+  assert.equal(trouver(dossier, 'GEO-ENTITE-COORDONNEES-CONTRADICTOIRES'), undefined)
+})

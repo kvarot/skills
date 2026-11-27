@@ -22,7 +22,7 @@ test('plugin.json et licences', () => {
   const p = lireJson('plugins/geo/.claude-plugin/plugin.json')
   assert.equal(p.name, 'geo')
   assert.equal(p.license, 'MIT')
-  assert.equal(p.version, '0.1.0')
+  assert.equal(p.version, '0.1.1')
   assert.match(readFileSync(path.join(RACINE, 'plugins/geo/LICENSE'), 'utf8'), /MIT License/)
   assert.match(readFileSync(path.join(RACINE, 'LICENSE'), 'utf8'), /plugins\/geo\//)
 })
@@ -61,7 +61,7 @@ test('cheminDonnees : GEO_HOME sinon <cwd>/.claude/geo', async () => {
 test('CLI : --version et commande inconnue', () => {
   const v = spawnSync(process.execPath, [GEO, '--version'], { encoding: 'utf8' })
   assert.equal(v.status, 0)
-  assert.deepEqual(JSON.parse(v.stdout), { version: '0.1.0' })
+  assert.deepEqual(JSON.parse(v.stdout), { version: '0.1.1' })
   const i = spawnSync(process.execPath, [GEO, 'inconnue'], { encoding: 'utf8' })
   assert.equal(i.status, 1)
   assert.equal(i.stdout, '')

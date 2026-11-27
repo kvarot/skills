@@ -3,6 +3,21 @@
   "faux_positifs_total": 0,
   "rappel_total": 1,
   "sites": {
+    "annuaire": {
+      "attendus": [
+        "GEO-ENTITE-ENTITES-TIERCES"
+      ],
+      "faux_positifs": [],
+      "manquants": [],
+      "rappel": 1,
+      "tolere": [],
+      "trouves": [
+        "GEO-CANONICAL-ABSENT",
+        "GEO-ENTITE-ENTITES-TIERCES",
+        "GEO-LLMSTXT",
+        "GEO-ROBOTS-ENTRAINEMENT-POLITIQUE"
+      ]
+    },
     "bloque-ia": {
       "attendus": [
         "GEO-ROBOTS-CONSULTATION-BLOQUE",

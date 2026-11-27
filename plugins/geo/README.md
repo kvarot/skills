@@ -2,7 +2,7 @@
 
 Audit **GEO / AEO** d'un site web : ce que le site offre aux moteurs de réponse IA (ChatGPT, Claude, Perplexity, Gemini, Google AI Overviews…), avec des preuves rejouables. Plugin Claude Code, outils Node sans dépendance, licence MIT.
 
-**Version 0.1.0.** Elle audite et diagnostique ; elle ne **mesure** encore aucune réponse d'assistant (voir « Non mesuré »).
+**Version 0.1.1.** Elle audite et diagnostique ; elle ne **mesure** encore aucune réponse d'assistant (voir « Non mesuré »).
 
 ## Installation
 
@@ -61,7 +61,7 @@ Tout ce que fait la version 0.1 est gratuit : audit, scénarios, scores, rapport
 
 - **Technique** : réponses HTTP, `noindex`, `robots.txt`, sitemap, canonical, hreflang, titres, données structurées JSON-LD, défi CDN / WAF, pages vides sans JavaScript.
 - **Robots IA** : politique observée dans `robots.txt` pour chaque robot d'un registre sourcé (`donnees/robots.json`), séparée par rôle (indexation, consultation à la demande, entraînement, contrôle). Le plugin ne recommande jamais d'autoriser les robots d'entraînement.
-- **Entités** : Organization / LocalBusiness / Product, `sameAs`, cohérence du nom et des coordonnées.
+- **Entités** : Organization / LocalBusiness / Product, `sameAs`, cohérence du nom et des coordonnées. Sur un annuaire ou une place de marché, les fiches qui décrivent d'autres entités (praticiens, commerces) sont reconnues comme entités tierces et ne sont pas comparées à l'identité du site.
 - **Contenu** (français et anglais) : définitions, chiffres, sources, passages autonomes, auteur, date ; un agent en lecture seule donne un avis qualitatif séparé des scores.
 - **Scores de potentiel** sur 100, avec couverture et critères non calculés : voir [SCORING.md](SCORING.md).
 
@@ -91,7 +91,7 @@ Chaque plateforme (ChatGPT, Claude, Gemini, Perplexity, Copilot, Google AI Overv
 node --test "plugins/geo/evals/tests/*.test.mjs"
 ```
 
-Aucun test ne sort sur Internet. Les sites de référence à défauts semés (`evals/sites/`, tous fictifs) mesurent rappel et faux positifs (`evals/resultats-sites-v0.1.json`). Le chiffre de faux positifs (0) est mesuré sur les listes `interdits` et `absents` des **7 sites de référence**, écrites en même temps que les règles : il montre que ces cas connus ne se déclenchent pas, il ne se généralise pas à des sites réels. L'évaluation de déclenchement (`evals/eval-declenchement.mjs`) lance `claude -p` et n'est pas dans la suite.
+Aucun test ne sort sur Internet. Les sites de référence à défauts semés (`evals/sites/`, tous fictifs) mesurent rappel et faux positifs (`evals/resultats-sites-v0.1.json`). Le chiffre de faux positifs (0) est mesuré sur les listes `interdits` et `absents` des **8 sites de référence**, écrites en même temps que les règles : il montre que ces cas connus ne se déclenchent pas, il ne se généralise pas à des sites réels. L'évaluation de déclenchement (`evals/eval-declenchement.mjs`) lance `claude -p` et n'est pas dans la suite.
 
 ## Documentation
 

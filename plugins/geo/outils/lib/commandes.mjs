@@ -14,7 +14,7 @@ import { genererScenarios, figerJeu } from './scenarios.mjs'
 import { ouvrirBase } from './base.mjs'
 import { rapportMarkdown, rapportJson, passagesComplets, resumerEntite, assainirConstat, PASSAGES_PAR_LOT } from './rapports.mjs'
 
-export const VERSION = '0.1.0'
+export const VERSION = '0.1.1'
 const HOTE_WIKIDATA = 'www.wikidata.org'
 
 export const USAGE = `Usage : node geo.mjs <commande> [options]

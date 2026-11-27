@@ -85,6 +85,34 @@ function nomsCompatibles(a, b) {
   return ` ${long} `.includes(` ${court} `)
 }
 
+// --- site's own entity vs listed third-party entities (directories, marketplaces) ---
+
+// Folder-mode page URLs are paths: resolved against a placeholder origin.
+const DOSSIER = 'http://dossier.invalid'
+const absolue = (u) => /^https?:\/\//i.test(u)
+const baseDe = (u) => (absolue(u) ? u : DOSSIER + (String(u).startsWith('/') ? u : '/' + u))
+const sansWww = (h) => String(h).toLowerCase().replace(/^www\./, '')
+const estAccueil = (p) => p.profondeur === 0 || (() => { try { return new URL(baseDe(p.url)).pathname === '/' } catch { return false } })()
+
+// Where the node's own url / @id points: 'racine' (the site root: same host, www. ignored, path / and no query),
+// 'autre' (any other page or host), or null (none usable). Fragment-only and blank values ("#org", "_:b0") name the
+// node inside the page and are ignored. In folder mode the host is unknown: any absolute URL with path / is the root.
+function cibleNoeud(n, pageUrl) {
+  const valeurs = [...chaines(n.url), ...chaines(n['@id'])].filter((v) => !v.startsWith('#') && !v.startsWith('_:'))
+  let page
+  try { page = new URL(baseDe(pageUrl)) } catch { return null }
+  let res = null
+  for (const v of valeurs) {
+    let u
+    try { u = new URL(v, page) } catch { continue }
+    if (!/^https?:$/.test(u.protocol)) continue
+    const memeHote = !absolue(pageUrl) || sansWww(u.host) === sansWww(page.host)
+    if (memeHote && u.pathname === '/' && !u.search) return 'racine'
+    res = 'autre'
+  }
+  return res
+}
+
 const estOrganisation = (n) => types(n).some((t) => TYPES_ORGANISATION.has(t))
 const estProduit = (n) => types(n).some((t) => TYPES_PRODUIT.has(t))
 
@@ -148,7 +176,9 @@ async function chercherWikidata(nom, lang, client, { hote, api = API_WIKIDATA })
 
 // --- entry point ----------------------------------------------------------------
 
-// analyserEntite(collecte, { marque?, client?, wikidata = false, apiWikidata? }) -> Promise<{ noms, types, sameAs, coordonnees, wikidata, constats }>
+// analyserEntite(collecte, { marque?, client?, wikidata = false, apiWikidata? }) -> Promise<{ noms, types, sameAs, coordonnees, entites_tierces, wikidata, constats }>
+// Only the site's own organisation nodes feed names, contacts, sameAs and SANS-ORGANIZATION; listed third-party
+// entities are counted in entites_tierces (distinct names).
 // apiWikidata only exists for tests (a local server standing for the Wikidata API). Never throws on a partial Collecte or odd JSON-LD.
 export async function analyserEntite(collecte, { marque, client, wikidata = false, apiWikidata = API_WIKIDATA } = {}) {
   const pages = (Array.isArray(collecte?.pages) ? collecte.pages : []).filter((p) => p && typeof p.url === 'string')
@@ -163,23 +193,23 @@ export async function analyserEntite(collecte, { marque, client, wikidata = fals
     g.sources.push({ url, champ })
     noms.set(cle, g)
   }
-  const orgs = [] // { n, url }
-  let premierNomOrg = null
+  const candidats = [] // every top-level organisation node: { n, url, accueil, cible, h1 }
   let premierOg = null
   const produits = [] // { cle, url }
   const parPage = new Map() // url -> has a product-like node
+  const nomsSite = new Set() // normalised names that designate the site itself (see references/entites.md)
   for (const p of pages) {
-    if (typeof p.ogSiteName === 'string') { ajouterNom(p.ogSiteName, p.url, 'og:site_name'); if (p.ogSiteName.trim()) premierOg ??= p.ogSiteName.trim() }
+    if (typeof p.ogSiteName === 'string') { ajouterNom(p.ogSiteName, p.url, 'og:site_name'); if (p.ogSiteName.trim()) premierOg ??= p.ogSiteName.trim(); nomsSite.add(normaliserNom(p.ogSiteName)) }
     const suf = suffixeTitle(p.title)
     if (suf) ajouterNom(suf, p.url, 'title')
+    const accueil = estAccueil(p)
+    const h1 = (Array.isArray(p.hn) ? p.hn : []).find((h) => h?.niveau === 1 && typeof h.texte === 'string')
     let aProduit = false
     for (const n of noeudsHaut(p.jsonld)) {
       if (estOrganisation(n)) {
-        orgs.push({ n, url: p.url })
-        const t = types(n).find((x) => TYPES_ORGANISATION.has(x))
-        for (const nom of chaines(n.name)) { ajouterNom(nom, p.url, `jsonld:${t}.name`); premierNomOrg ??= nom }
+        candidats.push({ n, url: p.url, accueil, cible: cibleNoeud(n, p.url), h1: h1 ? normaliserNom(h1.texte) : '' })
       } else if (types(n).includes('WebSite')) {
-        for (const nom of chaines(n.name)) ajouterNom(nom, p.url, 'jsonld:WebSite.name')
+        for (const nom of chaines(n.name)) { ajouterNom(nom, p.url, 'jsonld:WebSite.name'); nomsSite.add(normaliserNom(nom)) }
       }
       if (estProduit(n)) {
         aProduit = true
@@ -189,7 +219,30 @@ export async function analyserEntite(collecte, { marque, client, wikidata = fals
     }
     parPage.set(p.url, aProduit)
   }
-  if (typeof marque === 'string' && normaliserNom(marque)) ajouterNom(marque, null, 'option:marque')
+  if (typeof marque === 'string' && normaliserNom(marque)) { ajouterNom(marque, null, 'option:marque'); nomsSite.add(normaliserNom(marque)) }
+
+  // Anchors: organisation nodes that are about the site by position or address (home page without a url elsewhere,
+  // or url / @id on the site root). Their names designate the site too.
+  const ancre = (o) => o.cible === 'racine' || (o.accueil && o.cible !== 'autre')
+  for (const o of candidats) if (ancre(o)) for (const nom of chaines(o.n.name)) nomsSite.add(normaliserNom(nom))
+  nomsSite.delete('')
+  // Listed third-party entity: not an anchor, every name distinct from the site's names, and either an own url
+  // elsewhere (profile path, other host) or a name carried by the page's h1 outside the home page. Never decided
+  // without a known site name, and a node without name is never set aside.
+  const tierce = (o) => {
+    if (!nomsSite.size || ancre(o)) return false
+    const ses = chaines(o.n.name).map(normaliserNom).filter(Boolean)
+    if (!ses.length || ses.some((k) => [...nomsSite].some((s) => nomsCompatibles(k, s)))) return false
+    return o.cible === 'autre' || (!o.accueil && !!o.h1 && ses.some((k) => ` ${o.h1} `.includes(` ${k} `)))
+  }
+  const orgs = [], tierces = []
+  for (const o of candidats) (tierce(o) ? tierces : orgs).push(o)
+  const nomsTiers = unique(tierces.flatMap(({ n }) => chaines(n.name).map(normaliserNom)).filter(Boolean))
+  let premierNomOrg = null
+  for (const { n, url } of orgs) {
+    const t = types(n).find((x) => TYPES_ORGANISATION.has(x))
+    for (const nom of chaines(n.name)) { ajouterNom(nom, url, `jsonld:${t}.name`); premierNomOrg ??= nom }
+  }
   const listeNoms = [...noms.values()]
     .map((g) => ({ valeur: g.valeur, sources: g.sources.sort((a, b) => triTexte(String(a.url) + a.champ, String(b.url) + b.champ)) }))
     .sort((a, b) => triTexte(a.valeur, b.valeur))
@@ -216,7 +269,7 @@ export async function analyserEntite(collecte, { marque, client, wikidata = fals
   const urlsOrg = orgs.map((o) => o.url)
 
   if (pages.length && orgs.length === 0) {
-    constats.push(constat('GEO-ENTITE-SANS-ORGANIZATION', [], { type: 'jsonld', url: pages[0].url, detail: `aucun nœud JSON-LD de type organisation sur ${pages.length} page(s) explorée(s)` }, 'Aucune organisation n’est déclarée en JSON-LD sur les pages explorées.'))
+    constats.push(constat('GEO-ENTITE-SANS-ORGANIZATION', [], { type: 'jsonld', url: pages[0].url, detail: `aucun nœud JSON-LD de type organisation sur ${pages.length} page(s) explorée(s)${tierces.length ? ` (hors ${nomsTiers.length} entité(s) tierce(s) listée(s) par le site)` : ''}` }, 'Aucune organisation n’est déclarée en JSON-LD sur les pages explorées.'))
   }
 
   // The title suffix only corroborates: incoherence is judged on og:site_name, JSON-LD names and the brand option.
@@ -244,6 +297,15 @@ export async function analyserEntite(collecte, { marque, client, wikidata = fals
 
   if (orgs.length && sameAs.length === 0) {
     constats.push(constat('GEO-ENTITE-SAMEAS-ABSENT', urlsOrg, { type: 'jsonld', url: urlsOrg[0], detail: 'propriété sameAs absente de tous les nœuds d’organisation' }, 'L’organisation n’a aucun sameAs vers ses profils officiels.'))
+  }
+
+  // Information only: the listed entities were recognised and set aside (never compared with the site's identity).
+  if (tierces.length) {
+    const urlsTiers = unique(tierces.map((o) => o.url)).sort(triTexte)
+    const exemples = unique(tierces.map(({ n }) => chaines(n.name)[0])).sort(triTexte).slice(0, 3)
+    constats.push(constat('GEO-ENTITE-ENTITES-TIERCES', urlsTiers,
+      { type: 'jsonld', url: urlsTiers[0], detail: `${nomsTiers.length} entité(s) tierce(s) sur ${urlsTiers.length} page(s) : nœuds d’organisation hors accueil et hors racine du site, avec une url propre ou un nom repris par le h1, et un nom distinct de celui du site` },
+      `${nomsTiers.length} entité(s) listée(s) par le site (fiches, établissements) reconnue(s) comme tierce(s) : elles ne sont pas comparées à l’identité du site.`, { extrait: extrait(exemples.join(' ; ')) }))
   }
 
   // Narrow heuristic: exact (normalised) h1 == a product name declared on ANOTHER page, page itself without such a node.
@@ -285,6 +347,7 @@ export async function analyserEntite(collecte, { marque, client, wikidata = fals
     types: typesOrg,
     sameAs: unique(sameAs).sort(triTexte),
     coordonnees,
+    entites_tierces: nomsTiers.length,
     wikidata: wd,
     constats: constats.sort((a, b) => a.rang - b.rang).map(({ rang, ...reste }) => reste),
   }

@@ -59,6 +59,7 @@ export const CATALOGUE = [
   def('GEO-ENTITE-COORDONNEES-CONTRADICTOIRES', 'important', 'entite', 'Deux téléphones ou deux adresses différents dans les JSON-LD d’organisation du site.'),
   def('GEO-ENTITE-SAMEAS-ABSENT', 'mineur', 'entite', 'Une organisation est déclarée en JSON-LD sans aucun sameAs vers ses profils officiels.'),
   def('GEO-ENTITE-PRODUIT-SANS-SCHEMA', 'mineur', 'entite', 'Page dont le h1 reprend le nom d’un produit ou service balisé sur une autre page, sans balisage Product, SoftwareApplication ou Service sur elle-même.', 'heuristique'),
+  def('GEO-ENTITE-ENTITES-TIERCES', 'information', 'entite', 'Nœuds JSON-LD d’organisation reconnus comme des entités tierces listées par le site (fiches de professionnels, établissements d’un annuaire ou d’une place de marché) : ils ne sont pas comparés à l’identité du site.'),
   def('GEO-ENTITE-WIKIDATA-AMBIGU', 'information', 'entite', 'Plusieurs entrées Wikidata portent le même libellé que l’entité (ou déclarent toutes l’hôte audité comme site officiel P856) : à désambiguïser par le propriétaire (vérification optionnelle).'),
 ]
 

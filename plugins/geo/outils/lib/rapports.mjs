@@ -152,6 +152,7 @@ function sectionEntite(entite) {
     `- Types : ${tab(e.types).map(md).join(', ') || 'aucun'}.`,
     `- Profils sameAs : ${tab(e.sameAs).length}.`,
   ]
+  if (Number.isInteger(e.entites_tierces) && e.entites_tierces > 0) lignes.push(`- Entités tierces listées par le site (non comparées à son identité) : ${e.entites_tierces}.`)
   const w = obj(e.wikidata)
   if (w.statut) lignes.push(`- Wikidata : ${LIBELLES_WIKIDATA[w.statut] ?? md(w.statut)}${tab(w.ids).length ? ' : ' + tab(w.ids).map(md).join(', ') : ''}${w.raison ? ' (' + md(w.raison) + ')' : ''}.`)
   if (tab(e.constats).length) lignes.push('- Constats d\'entité : ' + tab(e.constats).map((c) => cellule(c.id)).join(', ') + '.')
@@ -281,6 +282,7 @@ export function resumerEntite(entite) {
       adresses: tab(obj(e.coordonnees).adresses).length,
       emails: tab(obj(e.coordonnees).emails).length,
     },
+    entites_tierces: Number.isInteger(e.entites_tierces) && e.entites_tierces > 0 ? e.entites_tierces : 0,
     // Third-party answer: only the status word and well-formed ids stay raw; the reason is an excerpt.
     wikidata: {
       statut: STATUTS_WIKIDATA.includes(w.statut) ? w.statut : 'non_verifie',

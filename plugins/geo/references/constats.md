@@ -444,6 +444,16 @@ Ces constats sont produits par `outils/lib/entites.mjs`. Les valeurs relevées v
 - Correction type : Si la page décrit bien ce produit ou service, y ajouter le balisage correspondant avec des valeurs visibles sur la page ; sinon ignorer.
 - Source officielle : aucune dans le dossier de référence
 
+### GEO-ENTITE-ENTITES-TIERCES
+
+**Gravité** : information
+
+- Catégorie : entite ; classe : deterministe
+- Description : Nœuds JSON-LD d’organisation reconnus comme des entités tierces listées par le site (fiches de professionnels, établissements d’un annuaire ou d’une place de marché) : ils ne sont pas comparés à l’identité du site. Un nœud est tiers quand il n’est ni sur la page d’accueil ni rattaché à la racine du site, que son nom est distinct de tous les noms du site (`og:site_name`, `WebSite.name`, `--marque`, organisation de l’accueil ou de la racine) et qu’il porte une `url` (ou un `@id`) propre hors racine, ou un nom repris par le `h1` de sa page. Ils n’alimentent ni `GEO-ENTITE-NOM-INCOHERENT`, ni `GEO-ENTITE-COORDONNEES-CONTRADICTOIRES`, ni `GEO-ENTITE-SAMEAS-ABSENT`, ni `GEO-ENTITE-SANS-ORGANIZATION` ; leur nombre (noms distincts) est donné dans `entite.entites_tierces`. Règle détaillée : `references/entites.md`.
+- Preuve attendue : jsonld : pages portant ces nœuds, nombre d’entités et trois noms au plus en extrait.
+- Correction type : Aucune : ce constat indique seulement que l’outil a reconnu des entités listées. Si l’une d’elles est en réalité l’entité du site, lui donner le nom du site ou une `url` sur la racine.
+- Source officielle : aucune dans le dossier de référence
+
 ### GEO-ENTITE-WIKIDATA-AMBIGU
 
 **Gravité** : information

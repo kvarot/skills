@@ -2,6 +2,19 @@
 
 Format : une section par version.
 
+## 0.1.1
+
+### Corrigé
+
+- `robots.txt` redirigé vers un hôte non autorisé : `auditer` (et `robots`) s'arrête en code 3 en nommant cet hôte, comme pour une page de départ redirigée, sans constat ni enregistrement ; le skill demande l'accord pour cet hôte. Auparavant : « robots.txt inaccessible », zéro page et faux constat bloquant `GEO-ROBOTSTXT-INACCESSIBLE`.
+- Redirections de `robots.txt` suivies saut par saut (cinq au plus, RFC 9309), vers un hôte autorisé ; au-delà, boucle ou redirection inutilisable : robots.txt indisponible, traité comme un 4xx (aucune restriction, raison dans `erreurs`). `GEO-ROBOTSTXT-INACCESSIBLE` ne signifie plus qu'une vraie erreur 5xx ou réseau.
+- Annuaires et places de marché : les nœuds d'organisation des fiches (praticiens, commerces…) qui ont leur propre `url` ou un nom repris par le `h1`, et un nom distinct de celui du site, sont des **entités tierces** : ils ne produisent plus de faux `GEO-ENTITE-NOM-INCOHERENT` ni `GEO-ENTITE-COORDONNEES-CONTRADICTOIRES`, et ne pèsent plus sur `identite-numerique`. Règle dans `references/entites.md`.
+
+### Ajouté
+
+- `entite.entites_tierces` (nombre de noms distincts) et constat d'information `GEO-ENTITE-ENTITES-TIERCES`, sans effet sur les scores.
+- Site de référence fictif `evals/sites/annuaire` (8 sites de référence).
+
 ## 0.1.0
 
 Première version.
