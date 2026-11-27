@@ -47,6 +47,11 @@ export const CATALOGUE = [
   def('GEO-JSONLD-AVIS-NON-VISIBLES', 'important', 'donnees-structurees', 'AggregateRating dont la note n’apparaît pas dans le texte visible de la page (arrondie à une décimale).', 'heuristique'),
   // fraîcheur
   def('GEO-DATE-ABSENTE', 'mineur', 'contenu', 'Aucune date de publication ni de modification sur une page d’article ou de documentation.', 'heuristique'),
+  // contenu (produits par outils/lib/contenu.mjs)
+  def('GEO-CONTENU-AUCUNE-DEFINITION', 'mineur', 'contenu', 'Aucun passage de la page ne s’ouvre sur une définition (motif « X est un… » / « X is a… » dans les deux premières phrases).', 'heuristique'),
+  def('GEO-CONTENU-SANS-SOURCE', 'mineur', 'contenu', 'Aucun passage de la page ne cite de source (lien externe dans le passage ou formule « selon… » / « according to… »).', 'heuristique'),
+  def('GEO-CONTENU-AUTEUR-ABSENT', 'mineur', 'contenu', 'Aucun auteur déclaré sur une page dont le contenu a été analysé.', 'heuristique'),
+  def('GEO-CONTENU-PASSAGES-DEPENDANTS', 'mineur', 'contenu', 'Plus de la moitié des passages commencent par un pronom ou un connecteur qui renvoie au texte précédent (non autonomes).', 'heuristique'),
   // entité (produits par outils/lib/entites.mjs)
   def('GEO-ENTITE-SANS-ORGANIZATION', 'important', 'entite', 'Aucun JSON-LD d’organisation (Organization, LocalBusiness, Corporation ou sous-type) sur les pages explorées.'),
   def('GEO-ENTITE-NOM-INCOHERENT', 'important', 'entite', 'Le nom de l’entité s’écrit de plusieurs façons (og:site_name, JSON-LD, suffixe du title), même après normalisation.'),

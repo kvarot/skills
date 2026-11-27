@@ -201,3 +201,13 @@ test('blocs : <p> dans un li ou une cellule garde la structure liste / tableau',
   const m = extraire('<ul><li><p>Un</p><p>bis</p></li></ul>', 'u')
   assert.deepEqual(m.blocs, [{ type: 'liste', texte: 'Un bis' }])
 })
+
+test('entités : jeu Latin-1 nommé, ligatures, typographie et hexadécimal décodés', () => {
+  const f = extraire('<html><head><title>o&ugrave; &oelig;uvre &Euml;va &szlig; &ntilde; &uuml;</title></head><body><p>&laquo;&nbsp;Ça&nbsp;&raquo; &rsquo; &hellip; &euro; &scaron;&Scaron;&yuml;&Yuml; &OElig; &thinsp;x &#x27;a&#X27; &frac12; &times;</p></body></html>', 'https://ex.test/')
+  assert.equal(f.title, 'où œuvre Ëva ß ñ ü')
+  const t = f.blocs.find((b) => b.type === 'paragraphe').texte
+  assert.ok(t.includes('Ça') && t.includes('’ … € šŠÿŸ Œ'), t)
+  assert.ok(t.includes("'a'") && t.includes('½ ×'), t)
+  // Unknown names stay untouched.
+  assert.equal(extraire('<title>a &inconnue; b</title>', 'https://ex.test/').title, 'a &inconnue; b')
+})

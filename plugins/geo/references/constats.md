@@ -340,6 +340,46 @@ Chaque constat porte une preuve `{ type, url, detail }` reproductible. Les extra
 - Correction type : Afficher et baliser la date de publication et de mise à jour.
 - Source officielle : aucune dans le dossier de référence
 
+### GEO-CONTENU-AUCUNE-DEFINITION
+
+**Gravité** : mineur
+
+- Catégorie : contenu ; classe : heuristique
+- Description : Aucun passage de la page ne s’ouvre sur une définition : motif « X est un / une / des » (français) ou « X is a / an / the », « X are » (anglais) dans les deux premières phrases du passage, ou bloc de définition. Calculé seulement pour le français et l’anglais ; un sujet pronominal (« Il est un… », « C’est un… », « It is a… ») ne compte pas. Les blocs `nosnippet` sont exclus.
+- Preuve attendue : html : nombre de passages analysés, aucun ne présentant le motif.
+- Correction type : Si la page porte sur un sujet à définir, ouvrir la section concernée par une phrase de définition autonome ; sinon ignorer.
+- Source officielle : aucune dans le dossier de référence
+
+### GEO-CONTENU-SANS-SOURCE
+
+**Gravité** : mineur
+
+- Catégorie : contenu ; classe : heuristique
+- Description : Aucun passage ne cite de source : ni formule (« selon », « d’après », « source : », « according to »…), ni lien externe. Limite : les faits extraits ne rattachent pas les liens aux blocs ; un lien est rattaché à un passage quand son texte (3 caractères au moins) apparaît tel quel dans un bloc du passage et que son hôte diffère de celui de la page.
+- Preuve attendue : html : nombre de passages analysés, aucun ne citant de source.
+- Correction type : Attribuer les chiffres et affirmations vérifiables à leur source, avec un lien vers elle quand elle est en ligne.
+- Source officielle : aucune dans le dossier de référence
+
+### GEO-CONTENU-AUTEUR-ABSENT
+
+**Gravité** : mineur
+
+- Catégorie : contenu ; classe : heuristique
+- Description : Aucun auteur déclaré (meta author, lien rel="author" ou JSON-LD) sur une page dont au moins un passage a été analysé.
+- Preuve attendue : html : absence de meta author, de lien rel="author" et d’auteur JSON-LD.
+- Correction type : Afficher et baliser l’auteur réel quand la page est signée ; ne pas en inventer.
+- Source officielle : aucune dans le dossier de référence
+
+### GEO-CONTENU-PASSAGES-DEPENDANTS
+
+**Gravité** : mineur
+
+- Catégorie : contenu ; classe : heuristique
+- Description : Plus de 50 % des passages commencent par un pronom ou un connecteur de la liste de la langue (« Il », « Cela », « It », « However »…), donc se comprennent mal isolés du texte précédent.
+- Preuve attendue : html : nombre de passages non autonomes sur le total.
+- Correction type : Reformuler la première phrase des sections concernées pour nommer le sujet au lieu de le reprendre par un pronom.
+- Source officielle : aucune dans le dossier de référence
+
 ## entite
 
 Ces constats sont produits par `outils/lib/entites.mjs`. Les valeurs relevées viennent uniquement des pages : l’outil n’en invente aucune. Les vérifications manuelles (registre légal du pays, profils) sont décrites dans `references/entites.md`.

@@ -5,12 +5,17 @@
 // ordered content blocks (heading / paragraph / list / table / definition) that the
 // passage analyser consumes.
 
+// HTML Latin-1 named entities in code point order, U+00A0 to U+00FF (96 names).
+const LATIN1 = ('nbsp iexcl cent pound curren yen brvbar sect uml copy ordf laquo not shy reg macr deg plusmn sup2 sup3 acute micro para middot cedil sup1 ordm raquo frac14 frac12 frac34 iquest ' +
+  'Agrave Aacute Acirc Atilde Auml Aring AElig Ccedil Egrave Eacute Ecirc Euml Igrave Iacute Icirc Iuml ETH Ntilde Ograve Oacute Ocirc Otilde Ouml times Oslash Ugrave Uacute Ucirc Uuml Yacute THORN szlig ' +
+  'agrave aacute acirc atilde auml aring aelig ccedil egrave eacute ecirc euml igrave iacute icirc iuml eth ntilde ograve oacute ocirc otilde ouml divide oslash ugrave uacute ucirc uuml yacute thorn yuml').split(' ')
+
 const NAMED = {
-  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', copy: '©', reg: '®', hellip: '…',
-  ndash: '–', mdash: '—', laquo: '«', raquo: '»', rsquo: '’', lsquo: '‘', euro: '€',
-  eacute: 'é', egrave: 'è', ecirc: 'ê', agrave: 'à', acirc: 'â', ccedil: 'ç', ocirc: 'ô',
-  ucirc: 'û', icirc: 'î', Eacute: 'É',
+  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'",
+  oelig: 'œ', OElig: 'Œ', scaron: 'š', Scaron: 'Š', Yuml: 'Ÿ', euro: '€', hellip: '…', ndash: '–', mdash: '—',
+  lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”', thinsp: ' ',
 }
+LATIN1.forEach((nom, i) => { NAMED[nom] = String.fromCodePoint(0xa0 + i) })
 
 function decode(s) {
   return s.replace(/&(?:#(\d+)|#[xX]([0-9a-fA-F]+)|([A-Za-z][A-Za-z0-9]*));/g, (m, dec, hex, name) => {
