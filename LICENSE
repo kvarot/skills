@@ -8,6 +8,7 @@ Tous droits réservés. Ce dépôt est publié pour être lu. Aucune licence n'e
 accordée pour copier, modifier, distribuer, sous-licencier ou vendre tout ou
 partie de son contenu sans l'accord écrit préalable du titulaire des droits.
 
-Exception / Exception: the directory plugins/seo/ is licensed under the MIT
-License (see plugins/seo/LICENSE). Le dossier plugins/seo/ est sous licence
-MIT (voir plugins/seo/LICENSE).
+Exception / Exception: the directories plugins/seo/ and plugins/geo/ are licensed under the MIT
+License (see plugins/seo/LICENSE and plugins/geo/LICENSE). Les dossiers
+plugins/seo/ et plugins/geo/ sont sous licence MIT (voir plugins/seo/LICENSE
+et plugins/geo/LICENSE).

@@ -14,8 +14,9 @@ Bibliothèque de skills pour Claude Code (et autres agents qui lisent le même f
 | Plugin | À quoi il sert |
 |---|---|
 | [`seo`](plugins/seo/README.md) | Audit SEO d'un site web et corrections écrites dans le code du projet, lot par lot après validation du développeur : outils Node déterministes, six skills et un agent d'audit. Sous licence MIT. |
+| [`geo`](plugins/geo/README.md) | Audit GEO/AEO d'un site web : visibilité dans les moteurs de réponse IA, politique d'exploration des robots, contenu citable, données structurées ; outils Node déterministes sans dépendance. Sous licence MIT. |
 
-Installation : `/plugin marketplace add kvarot/skills` puis `/plugin install seo@kvarot-skills`.
+Installation : `/plugin marketplace add kvarot/skills` puis `/plugin install seo@kvarot-skills` ou `/plugin install geo@kvarot-skills`.
 
 ## Installer une skill
 
@@ -25,4 +26,4 @@ Copier son dossier dans `~/.claude/skills/<nom>/` (skills personnelles) ou `.cla
 
 - Rien de personnel ni de sensible : aucun nom de projet privé, chemin de machine, adresse, jeton, nom de serveur.
 - Pas de code repris d'autres projets sans licence qui le permette ; les idées empruntées sont citées dans la skill concernée.
-- Licence : tous droits réservés (voir [`LICENSE`](LICENSE)). Lecture libre ; toute réutilisation demande un accord écrit. Exception : `plugins/seo/` est sous licence MIT (voir [`plugins/seo/LICENSE`](plugins/seo/LICENSE)).
+- Licence : tous droits réservés (voir [`LICENSE`](LICENSE)). Lecture libre ; toute réutilisation demande un accord écrit. Exception : `plugins/seo/` et `plugins/geo/` sont sous licence MIT (voir [`plugins/seo/LICENSE`](plugins/seo/LICENSE) et [`plugins/geo/LICENSE`](plugins/geo/LICENSE)).

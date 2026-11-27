@@ -6,3 +6,5 @@ node_modules/
 
 plugins/seo/evals/.noms-interdits.local
 plugins/seo/evals/resultats-declenchement.json
+plugins/geo/evals/.noms-interdits.local
+plugins/geo/evals/resultats-declenchement.json

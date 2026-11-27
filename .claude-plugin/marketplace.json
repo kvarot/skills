@@ -10,6 +10,11 @@
       "description": "Audit SEO d'un site web puis corrections écrites dans le code du projet, lot par lot, après validation du développeur ; outils déterministes en Node."
     },
     {
+      "name": "geo",
+      "source": "./plugins/geo",
+      "description": "Audit GEO/AEO d'un site web : visibilité dans les moteurs de réponse IA, robots et politique d'exploration, contenu citable, données structurées ; outils déterministes en Node."
+    },
+    {
       "name": "ia-locale",
       "source": "./plugins/ia-locale",
       "description": "Faire faire le développement par une IA locale (llama.cpp ou Ollama) avant toute IA payante : question directe, modification directe sans agent, session locale déléguée, cartographie du dépôt et paquets de contexte, validation objective sans IA, commande /ia-usage pour l'usage local et l'économie de tokens et d'argent."

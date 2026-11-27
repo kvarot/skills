@@ -1,0 +1,7 @@
+{
+  "name": "geo",
+  "version": "0.1.0",
+  "description": "Audit GEO/AEO d'un site web : visibilité dans les moteurs de réponse IA, robots et politique d'exploration, contenu citable, données structurées ; outils déterministes en Node.",
+  "author": { "name": "kvarot" },
+  "license": "MIT"
+}
