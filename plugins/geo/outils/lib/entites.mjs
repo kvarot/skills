@@ -1,7 +1,7 @@
 // Entity identity analysis over a Collecte: names, schema.org organisation types, contact data,
 // sameAs links, and an optional Wikidata lookup. Never invents a value: everything reported comes
 // from the pages. Page-derived text only leaves through extrait().
-import { CATALOGUE, noeuds, types } from './controles.mjs'
+import { CATALOGUE, types } from './controles.mjs'
 import { extrait } from './sortie.mjs'
 
 const PAR_ID = new Map(CATALOGUE.map((e, i) => [e.id, { ...e, rang: i }]))
@@ -52,7 +52,7 @@ function cleAdresse(a) {
 }
 function adressesDe(v) {
   const l = Array.isArray(v) ? v : [v]
-  return l.filter((a) => a !== undefined && a !== null).map((a) => ({ cle: cleAdresse(a), valeur: typeof a === 'string' ? a.trim() : [chaine(a?.streetAddress), chaine(a?.postalCode), chaine(a?.addressLocality)].filter(Boolean).join(', ') })).filter((a) => a.cle)
+  return l.filter((a) => a !== undefined && a !== null).map((a) => ({ forme: typeof a === 'string' ? 'chaine' : 'objet', cle: cleAdresse(a), valeur: typeof a === 'string' ? a.trim() : [chaine(a?.streetAddress), chaine(a?.postalCode), chaine(a?.addressLocality)].filter(Boolean).join(', ') })).filter((a) => a.cle)
 }
 
 // Part after the LAST |, – , — or " - " separator; null when the title has none.
@@ -61,6 +61,28 @@ function suffixeTitle(title) {
   const parts = title.split(/\s*(?:[|–—]|\s-\s)\s*/).map((p) => p.trim())
   if (parts.length < 2) return null
   return parts[parts.length - 1] || null
+}
+
+// JSON-LD nodes that describe the page itself: top-level objects, array members and @graph members.
+// Property values (publisher, manufacturer, seller...) are never visited, so nested third-party
+// organisations are not mistaken for the site's own.
+function noeudsHaut(jsonld) {
+  const out = []
+  const visiter = (x, prof) => {
+    if (prof > 4 || x === null || typeof x !== 'object') return
+    if (Array.isArray(x)) { for (const e of x) visiter(e, prof + 1); return }
+    out.push(x)
+    if (Array.isArray(x['@graph'])) visiter(x['@graph'], prof + 1)
+  }
+  for (const j of Array.isArray(jsonld) ? jsonld : []) if (j?.objet) visiter(j.objet, 0)
+  return out
+}
+
+// Two normalised names agree when equal or when one is a contiguous whole-word sequence of the other.
+function nomsCompatibles(a, b) {
+  if (a === b) return true
+  const [court, long] = a.length <= b.length ? [a, b] : [b, a]
+  return ` ${long} `.includes(` ${court} `)
 }
 
 const estOrganisation = (n) => types(n).some((t) => TYPES_ORGANISATION.has(t))
@@ -115,18 +137,20 @@ export async function analyserEntite(collecte, { marque, client, wikidata = fals
     noms.set(cle, g)
   }
   const orgs = [] // { n, url }
+  let premierNomOrg = null
+  let premierOg = null
   const produits = [] // { cle, url }
   const parPage = new Map() // url -> has a product-like node
   for (const p of pages) {
-    if (typeof p.ogSiteName === 'string') ajouterNom(p.ogSiteName, p.url, 'og:site_name')
+    if (typeof p.ogSiteName === 'string') { ajouterNom(p.ogSiteName, p.url, 'og:site_name'); if (p.ogSiteName.trim()) premierOg ??= p.ogSiteName.trim() }
     const suf = suffixeTitle(p.title)
     if (suf) ajouterNom(suf, p.url, 'title')
     let aProduit = false
-    for (const n of noeuds(Array.isArray(p.jsonld) ? p.jsonld : [])) {
+    for (const n of noeudsHaut(p.jsonld)) {
       if (estOrganisation(n)) {
         orgs.push({ n, url: p.url })
         const t = types(n).find((x) => TYPES_ORGANISATION.has(x))
-        for (const nom of chaines(n.name)) ajouterNom(nom, p.url, `jsonld:${t}.name`)
+        for (const nom of chaines(n.name)) { ajouterNom(nom, p.url, `jsonld:${t}.name`); premierNomOrg ??= nom }
       } else if (types(n).includes('WebSite')) {
         for (const nom of chaines(n.name)) ajouterNom(nom, p.url, 'jsonld:WebSite.name')
       }
@@ -145,9 +169,16 @@ export async function analyserEntite(collecte, { marque, client, wikidata = fals
 
   // --- organisation data ---
   const tels = [], adrs = [], mails = [], sameAs = []
+  const jeuxTel = [], jeuxAdr = { chaine: [], objet: [] } // one value set per organisation node
   for (const { n, url } of orgs) {
     for (const t of chaines(n.telephone)) { const cle = cleTelephone(t); if (cle) tels.push({ cle, valeur: t, url }) }
-    for (const a of adressesDe(n.address)) adrs.push({ ...a, url })
+    for (const a of adressesDe(n.address)) adrs.push({ ...a, cle: a.forme + ':' + a.cle, url })
+    const cT = new Set(chaines(n.telephone).map(cleTelephone).filter(Boolean))
+    if (cT.size) jeuxTel.push({ cles: cT, url })
+    for (const forme of ['chaine', 'objet']) {
+      const cA = new Set(adressesDe(n.address).filter((a) => a.forme === forme).map((a) => a.cle))
+      if (cA.size) jeuxAdr[forme].push({ cles: cA, url })
+    }
     for (const m of chaines(n.email)) { const v = m.replace(/^mailto:/i, '').trim().toLowerCase(); if (v) mails.push({ cle: v, valeur: v, url }) }
     for (const s of chaines(n.sameAs)) if (/^https?:\/\//i.test(s)) sameAs.push(s)
   }
@@ -161,15 +192,20 @@ export async function analyserEntite(collecte, { marque, client, wikidata = fals
     constats.push(constat('GEO-ENTITE-SANS-ORGANIZATION', [], { type: 'jsonld', url: pages[0].url, detail: `aucun nœud JSON-LD de type organisation sur ${pages.length} page(s) explorée(s)` }, 'Aucune organisation n’est déclarée en JSON-LD sur les pages explorées.'))
   }
 
-  if (listeNoms.length >= 2) {
-    const sources = listeNoms.flatMap((g) => g.sources)
+  // The title suffix only corroborates: incoherence is judged on og:site_name, JSON-LD names and the brand option.
+  const fortes = listeNoms.map((g) => ({ valeur: g.valeur, cle: normaliserNom(g.valeur), sources: g.sources.filter((s) => s.champ !== 'title') })).filter((g) => g.sources.length)
+  const incoherent = fortes.some((a, i) => fortes.slice(i + 1).some((b) => !nomsCompatibles(a.cle, b.cle)))
+  if (incoherent) {
+    const sources = fortes.flatMap((g) => g.sources)
     const premiere = sources.find((s) => s.url)
     constats.push(constat('GEO-ENTITE-NOM-INCOHERENT', sources.map((s) => s.url).filter(Boolean),
-      { type: 'html', url: premiere?.url ?? (pages[0]?.url ?? ''), detail: `${listeNoms.length} noms distincts après normalisation : ${sources.map((s) => `${s.champ} (${s.url ?? 'option'})`).join(' ; ')}` },
-      `${listeNoms.length} noms différents désignent l’entité sur le site.`, { extrait: extrait(listeNoms.map((g) => g.valeur).join(' ≠ ')) }))
+      { type: 'html', url: premiere?.url ?? (pages[0]?.url ?? ''), detail: `${fortes.length} noms distincts après normalisation : ${sources.map((s) => `${s.champ} (${s.url ?? 'option'})`).join(' ; ')}` },
+      `${fortes.length} noms différents désignent l’entité sur le site.`, { extrait: extrait(fortes.map((g) => g.valeur).join(' ≠ ')) }))
   }
 
-  const telDiff = coordonnees.telephones.length >= 2, adrDiff = coordonnees.adresses.length >= 2
+  // Contradiction = two distinct organisation nodes whose value sets are disjoint (same form for addresses).
+  const disjoints = (jeux) => jeux.some((a, i) => jeux.slice(i + 1).some((b) => ![...a.cles].some((c) => b.cles.has(c))))
+  const telDiff = disjoints(jeuxTel), adrDiff = disjoints(jeuxAdr.chaine) || disjoints(jeuxAdr.objet)
   if (telDiff || adrDiff) {
     const quoi = [telDiff ? `${coordonnees.telephones.length} téléphones` : null, adrDiff ? `${coordonnees.adresses.length} adresses` : null].filter(Boolean).join(' et ')
     const groupes = [...(telDiff ? coordonnees.telephones : []), ...(adrDiff ? coordonnees.adresses : [])]
@@ -200,7 +236,7 @@ export async function analyserEntite(collecte, { marque, client, wikidata = fals
   // --- Wikidata (opt-in, allowlisted host only) ---
   let wd = { statut: 'non_verifie', ids: [], raison: 'vérification Wikidata non demandée' }
   if (wikidata) {
-    const nom = (typeof marque === 'string' && marque.trim()) || listeNoms[0]?.valeur
+    const nom = (typeof marque === 'string' && marque.trim()) || premierNomOrg || premierOg
     if (!client || typeof client.demander !== 'function') wd = { statut: 'non_verifie', ids: [], raison: 'aucun client réseau fourni' }
     else if (!nom) wd = { statut: 'non_verifie', ids: [], raison: 'aucun nom d’entité à rechercher' }
     else {

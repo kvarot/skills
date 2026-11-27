@@ -45,6 +45,7 @@ export const CATALOGUE = [
   // données structurées
   def('GEO-JSONLD-INVALIDE', 'important', 'donnees-structurees', 'Bloc JSON-LD illisible (JSON invalide).'),
   def('GEO-JSONLD-AVIS-NON-VISIBLES', 'important', 'donnees-structurees', 'AggregateRating dont la note n’apparaît pas dans le texte visible de la page (arrondie à une décimale).', 'heuristique'),
+  // fraîcheur
   def('GEO-DATE-ABSENTE', 'mineur', 'contenu', 'Aucune date de publication ni de modification sur une page d’article ou de documentation.', 'heuristique'),
   // entité (produits par outils/lib/entites.mjs)
   def('GEO-ENTITE-SANS-ORGANIZATION', 'important', 'entite', 'Aucun JSON-LD d’organisation (Organization, LocalBusiness, Corporation ou sous-type) sur les pages explorées.'),

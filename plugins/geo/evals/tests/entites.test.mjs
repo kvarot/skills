@@ -185,3 +185,59 @@ test('sortie déterministe', async () => {
   const c = collecte([page('/b', { ogSiteName: 'B' }), page('/a', { ogSiteName: 'A', jsonld: [ld(org({ telephone: '0123456789' }))] })])
   assert.deepEqual(await analyserEntite(c), await analyserEntite(c))
 })
+
+test('organisations imbriquées (publisher, manufacturer) ignorées', async () => {
+  const r = await analyserEntite(collecte([
+    page('/', { jsonld: [ld(org({ telephone: '01 23 45 67 89' }))] }),
+    page('/p', { jsonld: [ld({ '@type': 'Product', name: 'Établi', manufacturer: { '@type': 'Organization', name: 'Fabricant Tiers', telephone: '01 00 00 00 99' } })] }),
+    page('/a', { jsonld: [ld({ '@type': 'Article', headline: 'X', publisher: { '@type': 'Organization', name: 'Éditeur Tiers', telephone: '04 00 00 00 11' } })] }),
+  ]))
+  assert.equal(trouver(r, 'GEO-ENTITE-NOM-INCOHERENT'), undefined)
+  assert.equal(trouver(r, 'GEO-ENTITE-COORDONNEES-CONTRADICTOIRES'), undefined)
+  const seul = await analyserEntite(collecte([page('/a', { jsonld: [ld({ '@type': 'Article', publisher: { '@type': 'Organization', name: 'Éditeur Tiers' } })] })]))
+  assert.ok(trouver(seul, 'GEO-ENTITE-SANS-ORGANIZATION'))
+  const graphe = await analyserEntite(collecte([page('/', { jsonld: [ld({ '@graph': [org(), { '@type': 'WebSite', name: 'Atelier Nord' }] })] })]))
+  assert.equal(trouver(graphe, 'GEO-ENTITE-SANS-ORGANIZATION'), undefined)
+})
+
+test('le suffixe du title seul ne crée jamais d’incohérence', async () => {
+  const r = await analyserEntite(collecte([
+    page('/', { ogSiteName: 'Atelier Nord', title: 'Contact – Services', jsonld: [ld(org())] }),
+    page('/b', { title: 'Nos prestations | Menuiserie' }),
+  ]))
+  assert.equal(trouver(r, 'GEO-ENTITE-NOM-INCOHERENT'), undefined)
+  assert.ok(r.noms.some((n) => n.sources.some((s) => s.champ === 'title')))
+})
+
+test('noms compatibles si l’un contient l’autre en mots entiers', async () => {
+  const ok = await analyserEntite(collecte([page('/', { ogSiteName: 'Acme', jsonld: [ld(org({ name: 'Acme Corporation' }))] })]))
+  assert.equal(trouver(ok, 'GEO-ENTITE-NOM-INCOHERENT'), undefined)
+  const ko = await analyserEntite(collecte([page('/', { ogSiteName: 'Acme', jsonld: [ld(org({ name: 'Acmeline' }))] })]))
+  assert.ok(trouver(ko, 'GEO-ENTITE-NOM-INCOHERENT'))
+})
+
+test('plusieurs téléphones dans un même nœud : pas de contradiction ; formes d’adresse non comparées', async () => {
+  const a = await analyserEntite(collecte([page('/', { jsonld: [ld(org({ telephone: ['01 23 45 67 89', '06 12 34 56 78'] }))] })]))
+  assert.equal(trouver(a, 'GEO-ENTITE-COORDONNEES-CONTRADICTOIRES'), undefined)
+  const b = await analyserEntite(collecte([
+    page('/', { jsonld: [ld(org({ address: '1 rue des Tilleuls, 75001 Paris' }))] }),
+    page('/c', { jsonld: [ld(org({ address: { streetAddress: '1 rue des Tilleuls', postalCode: '75001' } }))] }),
+  ]))
+  assert.equal(trouver(b, 'GEO-ENTITE-COORDONNEES-CONTRADICTOIRES'), undefined)
+  const c = await analyserEntite(collecte([
+    page('/', { jsonld: [ld(org({ telephone: '01 23 45 67 89' }))] }),
+    page('/c', { jsonld: [ld(org({ telephone: '04 11 22 33 44' }))] }),
+  ]))
+  assert.ok(trouver(c, 'GEO-ENTITE-COORDONNEES-CONTRADICTOIRES'))
+})
+
+test('wikidata : nom de recherche = nom d’organisation, puis og:site_name, jamais le title', async () => {
+  const appels = []
+  const client = { demander: async (u) => { appels.push(u); return reponse({ search: [] }) } }
+  await analyserEntite(collecte([page('/', { ogSiteName: 'Og Nom', title: 'X | Titre Nom', jsonld: [ld(org({ name: 'Org Nom' }))] })]), { wikidata: true, client })
+  await analyserEntite(collecte([page('/', { ogSiteName: 'Og Nom', title: 'X | Titre Nom' })]), { wikidata: true, client })
+  await analyserEntite(collecte([page('/', { title: 'X | Titre Nom' })]), { wikidata: true, client })
+  assert.equal(appels.length, 2)
+  assert.match(appels[0], /search=Org%20Nom/)
+  assert.match(appels[1], /search=Og%20Nom/)
+})
