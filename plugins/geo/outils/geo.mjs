@@ -2,15 +2,13 @@
 // geo plugin CLI: subcommand dispatcher. JSON on stdout, errors on stderr.
 // Exit codes: 0 ok, 1 error, 2 finding threshold exceeded, 3 consent or budget missing.
 import { ErreurGeo } from './lib/sortie.mjs'
-
-const VERSION = '0.1.0'
-const USAGE = `Usage : node geo.mjs <commande> [options]
-  --version    affiche la version`
+import { enregistrerCommandes, USAGE, VERSION } from './lib/commandes.mjs'
 
 const commandes = new Map()
 export function commande(nom, fn) {
   commandes.set(nom, fn)
 }
+enregistrerCommandes(commande)
 
 async function main(argv) {
   const [nom, ...reste] = argv

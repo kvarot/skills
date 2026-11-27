@@ -148,6 +148,29 @@ export async function ouvrirBase(fichier = path.join(cheminDonnees(), 'geo.sqlit
       return { id: l.id, origine, date: l.date, version_moteur: l.version_moteur, version_poids: l.version_poids, resume, constats }
     },
 
+    // Audit by numeric id (the id returned by enregistrerAudit); null when unknown.
+    auditParId(id) {
+      const n = Number(id)
+      if (!Number.isInteger(n) || n < 1) return null
+      const l = db.prepare('SELECT a.*, s.origine FROM audit a JOIN site s ON s.id = a.site_id WHERE a.id = ?').get(n)
+      if (!l) return null
+      let resume, constats
+      try {
+        resume = JSON.parse(l.resume_json)
+        constats = JSON.parse(l.constats_json)
+      } catch {
+        throw new ErreurGeo(`Audit ${l.id} illisible : JSON corrompu dans la base.`)
+      }
+      return { id: l.id, origine: l.origine, date: l.date, version_moteur: l.version_moteur, version_poids: l.version_poids, resume, constats }
+    },
+
+    // Frozen scenario sets, oldest first, without their scenarios.
+    listerJeux() {
+      return db.prepare(
+        'SELECT j.id, s.origine, j.empreinte, j.version, j.langue, j.pays, j.niveau, j.graine, j.cree_le, (SELECT COUNT(*) FROM scenario WHERE jeu_id = j.id) AS nb_scenarios FROM jeu j JOIN site s ON s.id = j.site_id ORDER BY j.id'
+      ).all().map((l) => ({ ...l, nb_scenarios: Number(l.nb_scenarios) }))
+    },
+
     enregistrerJeu(jeu) {
       const doublon = () => new ErreurGeo(`Un jeu d'empreinte ${jeu.empreinte} existe déjà.`)
       try {

@@ -1,0 +1,139 @@
+{
+  "version": "2026-11-27",
+  "idees": [
+    {
+      "id": "llms-txt-visibilite",
+      "affirmation": "llms.txt améliore la visibilité ou est lu par les robots IA.",
+      "pourquoi": "Google indique que Search ne l'utilise pas et que le maintenir n'aide ni ne nuit ; aucun autre éditeur n'a déclaré l'utiliser ; 97 % des domaines ayant un fichier valide n'ont reçu aucune requête pour ce fichier en un mois.",
+      "source": "https://developers.google.com/search/docs/fundamentals/ai-optimization-guide",
+      "verifie_le": "2026-11-27",
+      "motifs": [
+        "llms(-full)?\\.txt[^.\\n]{0,60}(?<![nN]['’])\\b(améliore|augmente|booste|favorise|est lu par|est utilisé par)",
+        "llms(-full)?\\.txt[^.\\n]{0,60}(?<![nN]['’])\\b(improves|boosts|increases|is read by|is used by)"
+      ]
+    },
+    {
+      "id": "geo-plus-40-pourcent",
+      "affirmation": "Le GEO augmente la visibilité de 40 %.",
+      "pourquoi": "Le chiffre vient d'une métrique de part de texte sur un moteur simulé (KDD 2024), non d'une mesure de visibilité réelle ; l'étude C-SEO Bench (NeurIPS 2025) n'a pas retrouvé ces gains.",
+      "source": "https://arxiv.org/abs/2506.11097",
+      "verifie_le": "2026-11-27",
+      "motifs": [
+        "visibilité[^.\\n]{0,30}(\\+ ?)?\\b40 ?%",
+        "(augmente|increases?|boosts?)[^.\\n]{0,40}\\b40 ?%[^.\\n]{0,30}(visibilit|visibility)",
+        "(increases?|boosts?|raises?)[^.\\n]{0,40}visibility[^.\\n]{0,30}\\b40 ?%"
+      ]
+    },
+    {
+      "id": "schema-fait-citer",
+      "affirmation": "Le balisage schema fait citer dans les réponses IA.",
+      "pourquoi": "Google précise que les données structurées ne sont pas requises pour la recherche générative et doivent seulement correspondre au contenu visible ; aucun effet chiffré n'est publié par Microsoft.",
+      "source": "https://developers.google.com/search/docs/appearance/ai-features",
+      "verifie_le": "2026-11-27",
+      "motifs": [
+        "(schema|balisage|données structurées)[^.\\n]{0,50}(fait|font|permet|permettent) (de )?(citer|d'être cité)",
+        "(schema|structured data)[^.\\n]{0,40}(gets?|makes?|get) (you |your (site|brand) )?cited"
+      ]
+    },
+    {
+      "id": "longueur-ideale",
+      "affirmation": "Il existe une longueur ou un découpage idéal pour les IA.",
+      "pourquoi": "Google écrit qu'il n'y a ni découpage en petits morceaux ni longueur idéale à viser pour la recherche générative.",
+      "source": "https://developers.google.com/search/docs/appearance/ai-features",
+      "verifie_le": "2026-11-27",
+      "motifs": [
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|not|no|never|nor|without)\\b|n['’]))[^\\n]*longueur idéale",
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|not|no|never|nor|without)\\b|n['’]))[^\\n]*découpage idéal",
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|not|no|never|nor|without)\\b|n['’]))[^\\n]*ideal (length|chunk)",
+        "^(?![^\\n]*(\\b(pas|aucune?|ni|sans|jamais|not|no|never|nor|without)\\b|n['’]))[^\\n]*\\b\\d+ (mots|words)\\b[^.\\n]{0,30}(idéal|ideal|optimal)"
+      ]
+    },
+    {
+      "id": "google-extended-ai-overviews",
+      "affirmation": "Bloquer Google-Extended retire d'AI Overviews.",
+      "pourquoi": "Google-Extended contrôle l'usage pour Gemini (entraînement et ancrage) ; AI Overviews et AI Mode relèvent de Googlebot, de nosnippet, data-nosnippet, max-snippet et noindex.",
+      "source": "https://developers.google.com/crawling/docs/crawlers-fetchers/google-common-crawlers",
+      "verifie_le": "2026-11-27",
+      "motifs": [
+        "bloquer Google-Extended[^.\\n]{0,40}(retire|supprime|sort|exclut)",
+        "(blocking|block) Google-Extended[^.\\n]{0,40}(removes?|drops?|excludes?)"
+      ]
+    },
+    {
+      "id": "robots-txt-bloque-tout",
+      "affirmation": "robots.txt bloque tout accès IA.",
+      "pourquoi": "Les robots de consultation à la demande de l'utilisateur peuvent ignorer robots.txt ; selon l'éditeur, il « peut ne pas s'appliquer » à ChatGPT-User.",
+      "source": "https://developers.openai.com/api/docs/bots",
+      "verifie_le": "2026-11-27",
+      "motifs": [
+        "robots\\.txt[^.\\n]{0,40}(?<![nN]['’])\\b(bloque|empêche) (tout|tous|toute)[^.\\n]{0,20}(accès|robots IA|crawlers IA|\\bIA\\b)",
+        "robots\\.txt[^.\\n]{0,40}(?<![nN]['’])\\b(blocks?|prevents?) (all|every)[^.\\n]{0,30}(AI|bots)"
+      ]
+    },
+    {
+      "id": "rang-chatgpt",
+      "affirmation": "« Votre marque est n° N dans ChatGPT ».",
+      "pourquoi": "Le rang varie d'une exécution à l'autre : moins d'une chance sur 100 d'obtenir deux fois la même liste de marques ; seul un taux de présence avec intervalle de confiance est publiable.",
+      "source": "https://arxiv.org/html/2607.14035v1",
+      "verifie_le": "2026-11-27",
+      "motifs": [
+        "(votre|ta|your) (marque|brand)[^.\\n]{0,30}(n°|#|no\\.|numéro|rang|rank(ed)?) ?\\d+[^.\\n]{0,30}(ChatGPT|Claude|Gemini|Perplexity|Copilot)"
+      ]
+    },
+    {
+      "id": "api-egale-interface",
+      "affirmation": "Les réponses API sont celles que voient les utilisateurs.",
+      "pourquoi": "Perplexity écrit que les sorties peuvent différer entre API et interface, et le modèle aussi ; aucun éditeur ne déclare l'équivalence.",
+      "source": "https://docs.perplexity.ai/docs/resources/faq.md",
+      "verifie_le": "2026-11-27",
+      "motifs": [
+        "les réponses (de l'|de l’)?API sont (celles|identiques)",
+        "API (answers|responses|outputs) (are|match) (the same as )?(what )?(users see|the consumer)"
+      ]
+    },
+    {
+      "id": "robots-non-documentes",
+      "affirmation": "DeepSeekBot, GrokBot, anthropic-ai… sont des robots documentés.",
+      "pourquoi": "Aucun de ces jetons n'est documenté par son éditeur : ils ne figurent pas au registre comme robots documentés.",
+      "source": "https://developers.google.com/crawling/docs/crawlers-fetchers/google-common-crawlers",
+      "verifie_le": "2026-11-27",
+      "motifs": [
+        "\\b(DeepSeekBot|GrokBot|anthropic-ai)\\b[^.\\n]{0,50}\\b(est|sont) (un |des )?(robots? )?(officiels?|documentés?)",
+        "\\b(DeepSeekBot|GrokBot|anthropic-ai)\\b[^.\\n]{0,50}\\b(is|are) (an? )?(official|documented)"
+      ]
+    },
+    {
+      "id": "mentions-web-citations",
+      "affirmation": "Les mentions sur le web provoquent les citations IA.",
+      "pourquoi": "Corrélations d'éditeurs de mesure seulement ; la revue critique ne démontre aucun lien causal, et Google écrit que chercher des mentions inauthentiques n'aide pas.",
+      "source": "https://arxiv.org/html/2607.14035v1",
+      "verifie_le": "2026-11-27",
+      "motifs": [
+        "mentions?[^.\\n]{0,30}(sur le web|web)[^.\\n]{0,40}(provoquent|causent|déclenchent)[^.\\n]{0,30}citations?",
+        "(web )?mentions?[^.\\n]{0,40}(cause|drive|trigger)s?[^.\\n]{0,30}(AI )?citations?"
+      ]
+    },
+    {
+      "id": "api-officielle-ai-overviews",
+      "affirmation": "Un outil tiers mesure AI Overviews ou Copilot par une API officielle.",
+      "pourquoi": "Il n'existe aucune API officielle pour AI Overviews, AI Mode ni Copilot grand public ; les outils tiers scrutent les interfaces, avec un contentieux en cours.",
+      "source": "https://developers.google.com/search/docs/appearance/ai-features",
+      "verifie_le": "2026-11-27",
+      "motifs": [
+        "(mesure|mesurent)[^.\\n]{0,30}(AI Overviews|Copilot)[^.\\n]{0,40}(via|par|grâce à) (une |l'|l’)?API officielle",
+        "(measures?|tracks?)[^.\\n]{0,30}(AI Overviews|Copilot)[^.\\n]{0,40}(via|through|using) (an? |the )?official API"
+      ]
+    },
+    {
+      "id": "indexnow-copilot",
+      "affirmation": "IndexNow fait entrer dans les réponses de Copilot.",
+      "pourquoi": "Bing écrit qu'IndexNow garde l'information fraîche dans la recherche et les expériences IA ; il ne garantit aucune entrée dans les réponses de Copilot.",
+      "source": "https://blogs.bing.com/webmaster",
+      "verifie_le": "2026-11-27",
+      "motifs": [
+        "IndexNow[^.\\n]{0,60}(fait entrer|garantit|assure)[^.\\n]{0,40}Copilot",
+        "IndexNow[^.\\n]{0,60}(guarantees|ensures|gets you)[^.\\n]{0,40}Copilot"
+      ]
+    }
+  ]
+}
