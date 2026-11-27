@@ -164,7 +164,10 @@ test('indexation : GEO-PAGE-ORPHELINE (sitemap sans lien entrant)', () => {
   assert.ok(!ids(ctl(collecte({ site, exploration: { limite_atteinte: true } }))).includes('GEO-PAGE-ORPHELINE'))
   // Collected page listed in the sitemap but linked from nowhere.
   const ps = [page('/', { profondeur: 0 }), page('/b', { liens: LIEN_ACCUEIL })]
-  assert.deepEqual(trouver(ctl(collecte({ pages: ps })), 'GEO-PAGE-ORPHELINE').pages, [O + '/b'])
+  const dossier = collecte({ pages: ps, site: { racine: null } })
+  assert.deepEqual(trouver(ctl(dossier), 'GEO-PAGE-ORPHELINE').pages, [O + '/b'])
+  // Crawl mode: a collected page was reached by some link, never an orphan.
+  assert.ok(!ids(ctl(collecte({ pages: ps }))).includes('GEO-PAGE-ORPHELINE'))
 })
 
 test('indexation : GEO-CONTENU-DUPLIQUE (même empreinte sans canonical commun)', () => {
@@ -335,8 +338,15 @@ test('données structurées : GEO-JSONLD-AVIS-NON-VISIBLES', () => {
   ] }))
   assert.ok(!ids(avec).includes('GEO-JSONLD-AVIS-NON-VISIBLES'))
   const review = { brut: '', erreur: null, objet: { '@graph': [{ '@type': ['Product'], review: [{ '@type': 'Review', reviewRating: { ratingValue: 5 } }] }] } }
+  // Individual Review ratings (shown as stars) are not checked.
   const r = ctl(collecte({ pages: [page('/', { profondeur: 0, jsonld: [review], blocs: [{ type: 'paragraphe', texte: 'Tarif 45 euros' }] })] }))
-  assert.ok(ids(r).includes('GEO-JSONLD-AVIS-NON-VISIBLES'))
+  assert.ok(!ids(r).includes('GEO-JSONLD-AVIS-NON-VISIBLES'))
+  assert.equal(CATALOGUE.find((e) => e.id === 'GEO-JSONLD-AVIS-NON-VISIBLES').classe, 'heuristique')
+  assert.equal(trouver(sans, 'GEO-JSONLD-AVIS-NON-VISIBLES').classe, 'heuristique')
+  // Rounded to one decimal, comma or dot: 4.67 shown as 4,7.
+  const arrondi = { brut: '', erreur: null, objet: { '@type': 'Product', aggregateRating: { '@type': 'AggregateRating', ratingValue: 4.67 }, review: [{ '@type': 'Review', reviewRating: { ratingValue: 3 } }] } }
+  const ok = ctl(collecte({ pages: [page('/', { profondeur: 0, jsonld: [arrondi], blocs: [{ type: 'paragraphe', texte: 'Note : 4,7 / 5 (★★★)' }] })] }))
+  assert.ok(!ids(ok).includes('GEO-JSONLD-AVIS-NON-VISIBLES'))
 })
 
 test('fraîcheur : GEO-DATE-ABSENTE (heuristique, pages d’article ou de documentation)', () => {
@@ -377,4 +387,65 @@ test('collecte vide ou partielle : jamais d’exception', () => {
   assert.doesNotThrow(() => controler({ pages: [], site: {}, erreurs: [], exploration: {} }, registre))
   assert.doesNotThrow(() => controler({}, registre))
   assert.doesNotThrow(() => controler(collecte(), undefined))
+})
+
+test('robustesse : href ou hreflang mal formé ne fait pas échouer le contrôle', () => {
+  const cs = () => ctl(collecte({ pages: [
+    page('/', { profondeur: 0, liens: [{ href: 'http://[oops', texte: 'x' }, ...LIEN_A], hreflang: [{ lang: 'en', href: 'http://[oops' }] }),
+    page('/a', { liens: LIEN_ACCUEIL }),
+  ] }))
+  assert.doesNotThrow(cs)
+})
+
+test('orphelines : lien avec paramètre de suivi ou redirection ne créent pas de faux orphelin', () => {
+  const site = { sitemaps: [{ url: O + '/sitemap.xml', urls: [O + '/', O + '/a', O + '/contact/'] }] }
+  // /contact redirects to /contact/ (collected there, in the sitemap), reached from a link to /contact.
+  const redir = ctl(collecte({ site, pages: [
+    page('/', { profondeur: 0, liens: [{ href: '/a', texte: 'A' }, { href: '/contact', texte: 'C' }] }),
+    page('/a', { liens: LIEN_ACCUEIL }),
+    page('/contact/', { redirections: [O + '/contact/'], liens: LIEN_ACCUEIL }),
+  ] }))
+  assert.ok(!ids(redir).includes('GEO-PAGE-ORPHELINE'))
+  // Uncollected sitemap URL reached through a link carrying tracking parameters and a fragment.
+  const suivi = ctl(collecte({ site: { sitemaps: [{ url: O + '/sitemap.xml', urls: [O + '/', O + '/a', O + '/b'] }] }, pages: [
+    page('/', { profondeur: 0, liens: [{ href: '/a?utm_source=x#haut', texte: 'A' }, { href: '/b?utm_medium=y', texte: 'B' }] }),
+    page('/a', { liens: LIEN_ACCUEIL }),
+  ] }))
+  assert.ok(!ids(suivi).includes('GEO-PAGE-ORPHELINE'))
+})
+
+test('contenu dupliqué : une page sans canonical et une avec canonical ne partagent pas de canonical commun', () => {
+  const cs = ctl(collecte({ pages: [
+    page('/', { profondeur: 0, liens: [...LIEN_A, { href: '/b', texte: 'B' }] }),
+    page('/a', { empreinte_texte: 'same', canonical: null, liens: LIEN_ACCUEIL }),
+    page('/b', { empreinte_texte: 'same', canonical: O + '/a', liens: LIEN_ACCUEIL }),
+  ] }))
+  assert.ok(!ids(cs).includes('GEO-CONTENU-DUPLIQUE'))
+})
+
+test('noindex : seulement la page de départ et les pages du sitemap', () => {
+  const ps = () => [
+    page('/', { profondeur: 0, liens: [...LIEN_A, { href: '/merci', texte: 'M' }] }),
+    page('/a', { liens: LIEN_ACCUEIL }),
+    page('/merci', { robots: 'noindex', liens: LIEN_ACCUEIL }),
+  ]
+  const horsSitemap = ctl(collecte({ pages: ps(), site: { sitemaps: [{ url: O + '/sitemap.xml', urls: [O + '/', O + '/a'] }] } }))
+  assert.ok(!ids(horsSitemap).includes('GEO-NOINDEX'))
+  const listee = ctl(collecte({ pages: ps() }))
+  assert.deepEqual(trouver(listee, 'GEO-NOINDEX').pages, [O + '/merci'])
+})
+
+const NL = String.fromCharCode(10)
+const robotsTxt = (...lignes) => lignes.join(NL) + NL
+
+test('robots-ia : la politique liste aussi jetons de contrôle et CCBot, sans recommandation', () => {
+  const c = trouver(ctl(collecte({ site: { robotsTxt: robotsTxt('User-agent: Google-Extended', 'Disallow: /', '', 'User-agent: CCBot', 'Disallow: /') } })), 'GEO-ROBOTS-ENTRAINEMENT-POLITIQUE')
+  assert.match(c.detail, /jetons de contrôle - bloqués : Google-Extended/)
+  assert.match(c.detail, /corpus ouvert - bloqués : CCBot/)
+  assert.doesNotMatch(c.detail, /recommand(?!ation)|autoriser|il faut|conseill/i)
+})
+
+test('robots-ia : Google-CloudVertexBot bloqué ne déclenche pas GEO-ROBOTS-RECHERCHE-BLOQUE', () => {
+  const cs = ctl(collecte({ site: { robotsTxt: robotsTxt('User-agent: Google-CloudVertexBot', 'Disallow: /') } }))
+  assert.ok(!ids(cs).includes('GEO-ROBOTS-RECHERCHE-BLOQUE'))
 })

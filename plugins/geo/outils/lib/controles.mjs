@@ -3,7 +3,7 @@
 // append one `def(...)` line here and one section in references/constats.md; the parity test checks both.
 import { extrait } from './sortie.mjs'
 import { analyserRobots, evaluerRobotsIa } from './robots.mjs'
-import { lireSitemap } from './collecter.mjs'
+import { lireSitemap, normaliser } from './collecter.mjs'
 
 const def = (id, severite, categorie, description, classe = 'deterministe') => ({ id, severite, categorie, classe, description })
 
@@ -44,7 +44,7 @@ export const CATALOGUE = [
   def('GEO-HREFLANG-XDEFAULT', 'mineur', 'international', 'Des hreflang sont déclarés sans entrée x-default.'),
   // données structurées
   def('GEO-JSONLD-INVALIDE', 'important', 'donnees-structurees', 'Bloc JSON-LD illisible (JSON invalide).'),
-  def('GEO-JSONLD-AVIS-NON-VISIBLES', 'important', 'donnees-structurees', 'AggregateRating ou Review dont la note n’apparaît pas dans le texte visible de la page.'),
+  def('GEO-JSONLD-AVIS-NON-VISIBLES', 'important', 'donnees-structurees', 'AggregateRating dont la note n’apparaît pas dans le texte visible de la page (arrondie à une décimale).', 'heuristique'),
   // fraîcheur
   def('GEO-DATE-ABSENTE', 'mineur', 'contenu', 'Aucune date de publication ni de modification sur une page d’article ou de documentation.', 'heuristique'),
 ]
@@ -91,9 +91,15 @@ function controlesIndexation(c, ctx) {
   const { pages, site } = c
   const sortie = []
 
-  // noindex
-  const meta = pages.filter((p) => MOTIF_NOINDEX.test(texte(p.robots)))
-  const entete = pages.filter((p) => MOTIF_NOINDEX.test(texte(p.entetes?.x_robots_tag)))
+  // sitemap URLs, needed by the noindex scope below and by the sitemap checks
+  const sitemapsTous = site.sitemaps ?? []
+  const urlsSitemapTous = [...sitemapsTous.flatMap((s) => s.urls ?? [])]
+  if (typeof site.sitemapXml === 'string') urlsSitemapTous.push(...lireSitemap(site.sitemapXml).locs)
+  const clesSitemap = new Set(urlsSitemapTous.map((u) => cleChemin(u, ctx.hote)))
+  // noindex only matters on the start page and on pages the site itself lists in its sitemap; any other noindex page is the owner's choice
+  const enPortee = (p) => p.profondeur === 0 || clesSitemap.has(cleChemin(p.url, ctx.hote))
+  const meta = pages.filter((p) => enPortee(p) && MOTIF_NOINDEX.test(texte(p.robots)))
+  const entete = pages.filter((p) => enPortee(p) && MOTIF_NOINDEX.test(texte(p.entetes?.x_robots_tag)))
   if (meta.length || entete.length) {
     const tous = tri([...meta, ...entete].map((p) => p.url))
     const parts = []
@@ -190,23 +196,32 @@ function controlesIndexation(c, ctx) {
     sortie.push({ id: 'GEO-PROFONDEUR', pages: l, preuve: { type: 'calcul', url: l[0], detail: `profondeur maximale ${n} clics (plus court chemin depuis la page de départ)` }, detail: `${l.length} page(s) à plus de 3 clics.` })
   }
 
-  // orphans: in the sitemap, no inbound link from another explored page
+  // orphans: listed in the sitemap, no inbound link from another explored page.
+  // Links are resolved with the collector's normaliser (fragments and tracking parameters dropped, parameters sorted);
+  // redirect targets count as aliases. In crawl mode every collected page was reached by a link, so only
+  // uncollected sitemap URLs can be orphans; in folder mode (no origin) collected pages are checked too.
+  const cle = (u, base) => { const n = normaliser(u, base); return n ? cleChemin(n, ctx.hote) : null }
+  const modeDossier = site.racine == null
   const entrants = new Set()
   for (const p of pages) {
     const soi = cleChemin(p.url, ctx.hote)
+    let base
+    try { base = new URL(p.url, BASE).href } catch { continue }
     for (const l of p.liens ?? []) {
-      const k = cleChemin(new URL(texte(l.href) || '.', new URL(p.url, BASE)).href, ctx.hote)
+      const k = cle(texte(l.href), base)
       if (k !== null && k !== soi) entrants.add(k)
     }
   }
   const erreursUrls = new Set((c.erreurs ?? []).map((e) => cleChemin(texte(e.url), ctx.hote)))
   const reperees = new Set(pages.flatMap((p) => [cleChemin(p.url, ctx.hote), ...(p.redirections ?? []).map((r) => cleChemin(r, ctx.hote))]))
   const orphelines = []
-  for (const u of new Set(urlsSitemap)) {
+  for (const u of new Set(urlsSitemapTous)) {
     const k = cleChemin(u, ctx.hote)
     if (k === null || entrants.has(k) || erreursUrls.has(k) || site.waf?.detecte) continue
+    const kn = cle(u, BASE)
+    if (kn !== null && entrants.has(kn)) continue
     const p = parCle.get(k)
-    if (p) { if (p.profondeur > 0) orphelines.push(p.url) }
+    if (p) { if (modeDossier && p.profondeur > 0) orphelines.push(p.url) }
     else if (!reperees.has(k) && !c.exploration?.limite_atteinte && pages.length) orphelines.push(u)
   }
   if (orphelines.length) {
@@ -224,7 +239,7 @@ function controlesIndexation(c, ctx) {
   const dupliquees = []
   for (const g of groupes.values()) {
     if (g.length < 2) continue
-    const cles = g.map((p) => (p.canonical ? cleChemin(p.canonical, ctx.hote) : null))
+    const cles = g.map((p) => cleChemin(p.canonical || p.url, ctx.hote))
     if (cles[0] !== null && cles.every((k) => k === cles[0])) continue
     dupliquees.push(...g.map((p) => p.url))
   }
@@ -248,7 +263,7 @@ function controlesRobotsIa(c, ctx, registre) {
     const pagesDe = (liste) => tri(liste.flatMap((v) => v.chemins_bloques.map((k) => parChemin.get(k))))
     const preuveRobots = (liste, ce) => ({ type: 'robots', url: racine + '/robots.txt', detail: `${liste.map((v) => v.jeton).join(', ')} : ${ce} (groupe appliqué : ${liste[0].groupe}) ; évaluation RFC 9309 de robots.txt` })
 
-    const recherche = bloques('indexation')
+    const recherche = bloques('indexation').filter((v) => v.jeton !== 'Google-CloudVertexBot') // crawls requested by the owner themselves
     if (recherche.length) {
       sortie.push({ id: 'GEO-ROBOTS-RECHERCHE-BLOQUE', pages: pagesDe(recherche), preuve: preuveRobots(recherche, 'robot d’indexation bloqué'),
         detail: `Robot(s) d’indexation documenté(s) bloqué(s) par robots.txt : ${recherche.map((v) => v.jeton).join(', ')}.` })
@@ -258,13 +273,21 @@ function controlesRobotsIa(c, ctx, registre) {
       sortie.push({ id: 'GEO-ROBOTS-CONSULTATION-BLOQUE', pages: pagesDe(consultation), preuve: preuveRobots(consultation, 'robot de consultation bloqué'),
         detail: `Robot(s) de consultation à la demande bloqué(s) par robots.txt : ${consultation.map((v) => v.jeton).join(', ')}. Plusieurs éditeurs indiquent que robots.txt peut ne pas s’appliquer à ces robots.` })
     }
-    const entrainement = verdicts.filter((v) => v.role === 'entrainement')
-    if (entrainement.length) {
-      const bl = entrainement.filter((v) => v.chemins_bloques.length).map((v) => v.jeton)
-      const ok = entrainement.filter((v) => !v.chemins_bloques.length).map((v) => v.jeton)
+    // Observed policy only: training crawlers, control tokens and CCBot (open corpus) are listed apart, never with advice.
+    const groupes = [
+      ['robots d’entraînement', verdicts.filter((v) => v.role === 'entrainement')],
+      ['jetons de contrôle', verdicts.filter((v) => v.role === 'controle')],
+      ['corpus ouvert', verdicts.filter((v) => v.jeton === 'CCBot')],
+    ].filter(([, l]) => l.length)
+    if (groupes.length) {
+      const dec = groupes.map(([nom, l]) => {
+        const bl = l.filter((v) => v.chemins_bloques.length).map((v) => v.jeton)
+        const ok = l.filter((v) => !v.chemins_bloques.length).map((v) => v.jeton)
+        return `${nom} - bloqués : ${bl.join(', ') || 'aucun'} ; non bloqués : ${ok.join(', ') || 'aucun'}`
+      })
       sortie.push({ id: 'GEO-ROBOTS-ENTRAINEMENT-POLITIQUE', pages: [],
-        preuve: { type: 'robots', url: racine + '/robots.txt', detail: `bloqués : ${bl.join(', ') || 'aucun'} ; non bloqués : ${ok.join(', ') || 'aucun'} (évaluation RFC 9309 de robots.txt)` },
-        detail: `Politique observée pour les robots d’entraînement documentés. Bloqués : ${bl.join(', ') || 'aucun'}. Non bloqués : ${ok.join(', ') || 'aucun'}. Ce choix revient au propriétaire du site ; ce constat décrit l’état observé et ne contient aucune recommandation.` })
+        preuve: { type: 'robots', url: racine + '/robots.txt', detail: `${dec.join(' | ')} (évaluation RFC 9309 de robots.txt)` },
+        detail: `Politique observée. ${dec.join('. ')}. Ce choix revient au propriétaire du site ; ce constat décrit l’état observé et ne contient aucune recommandation.` })
     }
     const signal = analyserRobots(site.robotsTxt).contentSignal
     if (signal) {
@@ -357,7 +380,7 @@ function controlesInternational(c, ctx) {
   const { pages } = c
   const sortie = []
   const parCle = new Map(pages.map((p) => [cleChemin(p.url, ctx.hote), p]))
-  const cible = (p, h) => cleChemin(new URL(texte(h.href) || '.', new URL(p.url, BASE)).href, ctx.hote)
+  const cible = (p, h) => { try { return cleChemin(new URL(texte(h.href) || '.', new URL(p.url, BASE)).href, ctx.hote) } catch { return null } }
   const sansRetour = []
   for (const p of pages) {
     const soi = cleChemin(p.url, ctx.hote)
@@ -379,12 +402,17 @@ function controlesInternational(c, ctx) {
   return sortie
 }
 
-// A rating value is "visible" when the number appears as its own token in the page text ("4.8" or "4,8").
+// An aggregate rating is "visible" when a number of the page text equals it once both are rounded to one
+// decimal (comma or dot): 4.67 is shown as "4,7" or "4.7".
 function noteVisible(valeur, visible) {
-  const v = String(valeur).trim()
-  if (!/^\d+([.,]\d+)?$/.test(v)) return false
-  const motif = v.replace(/[.,]/g, '[.,]')
-  return new RegExp(`(?<!\\d)(?<!\\d[.,])${motif}(?!\\d)(?![.,]\\d)`).test(visible)
+  const v = Number(String(valeur).trim().replace(',', '.'))
+  if (!Number.isFinite(v)) return false
+  const cible = v.toFixed(1)
+  for (const m of visible.matchAll(/(?<!\d)\d+(?:[.,]\d+)?(?!\d)/g)) {
+    const x = Number(m[0].replace(',', '.'))
+    if (Number.isFinite(x) && x.toFixed(1) === cible) return true
+  }
+  return false
 }
 
 function controlesDonnees(c) {
@@ -400,7 +428,6 @@ function controlesDonnees(c) {
     for (const n of noeuds(p.jsonld)) {
       const t = types(n)
       if (t.includes('AggregateRating') && n.ratingValue !== undefined) valeurs.push(n.ratingValue)
-      if (t.includes('Review') && n.reviewRating && n.reviewRating.ratingValue !== undefined) valeurs.push(n.reviewRating.ratingValue)
     }
     if (!valeurs.length) return false
     const visible = [...(p.blocs ?? []).map((b) => b.texte), ...(p.hn ?? []).map((h) => h.texte)].join('\n')
@@ -408,7 +435,7 @@ function controlesDonnees(c) {
   })
   if (sansAvis.length) {
     const l = tri(sansAvis.map((p) => p.url))
-    sortie.push({ id: 'GEO-JSONLD-AVIS-NON-VISIBLES', pages: l, preuve: { type: 'jsonld', url: l[0], detail: `ratingValue d’un AggregateRating / Review absent du texte visible (${l.length} page(s))` }, detail: `${l.length} page(s) déclarent une note en JSON-LD qui n’apparaît pas dans le texte visible.` })
+    sortie.push({ id: 'GEO-JSONLD-AVIS-NON-VISIBLES', pages: l, preuve: { type: 'jsonld', url: l[0], detail: `ratingValue d’un AggregateRating absent du texte visible (arrondi à une décimale) (${l.length} page(s))` }, detail: `${l.length} page(s) déclarent une note en JSON-LD qui n’apparaît pas dans le texte visible.` })
   }
   return sortie
 }

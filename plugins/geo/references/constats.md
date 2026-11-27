@@ -322,9 +322,9 @@ Chaque constat porte une preuve `{ type, url, detail }` reproductible. Les extra
 
 **Gravité** : important
 
-- Catégorie : donnees-structurees ; classe : deterministe
-- Description : AggregateRating ou Review dont la note n’apparaît pas dans le texte visible de la page.
-- Preuve attendue : jsonld : `ratingValue` d’un `AggregateRating` ou `Review` absent du texte visible.
+- Catégorie : donnees-structurees ; classe : heuristique
+- Description : AggregateRating dont la note n’apparaît pas dans le texte visible de la page (arrondie à une décimale).
+- Preuve attendue : jsonld : `ratingValue` d’un `AggregateRating` absent du texte visible (comparaison arrondie à une décimale, virgule ou point).
 - Correction type : Afficher la note sur la page ou retirer le balisage : les données structurées doivent correspondre au contenu visible.
 - Source officielle : https://developers.google.com/search/docs/appearance/ai-features
 

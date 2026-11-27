@@ -25,7 +25,7 @@ function empreinte(blocs) {
 
 // Absolute http(s) URL without fragment and tracking parameters (remaining ones sorted), or null.
 // Links to files that are not pages (images, PDF...) are not crawled.
-function normaliser(href, base) {
+export function normaliser(href, base) {
   if (typeof href !== 'string' || !href.trim() || /^\s*(#|mailto:|tel:|javascript:|sms:|data:)/i.test(href)) return null
   let u
   try { u = new URL(href.trim(), base) } catch { return null }
