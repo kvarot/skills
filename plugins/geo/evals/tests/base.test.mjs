@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
 import { ouvrirBase } from '../../outils/lib/base.mjs'
 
@@ -31,8 +31,9 @@ test('ouverture deux fois : migration appliquee une seule fois, dossier parent c
 
 test('enregistrerAudit puis dernierAudit : memes constats, dernier gagne', async () => {
   const dir = dossierTemp()
+  let base
   try {
-    const base = await ouvrirBase(path.join(dir, 'geo.sqlite'))
+    base = await ouvrirBase(path.join(dir, 'geo.sqlite'))
     const constats = [{ id: 'GEO-X', preuve: { type: 'http', url: 'https://a.example/', detail: 'curl' } }]
     assert.equal(base.dernierAudit('https://a.example'), null)
     const id1 = base.enregistrerAudit({ origine: 'https://a.example', version_moteur: '0.1.0', collecte_resume: { pages: 1 }, constats: [] })
@@ -43,16 +44,17 @@ test('enregistrerAudit puis dernierAudit : memes constats, dernier gagne', async
     assert.deepEqual(audit.constats, constats)
     assert.deepEqual(audit.resume, { pages: 2 })
     assert.equal(base.dernierAudit('https://autre.example'), null)
-    base.fermer()
   } finally {
+    base?.fermer()
     fs.rmSync(dir, { recursive: true, force: true })
   }
 })
 
 test('enregistrerJeu / jeu : relecture, empreinte dupliquee refusee en francais', async () => {
   const dir = dossierTemp()
+  let base
   try {
-    const base = await ouvrirBase(path.join(dir, 'geo.sqlite'))
+    base = await ouvrirBase(path.join(dir, 'geo.sqlite'))
     const jeu = {
       origine: 'https://a.example', empreinte: 'abc123', version: '1', langue: 'fr', pays: 'FR', niveau: 'standard', graine: 42,
       scenarios: [{ texte: 'Quel est le meilleur plombier ?', profil: 'particulier', intention: 'recherche', poids: 1.5, avec_marque: false }],
@@ -66,27 +68,56 @@ test('enregistrerJeu / jeu : relecture, empreinte dupliquee refusee en francais'
     assert.equal(base.jeu('inconnu'), null)
     assert.throws(() => base.enregistrerJeu(jeu), /empreinte.*existe déjà/)
     assert.equal(base.jeu('abc123').scenarios.length, 1)
-    base.fermer()
   } finally {
+    base?.fermer()
     fs.rmSync(dir, { recursive: true, force: true })
   }
 })
 
-test('contraintes : concurrent.origine hors liste refusee, cles etrangeres actives', async () => {
+test('contraintes : CHECK concurrent.origine, cles etrangeres et busy_timeout actifs via le module', async () => {
   const dir = dossierTemp()
   const fichier = path.join(dir, 'geo.sqlite')
+  let base
+  let db
   try {
-    const base = await ouvrirBase(fichier)
+    base = await ouvrirBase(fichier)
+    assert.equal(base.pragma('foreign_keys'), 1)
+    assert.equal(base.pragma('busy_timeout'), 5000)
+    assert.throws(() => base.pragma('foreign_keys; DROP TABLE site'), /invalide/)
     base.enregistrerAudit({ origine: 'https://a.example', version_moteur: '0.1.0', collecte_resume: {}, constats: [] })
     base.fermer()
+    base = null
     const { DatabaseSync } = await import('node:sqlite')
-    const db = new DatabaseSync(fichier)
-    db.exec('PRAGMA foreign_keys=ON')
+    db = new DatabaseSync(fichier)
     assert.throws(() => db.prepare("INSERT INTO concurrent(site_id, nom, origine, confirme) VALUES (1, 'X', 'autre', 0)").run(), /CHECK/)
     db.prepare("INSERT INTO concurrent(site_id, nom, origine, confirme) VALUES (1, 'X', 'declare', 0)").run()
-    assert.throws(() => db.prepare("INSERT INTO concurrent(site_id, nom, origine, confirme) VALUES (999, 'X', 'declare', 0)").run(), /FOREIGN KEY/)
-    db.close()
   } finally {
+    db?.close()
+    base?.fermer()
+    fs.rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('ouvertures concurrentes dans deux processus : une ligne par version', async () => {
+  const dir = dossierTemp()
+  const fichier = path.join(dir, 'geo.sqlite')
+  let db
+  try {
+    const mod = pathToFileURL(path.resolve('plugins/geo/outils/lib/base.mjs')).href
+    const code = `import(${JSON.stringify(mod)}).then(async m => { const b = await m.ouvrirBase(${JSON.stringify(fichier)}); b.fermer() })`
+    const lancer = () => new Promise((resolve) => {
+      const p = spawn(process.execPath, ['-e', code], { stdio: ['ignore', 'ignore', 'pipe'] })
+      let err = ''
+      p.stderr.on('data', (d) => { err += d })
+      p.on('close', (status) => resolve({ status, err }))
+    })
+    const res = await Promise.all([lancer(), lancer(), lancer(), lancer()])
+    for (const r of res) assert.deepEqual(r, { status: 0, err: '' })
+    const { DatabaseSync } = await import('node:sqlite')
+    db = new DatabaseSync(fichier)
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM migration').get().n, 1)
+  } finally {
+    db?.close()
     fs.rmSync(dir, { recursive: true, force: true })
   }
 })

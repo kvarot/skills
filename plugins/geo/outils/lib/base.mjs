@@ -67,12 +67,15 @@ export const MIGRATIONS = [
 
 // Applies pending migrations, each in its own transaction (rolled back on failure).
 export function appliquerMigrations(db, migrations = MIGRATIONS) {
-  db.exec('CREATE TABLE IF NOT EXISTS migration (version INTEGER PRIMARY KEY, appliquee_le TEXT NOT NULL)')
-  const faites = new Set(db.prepare('SELECT version FROM migration').all().map((r) => r.version))
   for (const m of migrations) {
-    if (faites.has(m.version)) continue
-    db.exec('BEGIN')
+    // IMMEDIATE takes the write lock up front; the version is re-checked inside it so concurrent processes cannot both apply it.
+    db.exec('BEGIN IMMEDIATE')
     try {
+      db.exec('CREATE TABLE IF NOT EXISTS migration (version INTEGER PRIMARY KEY, appliquee_le TEXT NOT NULL)')
+      if (db.prepare('SELECT 1 FROM migration WHERE version = ?').get(m.version)) {
+        db.exec('COMMIT')
+        continue
+      }
       db.exec(m.sql)
       db.prepare('INSERT INTO migration(version, appliquee_le) VALUES (?, ?)').run(m.version, new Date().toISOString())
       db.exec('COMMIT')
@@ -89,6 +92,7 @@ export async function ouvrirBase(fichier = path.join(cheminDonnees(), 'geo.sqlit
   fs.mkdirSync(path.dirname(fichier), { recursive: true })
   const db = new DatabaseSync(fichier)
   try {
+    db.exec('PRAGMA busy_timeout=5000')
     db.exec('PRAGMA journal_mode=WAL')
     db.exec('PRAGMA foreign_keys=ON')
     appliquerMigrations(db)
@@ -107,7 +111,7 @@ export async function ouvrirBase(fichier = path.join(cheminDonnees(), 'geo.sqlit
   }
 
   function dansTransaction(fn) {
-    db.exec('BEGIN')
+    db.exec('BEGIN IMMEDIATE')
     try {
       const r = fn()
       db.exec('COMMIT')
@@ -134,17 +138,21 @@ export async function ouvrirBase(fichier = path.join(cheminDonnees(), 'geo.sqlit
         'SELECT a.* FROM audit a JOIN site s ON s.id = a.site_id WHERE s.origine = ? ORDER BY a.id DESC LIMIT 1'
       ).get(origine)
       if (!l) return null
-      return {
-        id: l.id, origine, date: l.date, version_moteur: l.version_moteur, version_poids: l.version_poids,
-        resume: JSON.parse(l.resume_json), constats: JSON.parse(l.constats_json),
+      let resume, constats
+      try {
+        resume = JSON.parse(l.resume_json)
+        constats = JSON.parse(l.constats_json)
+      } catch {
+        throw new ErreurGeo(`Audit ${l.id} illisible : JSON corrompu dans la base.`)
       }
+      return { id: l.id, origine, date: l.date, version_moteur: l.version_moteur, version_poids: l.version_poids, resume, constats }
     },
 
     enregistrerJeu(jeu) {
-      if (db.prepare('SELECT 1 FROM jeu WHERE empreinte = ?').get(jeu.empreinte)) {
-        throw new ErreurGeo(`Un jeu d'empreinte ${jeu.empreinte} existe déjà.`)
-      }
-      return dansTransaction(() => {
+      const doublon = () => new ErreurGeo(`Un jeu d'empreinte ${jeu.empreinte} existe déjà.`)
+      try {
+        return dansTransaction(() => {
+        if (db.prepare('SELECT 1 FROM jeu WHERE empreinte = ?').get(jeu.empreinte)) throw doublon()
         const site = idSite(jeu.origine)
         const r = db.prepare(
           'INSERT INTO jeu(site_id, empreinte, version, langue, pays, niveau, graine, cree_le) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
@@ -155,7 +163,17 @@ export async function ouvrirBase(fichier = path.join(cheminDonnees(), 'geo.sqlit
           ins.run(id, s.texte, s.profil ?? null, s.intention ?? null, s.poids ?? null, s.avec_marque ? 1 : 0)
         }
         return id
-      })
+        })
+      } catch (e) {
+        if (/UNIQUE constraint failed: jeu.empreinte/.test(e?.message ?? '')) throw doublon()
+        throw e
+      }
+    },
+
+    // Read-only PRAGMA lookup (e.g. 'foreign_keys'), used by tests to check connection settings.
+    pragma(nom) {
+      if (!/^[a-z_]+$/.test(nom)) throw new ErreurGeo('Nom de PRAGMA invalide.')
+      return Object.values(db.prepare(`PRAGMA ${nom}`).get() ?? {})[0] ?? null
     },
 
     jeu(empreinte) {
